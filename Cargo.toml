@@ -1,0 +1,25 @@
+[package]
+name = "audia"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+vizia = { git = "https://github.com/vizia/vizia", branch = "widget-update", features = ["serde"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+image = {version = "0.25", default-features = false, features = ["png", "jpeg"]}
+
+dirs = "6"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+webbrowser = "1"
+base64 = "0.22"
+sha2 = "0.10"
+rand = "0.8"
+librespot-core = { git = "https://github.com/librespot-org/librespot", package = "librespot-core" }
+librespot-playback = { git = "https://github.com/librespot-org/librespot", package = "librespot-playback", default-features = false, features = ["rodio-backend"] }
+urlencoding = "2"
+rfd = "0.16"
+fuzzy-matcher = "0.3.7"
+
+ron = "0.12.0"

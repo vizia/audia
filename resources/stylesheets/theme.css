@@ -1,0 +1,262 @@
+:root {
+}
+
+.dark {
+    --primary: #ba710c;
+    --primary-foreground: #f0f0f0;
+}
+
+.dialog {
+    background-color: var(--background);
+}
+
+/* Login Dialog */
+
+.login-title {
+    font-size: 24px;
+    font-weight: bold;
+    padding-bottom: 12px;
+}
+
+/* Preferences */
+
+.page-tab {
+    corner-radius: 4px;
+}
+
+.page-tab:hover {
+    background-color: var(--sidebar-accent);
+}
+
+.page-tab.selected {
+    background-color: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
+}
+
+.page-tab:disabled {
+    background-color: transparent;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: bold;
+    height: auto;
+    alignment: left;
+    padding-left: 24px;
+    padding-bottom: 12px;
+}
+
+.sidebar {
+    background-color: var(--sidebar);
+}
+
+.settings-card {
+    background-color: var(--card);
+    border-width: 1px;
+    border-color: var(--border);
+    shadow: 0px 1px 3px #0000001a;
+    corner-radius: 4px;
+    alignment: left;
+    height: auto;
+    padding: 12px;
+    gap: 12px;
+}
+
+.settings-card-top {
+    corner-top-left-radius: 4px;
+    corner-top-right-radius: 4px;
+    corner-bottom-left-radius: 0px;
+    corner-bottom-right-radius: 0px;
+    alignment: left;
+    height: auto;
+    padding: 12px;
+    gap: 12px;
+}
+
+.settings-card-bottom {
+    corner-top-left-radius: 0px;
+    corner-top-right-radius: 0px;
+    corner-bottom-left-radius: 4px;
+    corner-bottom-right-radius: 4px;
+    alignment: left;
+    height: auto;
+    padding: 12px;
+    gap: 12px;
+}
+
+.settings-card-middle {
+    corner-radius: 0px;
+}
+
+.dialog scrollbar.vertical {
+    right: 2px;
+}
+
+/* Panels */
+
+.panel {
+    --accent: #b67711a7;
+    corner-radius: 12px;
+    border-width: 1px;
+    border-color: var(--border);
+    background-color: rgba(71, 71, 71, 0.552);
+    backdrop-filter: blur(50px);
+    shadow: 0px 1px 3px #0000001a;
+}
+
+.blurred-artwork {
+    filter: blur(100px);
+    background-size: cover;
+}
+
+.panel-title {
+    font-size: 18px;
+    font-weight: bold;
+    height: auto;
+    alignment: left;
+    padding: 12px;
+}
+
+.panel list-item {
+    gap: 8px;
+    alignment: left;
+    height: auto;
+    padding: 4px;
+    corner-radius: 8px;
+}
+
+/* Header */
+
+.header {
+    alignment: center;
+    gap: 8px;
+    height: auto;
+    padding: 8px;
+}
+
+.search-box {
+    font-size: 20px;
+    height: auto;
+    padding: 12px;
+    corner-radius: 8px;
+    background-color: rgba(71, 71, 71, 0.552);
+    backdrop-filter: blur(50px);
+    shadow: 0px 1px 3px #0000001a;
+}
+
+button.preferences-button {
+    background-color: transparent;
+    fill: var(--muted-foreground);
+}
+
+button.preferences-button:hover {
+    background-color: transparent;
+    fill: var(--primary-foreground);
+}
+
+/* Playback */
+
+.transport {
+    gap: 8px;
+    alignment: center;
+}
+
+.playback-toggle {
+    width: 50px;
+    height: 50px;
+    corner-radius: 50%;
+}
+
+.playback-skip-forward,
+.playback-skip-back {
+    background-color: transparent;
+    fill: var(--muted-foreground);
+    width: 32px;
+    height: 32px;
+    corner-radius: 50%;
+}
+
+.playback-skip-forward:hover,
+.playback-skip-back:hover {
+    background-color: transparent;
+    fill: var(--primary-foreground);
+}
+
+/* Now Playing */
+
+.album-art {
+    corner-radius: 4px;
+    background-size: cover;
+}
+
+.now-playing-title {
+    font-size: 16px;
+    font-weight: bold;
+    width: 1s;
+    text-wrap: false;
+}
+.now-playing-artist {
+    font-size: 14px;
+    color: var(--accent-foreground);
+}
+
+/* Playlist */
+
+.playlist-name {
+    font-size: 13px;
+    width: 1s;
+    text-wrap: false;
+}
+
+/* Search */
+
+.result-row {
+    gap: 8px;
+    alignment: center;
+    height: auto;
+    width: 1s;
+}
+
+.search-section-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--accent-foreground);
+    padding: 4px;
+    padding-top: 12px;
+}
+
+.search-result-title {
+    font-size: 14px;
+    font-weight: bold;
+    width: 1s;
+    text-wrap: false;
+    text-overflow: ellipsis;
+}
+
+.search-result-artist {
+    font-size: 13px;
+    color: var(--accent-foreground);
+    width: 1s;
+    text-wrap: false;
+    text-overflow: ellipsis;
+}
+
+.search-result-duration {
+    width: 44px;
+    text-align: right;
+    color: var(--accent-foreground);
+}
+
+.search-result-fallback {
+    width: 48px;
+    height: 48px;
+    corner-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.08);
+    child-space: 1s;
+    text-align: center;
+}
+
+.search-results-panel list > scrollview {
+    width: 1s;
+    height: auto;
+}

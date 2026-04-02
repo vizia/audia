@@ -1,0 +1,61 @@
+use crate::messages::Track;
+use crate::ui::events::PlaybackUiEvent;
+use vizia::prelude::*;
+
+pub fn queue_panel(
+    cx: &mut Context,
+    queue_tracks: Signal<Vec<Track>>,
+    queue_current_index: Signal<Option<usize>>,
+) {
+    VStack::new(cx, |cx| {
+        Label::new(cx, "Queue").class("panel-title");
+
+        List::new(cx, queue_tracks, move |cx, index, item| {
+            HStack::new(cx, |cx| {
+                let image_key = item.map(|track| track.album_image_key.clone());
+
+                Binding::new(cx, image_key, move |cx| {
+                    if let Some(key) = image_key.get() {
+                        Image::new(cx, key).size(Pixels(40.0)).class("album-art");
+                    } else {
+                        Label::new(cx, "♪")
+                            .size(Pixels(40.0))
+                            .class("search-result-fallback");
+                    }
+                });
+
+                VStack::new(cx, |cx| {
+                    Label::new(cx, item.map(|track| track.name.clone()))
+                        .text_wrap(false)
+                        .class("search-result-title");
+                    Label::new(cx, item.map(|track| track.artist.clone()))
+                        .text_wrap(false)
+                        .class("search-result-artist");
+                })
+                .width(Stretch(1.0))
+                .height(Auto)
+                .gap(Pixels(2.0));
+            })
+            .hoverable(false)
+            .class("result-row")
+            .toggle_class(
+                "playing",
+                queue_current_index.map(move |idx| idx.is_some_and(|i| i == index)),
+            )
+            .width(Stretch(1.0))
+            .alignment(Alignment::Center)
+            .gap(Pixels(8.0));
+        })
+        .selectable(Selectable::Single)
+        .selected(queue_current_index.map(|idx| idx.map_or_else(Vec::new, |i| vec![i])))
+        .selection_follows_focus(true)
+        .on_select(|cx, idx| cx.emit(PlaybackUiEvent::SelectQueueTrack(idx)))
+        .height(Stretch(1.0));
+    })
+    .class("panel")
+    .class("queue-panel")
+    .width(Stretch(1.0))
+    .height(Stretch(1.0))
+    .padding(Pixels(8.0))
+    .gap(Pixels(4.0));
+}

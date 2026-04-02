@@ -1,0 +1,7 @@
+(
+    search_string: "",
+    selected_language: Some(1),
+    selected_theme: Some(1),
+    follow_system_theme: false,
+    plugins_path: "",
+)
