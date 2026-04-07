@@ -108,6 +108,7 @@ impl Model for PlaybackState {
                 self.playback_track_artist.set("".to_string());
                 self.playback_track_image_key.set(None);
                 self.playback_overlay_image_key.set(None);
+                cx.emit(PlaybackUiEvent::Stop);
             }
             PlaybackUiEvent::ShuffleQueue => {
                 let mut tracks = self.queue_tracks.get();
@@ -290,6 +291,12 @@ impl Model for PlaybackState {
                         }
                     }
                 }
+            }
+            PlaybackUiEvent::Stop => {
+                self.playback_is_playing.set(false);
+                self.playback_scrub_percent.set(0.0);
+                self.playback_track_name.set("".to_string());
+                worker::playback_stop(self.backend.clone(), cx.get_proxy());
             }
             PlaybackUiEvent::Resume => match self.selected_playback_target.get() {
                 Some(PlaybackTarget::Local) => {

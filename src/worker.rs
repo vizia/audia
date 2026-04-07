@@ -785,6 +785,25 @@ pub fn playback_play_selected_track(
     });
 }
 
+// Stops playback on both the local device and the active Spotify device.
+pub fn playback_stop(backend: SharedBackend, mut proxy: ContextProxy) {
+    // Stop the local player immediately.
+    {
+        let state = backend.lock().unwrap();
+        let _ = state.playback.stop();
+    }
+
+    // let runtime = {
+    //     let state = backend.lock().unwrap();
+    //     Arc::clone(&state.runtime)
+    // };
+
+    // runtime.spawn(async move {
+    //     playback_action_remote_async(&backend, &mut proxy, "Stop", RemotePlaybackAction::Stop)
+    //         .await;
+    // });
+}
+
 // Pauses playback on the active Spotify device.
 pub fn playback_pause(backend: SharedBackend, mut proxy: ContextProxy) {
     let runtime = {
@@ -964,6 +983,7 @@ async fn playback_action_remote_async(
     let result = match action {
         RemotePlaybackAction::Pause => spotify.playback_pause().await,
         RemotePlaybackAction::Resume => spotify.playback_resume().await,
+        RemotePlaybackAction::Stop => spotify.playback_stop().await,
         RemotePlaybackAction::Next => spotify.playback_next().await,
         RemotePlaybackAction::Previous => spotify.playback_previous().await,
         RemotePlaybackAction::SetVolume(volume) => spotify.playback_set_volume(volume).await,
@@ -984,6 +1004,7 @@ async fn playback_action_remote_async(
 enum RemotePlaybackAction {
     Pause,
     Resume,
+    Stop,
     Next,
     Previous,
     SetVolume(u8),

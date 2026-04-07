@@ -556,6 +556,12 @@ impl SpotifyService {
         self.playback_command("pause", reqwest::Method::PUT).await
     }
 
+    // Stops playback on the user's active device. The Spotify Web API has no dedicated
+    // stop endpoint; this pauses playback, which is the closest equivalent.
+    pub async fn playback_stop(&self) -> Result<(), String> {
+        self.playback_pause().await
+    }
+
     // Skips to the next track on the user's active device.
     pub async fn playback_next(&self) -> Result<(), String> {
         self.playback_command("next", reqwest::Method::POST).await

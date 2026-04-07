@@ -203,6 +203,18 @@ impl PlaybackService {
         Ok(())
     }
 
+    pub fn stop(&self) -> Result<(), String> {
+        let player = self
+            .player
+            .as_ref()
+            .ok_or_else(|| "Local player is not initialized".to_string())?;
+
+        player.stop();
+        self.progress_position_ms.store(0, Ordering::Relaxed);
+        self.progress_is_playing.store(false, Ordering::Relaxed);
+        Ok(())
+    }
+
     pub fn playback_progress(&self) -> Option<(u32, u32, bool)> {
         Some((
             self.progress_position_ms.load(Ordering::Relaxed),

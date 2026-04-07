@@ -12,6 +12,7 @@ pub enum PlaybackUiEvent {
     Toggle,
     Resume,
     Play,
+    Stop,
     Pause,
     Next,
     SetVolume(f32),
