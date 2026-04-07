@@ -2,6 +2,8 @@
 
 A Spotify client written in Rust using the [Vizia](https://github.com/vizia/vizia) GUI library and [librespot](https://github.com/librespot-org/librespot).
 
+A Spotify premium account is required.
+
 > WARNING: This project is still in early development. Expect lots of bugs.
 
 ![](Screenshot.png)
@@ -18,5 +20,5 @@ A Spotify client written in Rust using the [Vizia](https://github.com/vizia/vizi
 
 ## Building
 
-With Rust installed use `cargo build` to build an executable.
+With Rust installed use `cargo build --release` to build an executable.
 
