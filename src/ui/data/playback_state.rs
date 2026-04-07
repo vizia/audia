@@ -8,6 +8,7 @@ use crate::{
     },
     worker::{self, SharedBackend},
 };
+use rand::seq::SliceRandom;
 
 pub struct PlaybackState {
     pub backend: SharedBackend,
@@ -107,6 +108,30 @@ impl Model for PlaybackState {
                 self.playback_track_artist.set("".to_string());
                 self.playback_track_image_key.set(None);
                 self.playback_overlay_image_key.set(None);
+            }
+            PlaybackUiEvent::ShuffleQueue => {
+                let mut tracks = self.queue_tracks.get();
+                if tracks.len() < 2 {
+                    self.status
+                        .set("Need at least two tracks in queue to shuffle.".to_string());
+                    return;
+                }
+
+                let next_current_index = if let Some(current_index) = self.queue_current_index.get()
+                {
+                    let pinned_index = current_index.min(tracks.len().saturating_sub(1));
+                    let current_track = tracks.remove(pinned_index);
+                    tracks.shuffle(&mut rand::thread_rng());
+                    tracks.insert(0, current_track);
+                    Some(0)
+                } else {
+                    tracks.shuffle(&mut rand::thread_rng());
+                    None
+                };
+
+                self.queue_tracks.set(tracks);
+                self.queue_current_index.set(next_current_index);
+                self.status.set("Queue shuffled.".to_string());
             }
             PlaybackUiEvent::AddToQueue(tracks) => {
                 self.queue_tracks

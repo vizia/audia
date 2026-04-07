@@ -67,7 +67,6 @@ impl Model for PlaylistsState {
             PlaylistsUiEvent::ShufflePlaylist => {
                 let current = self.shuffle_mode.get();
                 self.shuffle_mode.set(!current);
-                println!("Shuffle mode set to {}", !current);
             }
             PlaylistsUiEvent::SelectPlaylist(index) => {
                 let playlists = self.playlist_rows.get();
@@ -104,6 +103,9 @@ impl Model for PlaylistsState {
                 }
 
                 cx.emit(PlaybackUiEvent::AddToQueue(tracks));
+                if self.shuffle_mode.get() {
+                    cx.emit(PlaybackUiEvent::ShuffleQueue);
+                }
             }
             PlaylistsUiEvent::PlaylistTrackSelected(index) => {
                 let tracks = self.playlist_tracks.get();
