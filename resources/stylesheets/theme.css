@@ -175,6 +175,32 @@ button.preferences-button:hover {
     fill: var(--primary-foreground);
 }
 
+submenu {
+    background-color: transparent;
+    border-width: 0px;
+    padding: 0px;
+    width: auto;
+}
+
+button.avatar-menu-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    corner-radius: 18px;
+}
+
+.profile-submenu {
+    gap: 0px;
+    width: auto;
+    background-color: transparent;
+}
+
+.profile-submenu:hover {
+    background-color: transparent;
+}
+
+.profile-submenu > .arrow {
+    display: none;
+}
+
 /* Playback */
 
 .transport {

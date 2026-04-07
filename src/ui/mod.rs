@@ -2,7 +2,6 @@ use crate::messages::{AlbumResult, ArtistResult, PlaybackDevice, PlaylistEntry, 
 use crate::ui::data::{
     OAuthState, PanelEvent, PanelState, PlaybackState, PlaylistsState, PreferencesData, SearchState,
 };
-use crate::ui::events::{OAuthUiEvent, PlaybackUiEvent};
 use crate::worker;
 use vizia::prelude::*;
 
@@ -195,22 +194,6 @@ pub fn run() {
 
         VStack::new(cx, |cx| {
             panels::header_panel(cx, search_input, auth_username, profile_image_key);
-
-            HStack::new(cx, |cx| {
-                Button::new(cx, |cx| Label::new(cx, "Open Login"))
-                    .on_press(|cx| cx.emit(OAuthUiEvent::OpenLoginModal));
-
-                Button::new(cx, |cx| Label::new(cx, "Refresh Token"))
-                    .on_press(|cx| cx.emit(OAuthUiEvent::RefreshToken));
-
-                Button::new(cx, |cx| Label::new(cx, "Refresh Devices"))
-                    .on_press(|cx| cx.emit(PlaybackUiEvent::RefreshDevices));
-
-                Button::new(cx, |cx| Label::new(cx, "Reset Login"))
-                    .on_press(|cx| cx.emit(OAuthUiEvent::ResetLogin));
-            })
-            .height(Auto)
-            .horizontal_gap(Pixels(8.0));
 
             Label::new(cx, selected_summary).class("status");
             Label::new(cx, status).class("status");
