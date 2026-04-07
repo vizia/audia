@@ -1,3 +1,4 @@
+use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use vizia::prelude::*;
 
 use crate::{
@@ -11,11 +12,48 @@ pub struct PlaylistsState {
     pub status: Signal<String>,
     pub playlist_rows: Signal<Vec<PlaylistEntry>>,
     pub playlist_tracks: Signal<Vec<Track>>,
+    pub filtered_playlist_tracks: Signal<Vec<Track>>,
+    pub filtered_track_indices: Signal<Vec<usize>>,
+    pub track_filter_input: Signal<String>,
     pub active_playlist_name: Signal<String>,
     pub active_playlist_meta: Signal<String>,
     pub playlist_selected_index: Signal<usize>,
     pub showing_playlist: Signal<bool>,
     pub shuffle_mode: Signal<bool>,
+}
+
+impl PlaylistsState {
+    fn apply_track_filter(&mut self) {
+        let query = self.track_filter_input.get();
+        let tracks = self.playlist_tracks.get();
+        let trimmed_query = query.trim();
+
+        if trimmed_query.is_empty() {
+            self.filtered_playlist_tracks.set(tracks.clone());
+            self.filtered_track_indices
+                .set((0..tracks.len()).collect::<Vec<_>>());
+            return;
+        }
+
+        let matcher = SkimMatcherV2::default();
+        let mut matches = tracks
+            .iter()
+            .enumerate()
+            .filter_map(|(index, track)| {
+                let haystack = format!("{} {}", track.name, track.artist);
+                matcher
+                    .fuzzy_match(&haystack, trimmed_query)
+                    .map(|score| (index, score, track.clone()))
+            })
+            .collect::<Vec<_>>();
+
+        matches.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+
+        self.filtered_track_indices
+            .set(matches.iter().map(|(index, _, _)| *index).collect());
+        self.filtered_playlist_tracks
+            .set(matches.into_iter().map(|(_, _, track)| track).collect());
+    }
 }
 
 impl Model for PlaylistsState {
@@ -51,6 +89,8 @@ impl Model for PlaylistsState {
                 self.active_playlist_meta
                     .set(format_playlist_meta(*track_count, *total_duration_ms));
                 self.playlist_tracks.set(tracks.clone());
+                self.track_filter_input.set(String::new());
+                self.apply_track_filter();
                 self.playlist_selected_index.set(0);
                 self.showing_playlist.set(true);
 
@@ -67,6 +107,11 @@ impl Model for PlaylistsState {
             PlaylistsUiEvent::ShufflePlaylist => {
                 let current = self.shuffle_mode.get();
                 self.shuffle_mode.set(!current);
+            }
+            PlaylistsUiEvent::SetTrackFilter(value) => {
+                self.track_filter_input.set(value.clone());
+                self.apply_track_filter();
+                self.playlist_selected_index.set(0);
             }
             PlaylistsUiEvent::SelectPlaylist(index) => {
                 let playlists = self.playlist_rows.get();
@@ -108,15 +153,17 @@ impl Model for PlaylistsState {
                 }
             }
             PlaylistsUiEvent::PlaylistTrackSelected(index) => {
-                let tracks = self.playlist_tracks.get();
-                if *index >= tracks.len() {
+                let filtered_indices = self.filtered_track_indices.get();
+                if *index >= filtered_indices.len() {
                     self.status
                         .set("Selected playlist track is unavailable.".to_string());
                     return;
                 }
 
                 self.playlist_selected_index.set(*index);
-                let track = tracks[*index].clone();
+                let tracks = self.playlist_tracks.get();
+                let source_index = filtered_indices[*index];
+                let track = tracks[source_index].clone();
 
                 cx.emit(PlaybackUiEvent::AddToQueue(vec![track]));
             }

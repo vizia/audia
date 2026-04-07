@@ -1,6 +1,6 @@
 use crate::messages::Track;
 use crate::ui::events::PlaybackUiEvent;
-use vizia::icons::ICON_ARROWS_SHUFFLE;
+use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_CLEAR_ALL};
 use vizia::prelude::*;
 
 pub fn queue_panel(
@@ -17,7 +17,12 @@ pub fn queue_panel(
             Button::new(cx, |cx| Svg::new(cx, ICON_ARROWS_SHUFFLE))
                 .class("playlist-shuffle-toggle")
                 .on_press(|cx| cx.emit(PlaybackUiEvent::ShuffleQueue));
+
+            Button::new(cx, |cx| Svg::new(cx, ICON_CLEAR_ALL))
+                .class("playlist-shuffle-toggle")
+                .on_press(|cx| cx.emit(PlaybackUiEvent::ClearQueue));
         })
+        .class("queue-controls")
         .width(Stretch(1.0))
         .height(Auto)
         .alignment(Alignment::Center);

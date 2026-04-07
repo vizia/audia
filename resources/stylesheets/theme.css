@@ -291,3 +291,9 @@ button.preferences-button:hover {
     width: 1s;
     height: auto;
 }
+
+/* Queue */
+.queue-controls {
+    gap: 8px;
+    alignment: center;
+}

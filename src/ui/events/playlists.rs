@@ -7,6 +7,7 @@ pub enum PlaylistsUiEvent {
     PlayPlaylist,
     PlaylistTrackSelected(usize),
     ShufflePlaylist,
+    SetTrackFilter(String),
 }
 
 #[derive(Clone, Debug)]

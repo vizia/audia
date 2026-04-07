@@ -61,6 +61,9 @@ pub fn run() {
         let search_album_rows = Signal::new(Vec::<AlbumResult>::new());
         let playlist_rows = Signal::new(Vec::<PlaylistEntry>::new());
         let playlist_tracks = Signal::new(Vec::<Track>::new());
+        let filtered_playlist_tracks = Signal::new(Vec::<Track>::new());
+        let filtered_track_indices = Signal::new(Vec::<usize>::new());
+        let playlist_track_filter_input = Signal::new(String::new());
         let active_playlist_name = Signal::new(String::new());
         let active_playlist_meta = Signal::new(String::new());
         let showing_playlist = Signal::new(false);
@@ -129,6 +132,9 @@ pub fn run() {
                 status,
                 playlist_rows,
                 playlist_tracks,
+                filtered_playlist_tracks,
+                filtered_track_indices,
+                track_filter_input: playlist_track_filter_input,
                 active_playlist_name,
                 active_playlist_meta,
                 showing_playlist,
@@ -208,7 +214,8 @@ pub fn run() {
                             cx,
                             active_playlist_name,
                             active_playlist_meta,
-                            playlist_tracks,
+                            playlist_track_filter_input,
+                            filtered_playlist_tracks,
                             playlist_selected_index,
                             shuffle_mode,
                         );

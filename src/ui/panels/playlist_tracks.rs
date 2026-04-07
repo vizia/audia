@@ -1,6 +1,5 @@
 use crate::messages::Track;
 use crate::ui::events::PlaylistsUiEvent;
-use image::Pixels;
 use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_PLAYER_PLAY_FILLED};
 use vizia::prelude::*;
 
@@ -8,7 +7,8 @@ pub fn playlist_tracks_panel(
     cx: &mut Context,
     playlist_name: Signal<String>,
     playlist_meta: Signal<String>,
-    playlist_tracks: Signal<Vec<Track>>,
+    track_filter_input: Signal<String>,
+    filtered_playlist_tracks: Signal<Vec<Track>>,
     playlist_selected_index: Signal<usize>,
     shuffle_mode: Signal<bool>,
 ) {
@@ -42,14 +42,18 @@ pub fn playlist_tracks_panel(
             ToggleButton::new(cx, shuffle_mode, |cx| Svg::new(cx, ICON_ARROWS_SHUFFLE))
                 .class("playlist-shuffle-toggle")
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::ShufflePlaylist));
+            Textbox::new(cx, track_filter_input)
+                //.placeholder("Search tracks")
+                .on_edit(|cx, value| cx.emit(PlaylistsUiEvent::SetTrackFilter(value)))
+                .width(Stretch(1.0));
         })
         .height(Auto)
         .width(Stretch(1.0))
-        .alignment(Alignment::Left)
+        .alignment(Alignment::Center)
         .gap(Pixels(8.0));
 
         // Track list
-        List::new(cx, playlist_tracks, |cx, index, item| {
+        List::new(cx, filtered_playlist_tracks, |cx, index, item| {
             HStack::new(cx, |cx| {
                 // Song number
                 Label::new(cx, format!("{}.", index + 1))
