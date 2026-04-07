@@ -100,7 +100,6 @@ impl PlaybackService {
                     | PlayerEvent::Seeked { position_ms, .. } => {
                         position.store(position_ms, Ordering::Relaxed);
                         is_playing.store(true, Ordering::Relaxed);
-                        track_finished.store(false, Ordering::Relaxed);
                     }
                     PlayerEvent::Paused { position_ms, .. } => {
                         position.store(position_ms, Ordering::Relaxed);
@@ -108,6 +107,14 @@ impl PlaybackService {
                     }
                     PlayerEvent::Stopped { .. } => {
                         is_playing.store(false, Ordering::Relaxed);
+
+                        // Some backends can stop at track end without reliably sending EndOfTrack.
+                        // If we are at (or very near) the known duration, treat this as a finished track.
+                        let d = duration.load(Ordering::Relaxed);
+                        let p = position.load(Ordering::Relaxed);
+                        if d > 0 && p >= d.saturating_sub(750) {
+                            track_finished.store(true, Ordering::Relaxed);
+                        }
                     }
                     PlayerEvent::EndOfTrack { .. } => {
                         is_playing.store(false, Ordering::Relaxed);
@@ -165,6 +172,7 @@ impl PlaybackService {
             .store(track.duration_ms, Ordering::Relaxed);
 
         self.progress_position_ms.store(0, Ordering::Relaxed);
+        self.progress_track_finished.store(false, Ordering::Relaxed);
 
         let track_id = &track.id;
 
