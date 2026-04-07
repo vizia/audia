@@ -70,6 +70,7 @@ pub fn run() {
         let playlist_selected_index = Signal::new(0usize);
         let queue_tracks = Signal::new(Vec::<Track>::new());
         let queue_current_index = Signal::new(None::<usize>);
+        let recently_played = Signal::new(Vec::<Track>::new());
         let selected_index = Signal::new(0usize);
         let selected_summary = Signal::new("Selected: none".to_string());
         let shuffle_mode = Signal::new(false);
@@ -113,6 +114,7 @@ pub fn run() {
                 queue_current_index,
                 selected_playback_target,
                 playback_volume,
+                recently_played,
                 playback_duration_ms,
                 artwork_fade_animation,
             },
@@ -230,7 +232,7 @@ pub fn run() {
                     }
                 });
 
-                panels::queue_panel(cx, queue_tracks, queue_current_index);
+                panels::queue_panel(cx, queue_tracks, queue_current_index, recently_played);
             })
             .width(Stretch(1.0))
             .height(Stretch(1.0))

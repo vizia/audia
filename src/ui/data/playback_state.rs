@@ -23,6 +23,7 @@ pub struct PlaybackState {
     pub queue_current_index: Signal<Option<usize>>,
     pub selected_playback_target: Signal<Option<PlaybackTarget>>,
     pub playback_volume: Signal<f32>,
+    pub recently_played: Signal<Vec<Track>>,
 
     pub playback_duration_ms: Signal<u32>,
     pub playback_track_name: Signal<String>,
@@ -110,6 +111,9 @@ impl Model for PlaybackState {
                 self.playback_overlay_image_key.set(None);
                 cx.emit(PlaybackUiEvent::Stop);
             }
+            PlaybackUiEvent::ClearRecentlyPlayed => {
+                self.recently_played.update(|list| list.clear());
+            }
             PlaybackUiEvent::ShuffleQueue => {
                 let mut tracks = self.queue_tracks.get();
                 if tracks.len() < 2 {
@@ -187,15 +191,21 @@ impl Model for PlaybackState {
             }
 
             PlaybackUiEvent::SelectQueueTrack(index) => {
-                let selected_track = self.queue_tracks.with(|queue| queue[*index].clone());
-                // let queue_tracks = self.queue_tracks.get();
-                // if *index >= queue_tracks.len() {
-                //     self.status
-                //         .set("Selected queue item is unavailable.".to_string());
-                //     return;
-                // }
+                // The current track (index 0) is being skipped — add it to recently played.
+                // Tracks between 1 and index-1 were never played; just discard them.
+                if *index > 0 {
+                    let current = self.queue_tracks.with(|queue| queue.first().cloned());
+                    if let Some(track) = current {
+                        self.recently_played.update(|list| list.push(track));
+                    }
+                    self.queue_tracks.update(|queue| {
+                        queue.drain(0..*index);
+                    });
+                }
 
-                self.queue_current_index.set(Some(*index));
+                let selected_track = self.queue_tracks.with(|queue| queue[0].clone());
+
+                self.queue_current_index.set(Some(0));
                 self.playback_duration_ms.set(selected_track.duration_ms);
                 self.playback_scrub_percent.set(0.0);
                 self.playback_track_name.set(selected_track.name.clone());
@@ -237,31 +247,41 @@ impl Model for PlaybackState {
             }
             PlaybackUiEvent::Previous => match self.selected_playback_target.get() {
                 Some(PlaybackTarget::Local) => {
-                    let queue_length = self.queue_tracks.with(|queue| queue.len());
-                    if queue_length == 0 {
-                        self.status
-                            .set("Queue is empty. Add tracks before using Previous.".to_string());
+                    // If more than 3 seconds into the current track, restart it.
+                    let position_ms = {
+                        let pct = self.playback_scrub_percent.get();
+                        let dur = self.playback_duration_ms.get();
+                        (pct / 100.0 * dur as f32).round() as u32
+                    };
+
+                    if position_ms > 3000 {
+                        // Restart the current track.
+                        self.status.set("Restarting current track...".to_string());
+                        cx.emit(PlaybackUiEvent::Play);
                         return;
                     }
 
-                    let previous_index = match self.queue_current_index.get() {
-                        Some(current_index) => current_index.saturating_sub(1),
-                        None => 0,
-                    };
-
-                    self.queue_current_index.set(Some(previous_index));
-
-                    if previous_index == 0 {
-                        self.status.set(
-                            "At start of queue. Replaying the first track on local device..."
-                                .to_string(),
-                        );
-                    } else {
+                    // At (or near) the start — try to restore from recently played.
+                    let prev_track = self.recently_played.with(|list| list.last().cloned());
+                    if let Some(track) = prev_track {
+                        self.recently_played.update(|list| {
+                            list.pop();
+                        });
+                        self.queue_tracks.update(|queue| {
+                            queue.insert(0, track);
+                        });
+                        self.queue_current_index.set(Some(0));
                         self.status
-                            .set("Playing previous track on local device...".to_string());
+                            .set("Playing previous track from recently played...".to_string());
+                        cx.emit(PlaybackUiEvent::Play);
+                    } else if self.queue_tracks.with(|queue| !queue.is_empty()) {
+                        // Nothing in recently played — just restart.
+                        self.status
+                            .set("Replaying from start of queue...".to_string());
+                        cx.emit(PlaybackUiEvent::Play);
+                    } else {
+                        self.status.set("Nothing to go back to.".to_string());
                     }
-
-                    cx.emit(PlaybackUiEvent::Play);
                 }
                 Some(PlaybackTarget::Remote(_)) => {
                     self.status.set("Sending previous command...".to_string());
@@ -459,18 +479,24 @@ impl Model for PlaybackState {
             },
             PlaybackUiEvent::Next => match self.selected_playback_target.get() {
                 Some(PlaybackTarget::Local) => {
+                    // Remove the current front track and add it to recently played (manual skip).
+                    let skipped = self.queue_tracks.with(|queue| queue.first().cloned());
+                    if let Some(track) = skipped {
+                        self.recently_played.update(|list| list.push(track));
+                        self.queue_tracks.update(|queue| {
+                            queue.remove(0);
+                        });
+                    }
+
                     let queue_length = self.queue_tracks.with(|queue| queue.len());
-
-                    self.queue_current_index.update(|current| {
-                        if let Some(current_index) = current {
-                            let next_index = *current_index + 1;
-                            if next_index < queue_length {
-                                *current = Some(next_index);
-                            }
-                        }
-                    });
-
-                    cx.emit(PlaybackUiEvent::Play);
+                    if queue_length > 0 {
+                        self.queue_current_index.set(Some(0));
+                        cx.emit(PlaybackUiEvent::Play);
+                    } else {
+                        self.queue_current_index.set(None);
+                        self.playback_is_playing.set(false);
+                        self.status.set("Reached end of queue.".to_string());
+                    }
                     return;
 
                     // let queued_tracks = self.queue_tracks.get();
@@ -684,23 +710,30 @@ impl Model for PlaybackState {
                 self.refresh_playback_device_selection();
             }
             PlaybackAppEvent::LocalTrackEnded => {
-                let queued_tracks = self.queue_tracks.get();
-                let Some(current_index) = self.queue_current_index.get() else {
-                    self.playback_is_playing.set(false);
-                    return;
-                };
-
-                if current_index + 1 >= queued_tracks.len() {
-                    self.playback_is_playing.set(false);
-                    self.status.set("Reached end of queue.".to_string());
-                    return;
-                }
-
-                if matches!(
+                if !matches!(
                     self.selected_playback_target.get(),
                     Some(PlaybackTarget::Local)
                 ) {
-                    cx.emit(PlaybackUiEvent::Next);
+                    return;
+                }
+
+                // Remove the finished track from the front of the queue and record it.
+                let finished_track = self.queue_tracks.with(|queue| queue.first().cloned());
+                if let Some(track) = finished_track {
+                    self.queue_tracks.update(|queue| {
+                        queue.remove(0);
+                    });
+                    self.recently_played.update(|list| list.push(track));
+                }
+
+                let queue_length = self.queue_tracks.with(|queue| queue.len());
+                if queue_length > 0 {
+                    self.queue_current_index.set(Some(0));
+                    cx.emit(PlaybackUiEvent::Play);
+                } else {
+                    self.queue_current_index.set(None);
+                    self.playback_is_playing.set(false);
+                    self.status.set("Reached end of queue.".to_string());
                 }
             }
 

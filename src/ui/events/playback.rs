@@ -8,6 +8,7 @@ pub enum PlaybackUiEvent {
     AddToQueue(Vec<Track>),
     ShuffleQueue,
     ClearQueue,
+    ClearRecentlyPlayed,
     Previous,
     Toggle,
     Resume,
