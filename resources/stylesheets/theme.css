@@ -100,6 +100,10 @@
 /* Panels */
 
 .panel {
+    width: 1s;
+    height: 1s;
+    gap: 8px;
+    padding: 8px;
     --accent: #b67711a7;
     corner-radius: 12px;
     border-width: 1px;
@@ -107,6 +111,18 @@
     background-color: rgba(71, 71, 71, 0.552);
     backdrop-filter: blur(50px);
     shadow: 0px 1px 3px #0000001a;
+}
+
+.left-panel {
+    max-width: 500px;
+    min-width: 50px;
+    padding-right: 4px;
+}
+
+.right-panel {
+    max-width: 500px;
+    min-width: 50px;
+    padding-left: 4px;
 }
 
 .blurred-artwork {
@@ -293,6 +309,27 @@ button.preferences-button:hover {
 }
 
 /* Queue */
+.resizable-stack {
+    gap: 0px;
+}
+
+.resizable-stack-handle {
+    background-color: transparent;
+    border-width: 0px;
+    width: 10px;
+}
+
+.resizable-stack-handle:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.queue-panel {
+    width: 1s;
+    height: 1s;
+    gap: 8px;
+    padding: 8px;
+}
+
 .queue-controls {
     gap: 8px;
     alignment: center;

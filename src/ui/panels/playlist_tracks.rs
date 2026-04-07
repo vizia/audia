@@ -101,8 +101,5 @@ pub fn playlist_tracks_panel(
         .height(Stretch(1.0));
     })
     .class("panel")
-    .width(Stretch(1.0))
-    .height(Stretch(1.0))
-    .padding(Pixels(8.0))
-    .gap(Pixels(4.0));
+    .class("playlist-tracks-panel");
 }

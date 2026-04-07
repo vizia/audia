@@ -6,6 +6,7 @@ impl Model for UiModel {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         self.oauth_state.event(cx, event);
         self.preferences_data.event(cx, event);
+        self.panel_state.event(cx, event);
         self.playback_state.event(cx, event);
         self.search_state.event(cx, event);
         self.playlists_state.event(cx, event);

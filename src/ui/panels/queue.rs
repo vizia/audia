@@ -132,9 +132,5 @@ pub fn queue_panel(
         );
     })
     .class("panel")
-    .class("queue-panel")
-    .width(Stretch(1.0))
-    .height(Stretch(1.0))
-    .padding(Pixels(8.0))
-    .gap(Pixels(4.0));
+    .class("queue-panel");
 }

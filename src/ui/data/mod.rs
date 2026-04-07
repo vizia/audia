@@ -1,6 +1,9 @@
 mod preferences_data;
 pub use preferences_data::*;
 
+mod queue_panel_state;
+pub use queue_panel_state::*;
+
 mod oauth_state;
 pub use oauth_state::*;
 

@@ -1,5 +1,7 @@
 use crate::messages::{AlbumResult, ArtistResult, PlaybackDevice, PlaylistEntry, Track};
-use crate::ui::data::{OAuthState, PlaybackState, PlaylistsState, PreferencesData, SearchState};
+use crate::ui::data::{
+    OAuthState, PanelEvent, PanelState, PlaybackState, PlaylistsState, PreferencesData, SearchState,
+};
 use crate::ui::events::{OAuthUiEvent, PlaybackUiEvent};
 use crate::worker;
 use vizia::prelude::*;
@@ -71,6 +73,10 @@ pub fn run() {
         let queue_tracks = Signal::new(Vec::<Track>::new());
         let queue_current_index = Signal::new(None::<usize>);
         let recently_played = Signal::new(Vec::<Track>::new());
+        let mut panel_state = PanelState::new(cx);
+        panel_state.load();
+        let left_panel_width = panel_state.left_width;
+        let right_panel_width = panel_state.right_width;
         let selected_index = Signal::new(0usize);
         let selected_summary = Signal::new("Selected: none".to_string());
         let shuffle_mode = Signal::new(false);
@@ -92,6 +98,7 @@ pub fn run() {
                 profile_image_key,
             },
             preferences_data,
+            panel_state,
             playback_state: PlaybackState {
                 playback_track_name,
                 playback_track_artist,
@@ -209,7 +216,19 @@ pub fn run() {
             Label::new(cx, status).class("status");
 
             HStack::new(cx, |cx| {
-                panels::playlists_panel(cx, playlist_rows);
+                ResizableStack::new(
+                    cx,
+                    left_panel_width.map(|w| Pixels(*w)),
+                    ResizeStackDirection::Right,
+                    |cx, w| {
+                        cx.emit(PanelEvent::SetLeftPanelWidth(w));
+                    },
+                    move |cx| {
+                        panels::playlists_panel(cx, playlist_rows);
+                    },
+                )
+                .class("left-panel");
+
                 Binding::new(cx, showing_playlist, move |cx| {
                     if showing_playlist.get() {
                         panels::playlist_tracks_panel(
@@ -232,11 +251,22 @@ pub fn run() {
                     }
                 });
 
-                panels::queue_panel(cx, queue_tracks, queue_current_index, recently_played);
+                ResizableStack::new(
+                    cx,
+                    right_panel_width.map(|w| Pixels(*w)),
+                    ResizeStackDirection::Left,
+                    |cx, w| {
+                        cx.emit(PanelEvent::SetRightPanelWidth(w));
+                    },
+                    move |cx| {
+                        panels::queue_panel(cx, queue_tracks, queue_current_index, recently_played);
+                    },
+                )
+                .class("right-panel");
             })
             .width(Stretch(1.0))
             .height(Stretch(1.0))
-            .gap(Pixels(8.0));
+            .gap(Pixels(4.0));
 
             panels::playback_controls_panel(
                 cx,
