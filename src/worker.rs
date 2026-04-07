@@ -592,6 +592,8 @@ pub fn refresh_user_playlists(backend: SharedBackend, mut proxy: ContextProxy) {
                         name: playlist.name,
                         image_key: None,
                         id: playlist.id,
+                        track_count: playlist.track_count,
+                        total_duration_ms: 0,
                     });
                 }
 
@@ -658,9 +660,16 @@ pub fn fetch_playlist_tracks(
                 }
 
                 let count = tracks.len();
+                let total_duration_ms = tracks
+                    .iter()
+                    .map(|track| track.duration_ms as u64)
+                    .sum::<u64>();
                 let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+                    id: playlist_id,
                     name: playlist_name,
                     tracks,
+                    track_count: count,
+                    total_duration_ms,
                 });
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
                     "Loaded {count} tracks from playlist."

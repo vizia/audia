@@ -98,6 +98,16 @@ impl PlaybackState {
 impl Model for PlaybackState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|playback_event, _: &mut _| match playback_event {
+            PlaybackUiEvent::ClearQueue => {
+                self.queue_tracks.update(|queue| queue.clear());
+                self.queue_current_index.set(None);
+                self.playback_duration_ms.set(0);
+                self.playback_scrub_percent.set(0.0);
+                self.playback_track_name.set("".to_string());
+                self.playback_track_artist.set("".to_string());
+                self.playback_track_image_key.set(None);
+                self.playback_overlay_image_key.set(None);
+            }
             PlaybackUiEvent::AddToQueue(tracks) => {
                 self.queue_tracks
                     .update(|queue| queue.extend(tracks.clone()));

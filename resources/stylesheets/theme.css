@@ -10,6 +10,11 @@
     background-color: var(--background);
 }
 
+* {
+    border-width: 1px;
+    border-color: red;
+}
+
 /* Login Dialog */
 
 .login-title {
@@ -114,7 +119,7 @@
     font-weight: bold;
     height: auto;
     alignment: left;
-    padding: 12px;
+    padding: 4px;
 }
 
 .panel list-item {
@@ -206,6 +211,32 @@ button.preferences-button:hover {
     font-size: 13px;
     width: 1s;
     text-wrap: false;
+}
+
+.playlist-meta {
+    font-size: 12px;
+    color: var(--accent-foreground);
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.playlist-shuffle-toggle {
+    background-color: var(--background);
+    fill: var(--muted-foreground);
+    border-width: 0px;
+    width: 32px;
+    height: 32px;
+    corner-radius: 50%;
+}
+
+.playlist-shuffle-toggle:hover {
+    background-color: var(--background);
+    fill: var(--primary-foreground);
+}
+
+.playlist-shuffle-toggle:checked {
+    fill: var(--primary-foreground);
+    background-color: var(--primary);
 }
 
 /* Search */

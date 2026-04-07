@@ -1,12 +1,16 @@
 use crate::messages::Track;
 use crate::ui::events::PlaylistsUiEvent;
+use image::Pixels;
+use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_PLAYER_PLAY_FILLED};
 use vizia::prelude::*;
 
 pub fn playlist_tracks_panel(
     cx: &mut Context,
     playlist_name: Signal<String>,
+    playlist_meta: Signal<String>,
     playlist_tracks: Signal<Vec<Track>>,
     playlist_selected_index: Signal<usize>,
+    shuffle_mode: Signal<bool>,
 ) {
     fn format_time(ms: u32) -> String {
         let total_seconds = ms / 1000;
@@ -16,26 +20,42 @@ pub fn playlist_tracks_panel(
     }
 
     VStack::new(cx, move |cx| {
-        Label::new(cx, playlist_name)
-            .class("panel-title")
-            .width(Stretch(1.0));
+        // Header with playlist name and meta info
+        VStack::new(cx, |cx| {
+            Label::new(cx, playlist_name)
+                .class("panel-title")
+                .width(Stretch(1.0));
 
+            Label::new(cx, playlist_meta)
+                .class("playlist-meta")
+                .width(Stretch(1.0));
+        })
+        .class("playlist-meta")
+        .width(Stretch(1.0))
+        .height(Auto);
+
+        // Playlist controls and search
         HStack::new(cx, |cx| {
-            Button::new(cx, |cx| Label::new(cx, "← Back"))
-                .on_press(|cx| cx.emit(PlaylistsUiEvent::BackToSearch))
-                .class("back-button");
-
-            Button::new(cx, |cx| Label::new(cx, "Add All to Queue"))
-                .on_press(|cx| cx.emit(PlaylistsUiEvent::AddPlaylistToQueue))
-                .class("add-to-queue-button");
+            Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
+                .class("playback-toggle")
+                .on_press(|cx| cx.emit(PlaylistsUiEvent::PlayPlaylist));
+            ToggleButton::new(cx, shuffle_mode, |cx| Svg::new(cx, ICON_ARROWS_SHUFFLE))
+                .class("playlist-shuffle-toggle")
+                .on_press(|cx| cx.emit(PlaylistsUiEvent::ShufflePlaylist));
         })
         .height(Auto)
         .width(Stretch(1.0))
-        .alignment(Alignment::Center)
+        .alignment(Alignment::Left)
         .gap(Pixels(8.0));
 
-        List::new(cx, playlist_tracks, |cx, _index, item| {
+        // Track list
+        List::new(cx, playlist_tracks, |cx, index, item| {
             HStack::new(cx, |cx| {
+                // Song number
+                Label::new(cx, format!("{}.", index + 1))
+                    .class("search-result-index")
+                    .width(Pixels(20.0));
+
                 let image_key = item.map(|track| track.album_image_key.clone());
 
                 Binding::new(cx, image_key, move |cx| {

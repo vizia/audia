@@ -13,6 +13,7 @@ pub struct SpotifyPlaylist {
     pub id: String,
     pub name: String,
     pub image_url: Option<String>,
+    pub track_count: usize,
 }
 
 #[derive(Default, Clone)]
@@ -369,6 +370,7 @@ impl SpotifyService {
                 id: p.id,
                 name: p.name,
                 image_url: p.images.first().map(|img| img.url.clone()),
+                track_count: p.tracks.and_then(|tracks| tracks.total).unwrap_or(0),
             })
             .collect())
     }
@@ -895,7 +897,15 @@ struct PlaylistListResponse {
 struct PlaylistItem {
     id: String,
     name: String,
+    #[serde(default)]
     images: Vec<SpotifyImage>,
+    #[serde(default)]
+    tracks: Option<PlaylistTrackCount>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PlaylistTrackCount {
+    total: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]

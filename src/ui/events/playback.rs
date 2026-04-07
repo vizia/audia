@@ -6,6 +6,7 @@ pub enum PlaybackUiEvent {
     SelectPlaybackDevice(usize),
     SelectQueueTrack(usize),
     AddToQueue(Vec<Track>),
+    ClearQueue,
     Previous,
     Toggle,
     Resume,

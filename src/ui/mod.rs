@@ -62,12 +62,14 @@ pub fn run() {
         let playlist_rows = Signal::new(Vec::<PlaylistEntry>::new());
         let playlist_tracks = Signal::new(Vec::<Track>::new());
         let active_playlist_name = Signal::new(String::new());
+        let active_playlist_meta = Signal::new(String::new());
         let showing_playlist = Signal::new(false);
         let playlist_selected_index = Signal::new(0usize);
         let queue_tracks = Signal::new(Vec::<Track>::new());
         let queue_current_index = Signal::new(None::<usize>);
         let selected_index = Signal::new(0usize);
         let selected_summary = Signal::new("Selected: none".to_string());
+        let shuffle_mode = Signal::new(false);
 
         let backend = worker::init_backend(cx.get_proxy());
 
@@ -128,8 +130,10 @@ pub fn run() {
                 playlist_rows,
                 playlist_tracks,
                 active_playlist_name,
+                active_playlist_meta,
                 showing_playlist,
                 playlist_selected_index,
+                shuffle_mode,
             },
         }
         .build(cx);
@@ -203,8 +207,10 @@ pub fn run() {
                         panels::playlist_tracks_panel(
                             cx,
                             active_playlist_name,
+                            active_playlist_meta,
                             playlist_tracks,
                             playlist_selected_index,
+                            shuffle_mode,
                         );
                     } else {
                         panels::search_results_panel(

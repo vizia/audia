@@ -46,4 +46,6 @@ pub struct PlaylistEntry {
     pub id: String,
     pub name: String,
     pub image_key: Option<String>,
+    pub track_count: usize,
+    pub total_duration_ms: u64,
 }
