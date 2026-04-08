@@ -23,7 +23,10 @@ pub fn run() {
     .decode()
     .unwrap();
 
-    let _ = Application::new(|cx| {
+    let mut panel_state = PanelState::new();
+    panel_state.load();
+
+    let _ = Application::new(move |cx| {
         cx.add_stylesheet(include_style!("resources/stylesheets/theme.css"))
             .expect("failed to load theme stylesheet");
 
@@ -72,7 +75,7 @@ pub fn run() {
         let queue_tracks = Signal::new(Vec::<Track>::new());
         let queue_current_index = Signal::new(None::<usize>);
         let recently_played = Signal::new(Vec::<Track>::new());
-        let mut panel_state = PanelState::new(cx);
+        panel_state.build(cx);
         panel_state.load();
         let left_panel_width = panel_state.left_width;
         let right_panel_width = panel_state.right_width;
@@ -270,6 +273,15 @@ pub fn run() {
         .gap(Pixels(8.0));
     })
     .title("Audia")
-    .inner_size((760, 600))
+    .inner_size(
+        panel_state
+            .window_width
+            .map(move |w| (*w, panel_state.window_height.get())),
+    )
+    .position(
+        panel_state
+            .window_x
+            .map(move |x| (*x, panel_state.window_y.get())),
+    )
     .run();
 }
