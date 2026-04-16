@@ -142,12 +142,12 @@ impl PreferencesData {
                 cx.emit(EnvironmentEvent::SetThemeMode(
                     if let Some(theme) = saved.selected_theme {
                         match theme {
-                            0 => AppTheme::BuiltIn(ThemeMode::LightMode),
-                            1 => AppTheme::BuiltIn(ThemeMode::DarkMode),
+                            0 => ThemeMode::LightMode,
+                            1 => ThemeMode::DarkMode,
                             _ => unreachable!(),
                         }
                     } else {
-                        AppTheme::System
+                        ThemeMode::System
                     },
                 ));
                 self.follow_system_theme.set(saved.follow_system_theme);
@@ -253,9 +253,9 @@ impl Model for PreferencesData {
             PreferencesEvent::SetSelectedTheme(selected_theme) => {
                 self.selected_theme.set(Some(*selected_theme));
                 cx.emit(EnvironmentEvent::SetThemeMode(if *selected_theme == 0 {
-                    AppTheme::BuiltIn(ThemeMode::LightMode)
+                    ThemeMode::LightMode
                 } else {
-                    AppTheme::BuiltIn(ThemeMode::DarkMode)
+                    ThemeMode::DarkMode
                 }));
                 self.save();
             }

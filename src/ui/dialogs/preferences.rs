@@ -44,7 +44,7 @@ fn settings_card_theme(cx: &mut Context, data: PreferencesData) {
             Svg::new(cx, ICON_BRUSH).class("icon");
             Label::new(cx, "Current Theme");
             Spacer::new(cx);
-            PickList::new(cx, data.theme, data.selected_theme, true)
+            Select::new(cx, data.theme, data.selected_theme, true)
                 .on_select(|cx, index| cx.emit(PreferencesEvent::SetSelectedTheme(index)))
                 .width(Pixels(150.0));
         })
@@ -71,7 +71,7 @@ fn settings_card_language(cx: &mut Context, data: PreferencesData, preference: P
         Svg::new(cx, ICON_GLOBE).class("icon");
         Label::new(cx, preference.localized_name());
         Spacer::new(cx);
-        PickList::new(cx, data.language, data.selected_language, true)
+        Select::new(cx, data.language, data.selected_language, true)
             .on_select(|cx, index| cx.emit(PreferencesEvent::SetSelectedLanguage(index)))
             .width(Pixels(150.0));
     })

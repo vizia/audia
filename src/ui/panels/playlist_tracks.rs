@@ -94,7 +94,7 @@ pub fn playlist_tracks_panel(
             .gap(Pixels(8.0));
         })
         .selectable(Selectable::Single)
-        .selected(playlist_selected_index.map(|idx| vec![*idx]))
+        .selection(playlist_selected_index.map(|idx| vec![*idx]))
         .selection_follows_focus(true)
         .on_select(|cx, idx| cx.emit(PlaylistsUiEvent::PlaylistTrackSelected(idx)))
         .width(Stretch(1.0))

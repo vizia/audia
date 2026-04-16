@@ -202,7 +202,7 @@ pub fn run() {
             Label::new(cx, status).class("status");
 
             HStack::new(cx, |cx| {
-                ResizableStack::new(
+                Resizable::new(
                     cx,
                     left_panel_width.map(|w| Pixels(*w)),
                     ResizeStackDirection::Right,
@@ -237,7 +237,7 @@ pub fn run() {
                     }
                 });
 
-                ResizableStack::new(
+                Resizable::new(
                     cx,
                     right_panel_width.map(|w| Pixels(*w)),
                     ResizeStackDirection::Left,

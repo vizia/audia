@@ -65,7 +65,7 @@ pub fn queue_panel(
             .gap(Pixels(8.0));
         })
         .selectable(Selectable::Single)
-        .selected(queue_current_index.map(|idx| idx.map_or_else(Vec::new, |i| vec![i])))
+        .selection(queue_current_index.map(|idx| idx.map_or_else(Vec::new, |i| vec![i])))
         .selection_follows_focus(true)
         .on_select(|cx, idx| cx.emit(PlaybackUiEvent::SelectQueueTrack(idx)))
         .height(Stretch(1.0));

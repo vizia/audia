@@ -1,5 +1,5 @@
 use crate::ui::data::PreferencesEvent;
-use crate::ui::events::{OAuthUiEvent, PlaybackUiEvent, SearchUiEvent};
+use crate::ui::events::{OAuthUiEvent, SearchUiEvent};
 use vizia::{icons::ICON_SETTINGS, prelude::*};
 
 pub fn header_panel(
