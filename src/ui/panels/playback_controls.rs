@@ -1,7 +1,7 @@
 use crate::ui::events::PlaybackUiEvent;
 use vizia::icons::{
     ICON_PLAYER_PAUSE_FILLED, ICON_PLAYER_PLAY_FILLED, ICON_PLAYER_SKIP_BACK_FILLED,
-    ICON_PLAYER_SKIP_FORWARD_FILLED, ICON_VOLUME,
+    ICON_PLAYER_SKIP_FORWARD_FILLED, ICON_VOLUME, ICON_VOLUME_OFF,
 };
 use vizia::prelude::*;
 
@@ -11,6 +11,7 @@ pub fn playback_controls_panel(
     selected_playback_device_index: Signal<Option<usize>>,
     playback_is_playing: Signal<bool>,
     playback_volume: Signal<f32>,
+    playback_is_muted: Signal<bool>,
     playback_scrub_percent: Signal<f32>,
     playback_duration_ms: Signal<u32>,
     playback_track_name: Signal<String>,
@@ -141,7 +142,14 @@ pub fn playback_controls_panel(
 
         HStack::new(cx, |cx| {
             HStack::new(cx, |cx| {
-                Svg::new(cx, ICON_VOLUME).class("icon");
+                ToggleButton::with_contents(
+                    cx,
+                    playback_is_muted,
+                    |cx| Svg::new(cx, ICON_VOLUME),
+                    |cx| Svg::new(cx, ICON_VOLUME_OFF),
+                )
+                .class("icon")
+                .on_toggle(|cx| cx.emit(PlaybackUiEvent::ToggleMute));
                 Slider::new(cx, playback_volume)
                     .range(0.0..100.0)
                     .on_change(|cx, val| cx.emit(PlaybackUiEvent::SetVolume(val)))

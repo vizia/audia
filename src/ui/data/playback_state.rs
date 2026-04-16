@@ -23,6 +23,8 @@ pub struct PlaybackState {
     pub queue_current_index: Signal<Option<usize>>,
     pub selected_playback_target: Signal<Option<PlaybackTarget>>,
     pub playback_volume: Signal<f32>,
+    pub playback_is_muted: Signal<bool>,
+    pub pre_mute_volume: f32,
     pub recently_played: Signal<Vec<Track>>,
 
     pub playback_duration_ms: Signal<u32>,
@@ -676,6 +678,19 @@ impl Model for PlaybackState {
                     self.status.set("No device selected.".to_string());
                 }
             },
+            PlaybackUiEvent::ToggleMute => {
+                if self.playback_is_muted.get() {
+                    // Unmute: restore saved volume
+                    self.playback_is_muted.set(false);
+                    let restore = self.pre_mute_volume;
+                    cx.emit(PlaybackUiEvent::SetVolume(restore));
+                } else {
+                    // Mute: save current volume then set to 0
+                    self.pre_mute_volume = self.playback_volume.get();
+                    self.playback_is_muted.set(true);
+                    cx.emit(PlaybackUiEvent::SetVolume(0.0));
+                }
+            }
             PlaybackUiEvent::SetVolume(value) => {
                 let clamped = value.clamp(0.0, 100.0);
                 self.playback_volume.set(clamped);

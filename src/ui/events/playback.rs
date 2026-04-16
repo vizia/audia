@@ -17,6 +17,7 @@ pub enum PlaybackUiEvent {
     Pause,
     Next,
     SetVolume(f32),
+    ToggleMute,
     SetScrub(f32),
     OpenAlbumFromPlayback {
         track_id: Option<String>,

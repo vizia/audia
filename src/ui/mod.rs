@@ -61,6 +61,7 @@ pub fn run() {
         let selected_playback_target = Signal::new(Some(PlaybackTarget::Local));
         let playback_is_playing = Signal::new(false);
         let playback_volume = Signal::new(80.0f32);
+        let playback_is_muted = Signal::new(false);
         let playback_scrub_percent = Signal::new(0.0f32);
         let playback_duration_ms = Signal::new(0u32);
         let search_result_rows = Signal::new(Vec::<Track>::new());
@@ -145,6 +146,8 @@ pub fn run() {
                 queue_current_index,
                 selected_playback_target,
                 playback_volume,
+                playback_is_muted,
+                pre_mute_volume: 0.0,
                 recently_played,
                 playback_duration_ms,
                 artwork_fade_animation,
@@ -314,6 +317,7 @@ pub fn run() {
                 selected_playback_device_index,
                 playback_is_playing,
                 playback_volume,
+                playback_is_muted,
                 playback_scrub_percent,
                 playback_duration_ms,
                 playback_track_name,
