@@ -24,5 +24,8 @@ pub enum SearchAppEvent {
         artist: String,
         image_key: Option<String>,
         tracks: Vec<Track>,
+        release_year: Option<u32>,
+        track_count: usize,
+        total_duration_ms: u64,
     },
 }

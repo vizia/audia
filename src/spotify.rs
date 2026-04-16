@@ -642,6 +642,40 @@ impl SpotifyService {
         })
     }
 
+    // Fetches the release year for an album from the Spotify API.
+    pub async fn get_album_release_year(&self, album_id: &str) -> Option<u32> {
+        let token = self.access_token.as_ref()?;
+
+        #[derive(Deserialize)]
+        struct AlbumDetailsResponse {
+            release_date: Option<String>,
+        }
+
+        let encoded_id = urlencoding::encode(album_id);
+        let url = format!("https://api.spotify.com/v1/albums/{}", encoded_id);
+
+        let response = self
+            .http
+            .get(url)
+            .bearer_auth(token)
+            .query(&[("fields", "release_date")])
+            .send()
+            .await
+            .ok()?;
+
+        if !response.status().is_success() {
+            return None;
+        }
+
+        let payload = response.json::<AlbumDetailsResponse>().await.ok()?;
+
+        payload
+            .release_date
+            .as_deref()
+            .and_then(|date| date.split('-').next())
+            .and_then(|y| y.parse::<u32>().ok())
+    }
+
     pub async fn playback_play_track(&self, track_id: &str) -> Result<(), String> {
         let token = self
             .access_token

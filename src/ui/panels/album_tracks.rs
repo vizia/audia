@@ -7,6 +7,9 @@ pub fn album_tracks_panel(
     cx: &mut Context,
     album_name: Signal<String>,
     album_artist: Signal<String>,
+    album_release_year: Signal<Option<u32>>,
+    album_track_count: Signal<usize>,
+    album_total_duration_ms: Signal<u64>,
     album_image_key: Signal<Option<String>>,
     album_tracks: Signal<Vec<Track>>,
     album_selected_index: Signal<usize>,
@@ -19,13 +22,7 @@ pub fn album_tracks_panel(
     }
 
     VStack::new(cx, move |cx| {
-        // Header: back button, album art, album name + artist
         HStack::new(cx, |cx| {
-            Button::new(cx, |cx| Svg::new(cx, ICON_ARROW_LEFT))
-                .class("back-button")
-                .name("Back to Search")
-                .on_press(|cx| cx.emit(SearchUiEvent::BackFromAlbum));
-
             Binding::new(cx, album_image_key, move |cx| {
                 if let Some(key) = album_image_key.get() {
                     Image::new(cx, key).size(Pixels(60.0)).class("album-art");
@@ -43,6 +40,34 @@ pub fn album_tracks_panel(
                 Label::new(cx, album_artist)
                     .text_wrap(false)
                     .class("playlist-meta");
+                HStack::new(cx, move |cx| {
+                    let album_release_year_signal = album_release_year;
+                    Binding::new(cx, album_release_year_signal, move |cx| {
+                        if let Some(year) = album_release_year_signal.get() {
+                            Label::new(cx, year.to_string())
+                                .text_wrap(false)
+                                .class("playlist-meta");
+                        }
+                    });
+
+                    Label::new(
+                        cx,
+                        album_track_count.map(|count| format!("{} songs", count)),
+                    )
+                    .text_wrap(false)
+                    .class("playlist-meta");
+
+                    Label::new(
+                        cx,
+                        album_total_duration_ms.map(|duration_ms| {
+                            let total_minutes = duration_ms / 60_000;
+                            format!("{}m", total_minutes)
+                        }),
+                    )
+                    .text_wrap(false)
+                    .class("playlist-meta");
+                })
+                .gap(Pixels(8.0));
             })
             .width(Stretch(1.0))
             .height(Auto)

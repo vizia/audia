@@ -79,6 +79,9 @@ pub fn run() {
         let album_tracks = Signal::new(Vec::<Track>::new());
         let album_name = Signal::new(String::new());
         let album_artist = Signal::new(String::new());
+        let album_release_year = Signal::new(None::<u32>);
+        let album_track_count = Signal::new(0usize);
+        let album_total_duration_ms = Signal::new(0u64);
         let album_image_key = Signal::new(None::<String>);
         let album_selected_index = Signal::new(0usize);
         let queue_tracks = Signal::new(Vec::<Track>::new());
@@ -158,6 +161,9 @@ pub fn run() {
                 album_tracks,
                 album_name,
                 album_artist,
+                album_release_year,
+                album_track_count,
+                album_total_duration_ms,
                 album_image_key,
                 album_selected_index,
             },
@@ -256,6 +262,9 @@ pub fn run() {
                             cx,
                             album_name,
                             album_artist,
+                            album_release_year,
+                            album_track_count,
+                            album_total_duration_ms,
                             album_image_key,
                             album_tracks,
                             album_selected_index,

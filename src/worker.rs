@@ -703,29 +703,39 @@ pub fn fetch_album_tracks(backend: SharedBackend, album: AlbumResult, mut proxy:
         match spotify.get_album_tracks(&album.id).await {
             Ok(mut tracks) => {
                 // All tracks share the same album art; load it once.
-                let image_key = if let Some(url) = &album.image_url {
-                    let key = format!("album-artwork:{}", url);
-                    let image_jobs = vec![(0usize, key.clone(), url.clone())];
-                    let loaded = load_images_parallel(&mut proxy, image_jobs).await;
-                    loaded.into_iter().next().map(|(_, k)| k)
-                } else {
-                    None
-                };
+                let (image_key, release_year) = tokio::join!(
+                    async {
+                        if let Some(url) = &album.image_url {
+                            let key = format!("album-artwork:{}", url);
+                            let image_jobs = vec![(0usize, key.clone(), url.clone())];
+                            let loaded = load_images_parallel(&mut proxy, image_jobs).await;
+                            loaded.into_iter().next().map(|(_, k)| k)
+                        } else {
+                            None
+                        }
+                    },
+                    spotify.get_album_release_year(&album.id)
+                );
 
                 for track in &mut tracks {
                     track.album_image_key = image_key.clone();
                 }
 
-                let count = tracks.len();
+                let track_count = tracks.len();
+                let total_duration_ms: u64 = tracks.iter().map(|t| t.duration_ms as u64).sum();
+
                 let _ = proxy.emit(crate::ui::events::SearchAppEvent::AlbumTracks {
                     id: album.id,
                     name: album.name,
                     artist: album.artist,
                     image_key,
                     tracks,
+                    release_year,
+                    track_count,
+                    total_duration_ms,
                 });
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
-                    "Loaded {count} tracks from album."
+                    "Loaded {track_count} tracks from album."
                 )));
             }
             Err(err) => {
@@ -763,29 +773,39 @@ pub fn fetch_album_from_track(backend: SharedBackend, track_id: String, mut prox
 
         match spotify.get_album_tracks(&album.id).await {
             Ok(mut tracks) => {
-                let image_key = if let Some(url) = &album.image_url {
-                    let key = format!("album-artwork:{}", url);
-                    let image_jobs = vec![(0usize, key.clone(), url.clone())];
-                    let loaded = load_images_parallel(&mut proxy, image_jobs).await;
-                    loaded.into_iter().next().map(|(_, k)| k)
-                } else {
-                    None
-                };
+                let (image_key, release_year) = tokio::join!(
+                    async {
+                        if let Some(url) = &album.image_url {
+                            let key = format!("album-artwork:{}", url);
+                            let image_jobs = vec![(0usize, key.clone(), url.clone())];
+                            let loaded = load_images_parallel(&mut proxy, image_jobs).await;
+                            loaded.into_iter().next().map(|(_, k)| k)
+                        } else {
+                            None
+                        }
+                    },
+                    spotify.get_album_release_year(&album.id)
+                );
 
                 for track in &mut tracks {
                     track.album_image_key = image_key.clone();
                 }
 
-                let count = tracks.len();
+                let track_count = tracks.len();
+                let total_duration_ms: u64 = tracks.iter().map(|t| t.duration_ms as u64).sum();
+
                 let _ = proxy.emit(crate::ui::events::SearchAppEvent::AlbumTracks {
                     id: album.id,
                     name: album.name,
                     artist: album.artist,
                     image_key,
                     tracks,
+                    release_year,
+                    track_count,
+                    total_duration_ms,
                 });
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
-                    "Loaded {count} tracks from album."
+                    "Loaded {track_count} tracks from album."
                 )));
             }
             Err(err) => {

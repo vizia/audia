@@ -15,6 +15,9 @@ pub struct AlbumState {
     pub album_tracks: Signal<Vec<Track>>,
     pub album_name: Signal<String>,
     pub album_artist: Signal<String>,
+    pub album_release_year: Signal<Option<u32>>,
+    pub album_track_count: Signal<usize>,
+    pub album_total_duration_ms: Signal<u64>,
     pub album_image_key: Signal<Option<String>>,
     pub album_selected_index: Signal<usize>,
 }
@@ -28,9 +31,15 @@ impl Model for AlbumState {
                 artist,
                 image_key,
                 tracks,
+                release_year,
+                track_count,
+                total_duration_ms,
             } => {
                 self.album_name.set(name.clone());
                 self.album_artist.set(artist.clone());
+                self.album_release_year.set(*release_year);
+                self.album_track_count.set(*track_count);
+                self.album_total_duration_ms.set(*total_duration_ms);
                 self.album_image_key.set(image_key.clone());
                 self.album_tracks.set(tracks.clone());
                 self.album_selected_index.set(0);
