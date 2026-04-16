@@ -235,6 +235,30 @@ button.avatar-menu-trigger:hover {
     fill: var(--primary-foreground);
 }
 
+.playback-volume-toggle {
+    background-color: transparent;
+    fill: var(--muted-foreground);
+    border-width: 0px;
+    width: 32px;
+    height: 32px;
+    corner-radius: 50%;
+}
+
+.playback-volume-toggle:hover {
+    background-color: transparent;
+    fill: var(--primary-foreground);
+}
+
+.playback-volume-toggle:checked {
+    fill: var(--muted-foreground);
+    background-color: transparent;
+}
+
+.playback-volume-toggle:checked:hover {
+    fill: var(--primary-foreground);
+    background-color: transparent;
+}
+
 /* Now Playing */
 
 .playback-album-button,
@@ -256,11 +280,16 @@ button.avatar-menu-trigger:hover {
     font-weight: bold;
     width: 1s;
     text-wrap: false;
+    text-overflow: ellipsis;
 }
 
 .now-playing-artist {
     font-size: 14px;
     color: var(--muted-foreground);
+    width: 1s;
+    height: auto;
+    text-wrap: false;
+    text-overflow: ellipsis;
 }
 
 /* Playlist Tracks */

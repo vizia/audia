@@ -13,7 +13,11 @@ pub fn header_panel(
         Textbox::new(cx, search_input)
             .placeholder(Localized::new("search"))
             .on_edit(|cx, value| cx.emit(SearchUiEvent::SetInput(value)))
-            .on_submit(|cx, value, _| cx.emit(SearchUiEvent::SubmitQuery(value)))
+            .on_submit(|cx, value, enter_key| {
+                if enter_key {
+                    cx.emit(SearchUiEvent::SubmitQuery(value));
+                }
+            })
             .width(Stretch(2.0))
             .class("search-box");
         HStack::new(cx, |cx| {

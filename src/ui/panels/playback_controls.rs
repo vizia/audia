@@ -93,17 +93,6 @@ pub fn playback_controls_panel(
                 )
                 .class("playback-toggle")
                 .on_toggle(|cx| cx.emit(PlaybackUiEvent::Toggle));
-                // Binding::new(cx, playback_is_playing, move |cx| {
-                //     if playback_is_playing.get() {
-                //         Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PAUSE_FILLED))
-                //             .class("playback-toggle")
-                //             .on_press(|cx| cx.emit(PlaybackUiEvent::Toggle));
-                //     } else {
-                //         Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
-                //             .class("playback-toggle")
-                //             .on_press(|cx| cx.emit(PlaybackUiEvent::Toggle));
-                //     }
-                // });
 
                 Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_SKIP_FORWARD_FILLED))
                     .class("playback-skip-forward")
@@ -148,7 +137,7 @@ pub fn playback_controls_panel(
                     |cx| Svg::new(cx, ICON_VOLUME),
                     |cx| Svg::new(cx, ICON_VOLUME_OFF),
                 )
-                .class("icon")
+                .class("playback-volume-toggle")
                 .on_toggle(|cx| cx.emit(PlaybackUiEvent::ToggleMute));
                 Slider::new(cx, playback_volume)
                     .range(0.0..100.0)
