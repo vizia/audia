@@ -70,9 +70,11 @@ pub fn playlist_tracks_panel(
         HStack::new(cx, |cx| {
             Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
                 .class("playback-toggle")
+                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Play playlist"); }))
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::PlayPlaylist));
             ToggleButton::new(cx, shuffle_mode, |cx| Svg::new(cx, ICON_ARROWS_SHUFFLE))
                 .class("playlist-shuffle-toggle")
+                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Shuffle playlist"); }))
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::ShufflePlaylist));
             Textbox::new(cx, track_filter_input)
                 //.placeholder("Search tracks")

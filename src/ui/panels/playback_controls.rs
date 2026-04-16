@@ -49,6 +49,7 @@ pub fn playback_controls_panel(
                     })
                     .variant(ButtonVariant::Text)
                     .class("playback-album-button")
+                    .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Open album"); }))
                     .on_press(move |cx| {
                         cx.emit(PlaybackUiEvent::OpenAlbumFromPlayback {
                             track_id: playback_track_id.get(),
@@ -83,6 +84,7 @@ pub fn playback_controls_panel(
                 Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_SKIP_BACK_FILLED))
                     .class("playback-skip-back")
                     .name("Skip Back")
+                    .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Previous track"); }))
                     .on_press(|cx| cx.emit(PlaybackUiEvent::Previous));
 
                 ToggleButton::with_contents(
@@ -92,11 +94,13 @@ pub fn playback_controls_panel(
                     |cx| Svg::new(cx, ICON_PLAYER_PAUSE_FILLED),
                 )
                 .class("playback-toggle")
+                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Play or pause"); }))
                 .on_toggle(|cx| cx.emit(PlaybackUiEvent::Toggle));
 
                 Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_SKIP_FORWARD_FILLED))
                     .class("playback-skip-forward")
                     .name("Skip Forward")
+                    .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Next track"); }))
                     .on_press(|cx| cx.emit(PlaybackUiEvent::Next));
             })
             .class("transport")
@@ -138,6 +142,7 @@ pub fn playback_controls_panel(
                     |cx| Svg::new(cx, ICON_VOLUME_OFF),
                 )
                 .class("playback-volume-toggle")
+                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Mute or unmute"); }))
                 .on_toggle(|cx| cx.emit(PlaybackUiEvent::ToggleMute));
                 Slider::new(cx, playback_volume)
                     .range(0.0..100.0)

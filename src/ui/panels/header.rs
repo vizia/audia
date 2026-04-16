@@ -35,6 +35,7 @@ pub fn header_panel(
             });
             Button::new(cx, |cx| Svg::new(cx, ICON_SETTINGS).class("icon"))
                 .class("playlist-shuffle-toggle")
+                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Open preferences"); }))
                 .on_press(|cx| cx.emit(PreferencesEvent::Show));
 
             let initials = auth_username.map(|name| {
@@ -63,17 +64,20 @@ pub fn header_panel(
                         cx,
                         |cx| cx.emit(OAuthUiEvent::OpenLoginModal),
                         |cx| Label::new(cx, "Open Login"),
-                    );
+                    )
+                    .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Open login dialog"); }));
                     MenuButton::new(
                         cx,
                         |cx| cx.emit(OAuthUiEvent::RefreshToken),
                         |cx| Label::new(cx, "Refresh Token"),
-                    );
+                    )
+                    .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Refresh OAuth token"); }));
                     MenuButton::new(
                         cx,
                         |cx| cx.emit(OAuthUiEvent::ResetLogin),
                         |cx| Label::new(cx, "Reset Login"),
-                    );
+                    )
+                    .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Reset login state"); }));
                 },
             )
             .class("profile-submenu");

@@ -83,12 +83,14 @@ pub fn album_tracks_panel(
             Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
                 .class("playback-toggle")
                 .name("Play all")
+                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Play album"); }))
                 .on_press(|cx| cx.emit(AlbumUiEvent::PlayAlbum));
 
             ToggleButton::new(cx, album_shuffle_mode, |cx| {
                 Svg::new(cx, ICON_ARROWS_SHUFFLE)
             })
             .class("playlist-shuffle-toggle")
+            .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Shuffle album"); }))
             .on_press(|cx| cx.emit(AlbumUiEvent::ShuffleAlbum));
         })
         .class("album-header");
