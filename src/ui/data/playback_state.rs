@@ -302,7 +302,7 @@ impl Model for PlaybackState {
                             selected_track,
                             cx.get_proxy(),
                         );
-                        self.playback_is_playing.set(true);
+                        self.playback_is_playing.set_if_changed(true);
                     }
                     Some(PlaybackTarget::Remote(_)) => {
                         self.status.set(format!(
@@ -314,7 +314,7 @@ impl Model for PlaybackState {
                             selected_track.id.clone(),
                             cx.get_proxy(),
                         );
-                        self.playback_is_playing.set(true);
+                        self.playback_is_playing.set_if_changed(true);
                     }
                     None => {
                         self.status.set("No device selected.".to_string());
@@ -389,7 +389,7 @@ impl Model for PlaybackState {
                 }
             }
             PlaybackUiEvent::Stop => {
-                self.playback_is_playing.set(false);
+                self.playback_is_playing.set_if_changed(false);
                 self.playback_scrub_percent.set(0.0);
                 self.playback_track_name.set("".to_string());
                 self.playback_track_id.set(None);
@@ -401,12 +401,12 @@ impl Model for PlaybackState {
                     self.status
                         .set("Resuming playback on local device...".to_string());
                     worker::playback_resume_local(self.backend.clone(), cx.get_proxy());
-                    self.playback_is_playing.set(true);
+                    self.playback_is_playing.set_if_changed(true);
                 }
                 Some(PlaybackTarget::Remote(_)) => {
                     self.status.set("Resuming playback...".to_string());
                     worker::playback_resume_remote(self.backend.clone(), cx.get_proxy());
-                    self.playback_is_playing.set(true);
+                    self.playback_is_playing.set_if_changed(true);
                 }
                 None => {
                     self.status.set("No device selected.".to_string());
@@ -441,7 +441,7 @@ impl Model for PlaybackState {
                             track,
                             cx.get_proxy(),
                         );
-                        self.playback_is_playing.set(true);
+                        self.playback_is_playing.set_if_changed(true);
                         return;
                     }
 
@@ -503,7 +503,7 @@ impl Model for PlaybackState {
                             track.id,
                             cx.get_proxy(),
                         );
-                        self.playback_is_playing.set(true);
+                        self.playback_is_playing.set_if_changed(true);
                         return;
                     }
 
@@ -545,12 +545,12 @@ impl Model for PlaybackState {
                     self.status
                         .set("Sending pause command to local device...".to_string());
                     worker::playback_pause_local(self.backend.clone(), cx.get_proxy());
-                    self.playback_is_playing.set(false);
+                    self.playback_is_playing.set_if_changed(false);
                 }
                 _ => {
                     self.status.set("Sending pause command...".to_string());
                     worker::playback_pause(self.backend.clone(), cx.get_proxy());
-                    self.playback_is_playing.set(false);
+                    self.playback_is_playing.set_if_changed(false);
                 }
             },
             PlaybackUiEvent::Next => match self.selected_playback_target.get() {
@@ -570,7 +570,7 @@ impl Model for PlaybackState {
                         cx.emit(PlaybackUiEvent::Play);
                     } else {
                         self.queue_current_index.set(None);
-                        self.playback_is_playing.set(false);
+                        self.playback_is_playing.set_if_changed(false);
                         self.status.set("Reached end of queue.".to_string());
                     }
                     return;
@@ -666,7 +666,7 @@ impl Model for PlaybackState {
                             track.id,
                             cx.get_proxy(),
                         );
-                        self.playback_is_playing.set(true);
+                        self.playback_is_playing.set_if_changed(true);
                     } else {
                         self.status.set("Sending next command...".to_string());
                         worker::playback_next(self.backend.clone(), cx.get_proxy());
@@ -807,7 +807,7 @@ impl Model for PlaybackState {
                     cx.emit(PlaybackUiEvent::Play);
                 } else {
                     self.queue_current_index.set(None);
-                    self.playback_is_playing.set(false);
+                    self.playback_is_playing.set_if_changed(false);
                     self.status.set("Reached end of queue.".to_string());
                 }
             }
@@ -829,7 +829,7 @@ impl Model for PlaybackState {
 
                 if source_matches_target {
                     if self.playback_is_playing.get() != *is_playing {
-                        self.playback_is_playing.set(*is_playing);
+                        self.playback_is_playing.set_if_changed(*is_playing);
                     }
 
                     self.playback_duration_ms.set(*duration_ms);

@@ -84,17 +84,25 @@ pub fn playback_controls_panel(
                     .name("Skip Back")
                     .on_press(|cx| cx.emit(PlaybackUiEvent::Previous));
 
-                Binding::new(cx, playback_is_playing, move |cx| {
-                    if playback_is_playing.get() {
-                        Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PAUSE_FILLED))
-                            .class("playback-toggle")
-                            .on_press(|cx| cx.emit(PlaybackUiEvent::Toggle));
-                    } else {
-                        Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
-                            .class("playback-toggle")
-                            .on_press(|cx| cx.emit(PlaybackUiEvent::Toggle));
-                    }
-                });
+                ToggleButton::with_contents(
+                    cx,
+                    playback_is_playing,
+                    |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED),
+                    |cx| Svg::new(cx, ICON_PLAYER_PAUSE_FILLED),
+                )
+                .class("playback-toggle")
+                .on_toggle(|cx| cx.emit(PlaybackUiEvent::Toggle));
+                // Binding::new(cx, playback_is_playing, move |cx| {
+                //     if playback_is_playing.get() {
+                //         Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PAUSE_FILLED))
+                //             .class("playback-toggle")
+                //             .on_press(|cx| cx.emit(PlaybackUiEvent::Toggle));
+                //     } else {
+                //         Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
+                //             .class("playback-toggle")
+                //             .on_press(|cx| cx.emit(PlaybackUiEvent::Toggle));
+                //     }
+                // });
 
                 Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_SKIP_FORWARD_FILLED))
                     .class("playback-skip-forward")

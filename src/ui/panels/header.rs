@@ -17,6 +17,18 @@ pub fn header_panel(
             .width(Stretch(2.0))
             .class("search-box");
         HStack::new(cx, |cx| {
+            let is_rtl = cx
+                .environment()
+                .direction
+                .map(|d| *d == Direction::RightToLeft);
+            Switch::new(cx, is_rtl).on_toggle(|cx| {
+                let next_direction = if cx.environment().direction.get() == Direction::LeftToRight {
+                    Direction::RightToLeft
+                } else {
+                    Direction::LeftToRight
+                };
+                cx.emit(EnvironmentEvent::SetDirection(next_direction));
+            });
             Button::new(cx, |cx| Svg::new(cx, ICON_SETTINGS).class("icon"))
                 .class("playlist-shuffle-toggle")
                 .on_press(|cx| cx.emit(PreferencesEvent::Show));

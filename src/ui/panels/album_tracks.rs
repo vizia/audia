@@ -24,55 +24,61 @@ pub fn album_tracks_panel(
 
     VStack::new(cx, move |cx| {
         HStack::new(cx, |cx| {
-            Binding::new(cx, album_image_key, move |cx| {
-                if let Some(key) = album_image_key.get() {
-                    Image::new(cx, key).size(Pixels(60.0)).class("album-art");
-                } else {
-                    Label::new(cx, "◫")
-                        .size(Pixels(60.0))
-                        .class("search-result-fallback");
-                }
-            });
+            HStack::new(cx, |cx| {
+                Binding::new(cx, album_image_key, move |cx| {
+                    if let Some(key) = album_image_key.get() {
+                        Image::new(cx, key).class("album-art");
+                    } else {
+                        Label::new(cx, "◫").class("album-art");
+                    }
+                });
 
-            VStack::new(cx, |cx| {
-                Label::new(cx, album_name)
-                    .text_wrap(false)
-                    .class("panel-title");
-                Label::new(cx, album_artist)
-                    .text_wrap(false)
-                    .class("playlist-meta");
-                HStack::new(cx, move |cx| {
-                    let album_release_year_signal = album_release_year;
-                    Binding::new(cx, album_release_year_signal, move |cx| {
-                        if let Some(year) = album_release_year_signal.get() {
-                            Label::new(cx, year.to_string())
-                                .text_wrap(false)
-                                .class("playlist-meta");
-                        }
-                    });
+                VStack::new(cx, |cx| {
+                    Label::new(cx, album_name)
+                        .text_wrap(false)
+                        .class("album-title");
 
-                    Label::new(
-                        cx,
-                        album_track_count.map(|count| format!("{} songs", count)),
-                    )
-                    .text_wrap(false)
-                    .class("playlist-meta");
+                    HStack::new(cx, move |cx| {
+                        Label::new(cx, album_artist)
+                            .text_wrap(false)
+                            .class("album-meta");
 
-                    Label::new(
-                        cx,
-                        album_total_duration_ms.map(|duration_ms| {
-                            let total_minutes = duration_ms / 60_000;
-                            format!("{}m", total_minutes)
-                        }),
-                    )
-                    .text_wrap(false)
-                    .class("playlist-meta");
+                        Label::new(cx, " • ").class("album-meta");
+
+                        let album_release_year_signal = album_release_year;
+                        Binding::new(cx, album_release_year_signal, move |cx| {
+                            if let Some(year) = album_release_year_signal.get() {
+                                Label::new(cx, format!("{year}"))
+                                    .text_wrap(false)
+                                    .class("album-meta");
+                                Label::new(cx, " • ").class("album-meta");
+                            }
+                        });
+
+                        Label::new(
+                            cx,
+                            album_track_count.map(|count| format!("{} songs", count)),
+                        )
+                        .text_wrap(false)
+                        .class("album-meta");
+
+                        Label::new(cx, " • ").class("album-meta");
+
+                        Label::new(
+                            cx,
+                            album_total_duration_ms.map(|duration_ms| {
+                                let total_minutes = duration_ms / 60_000;
+                                format!("{}m", total_minutes)
+                            }),
+                        )
+                        .text_wrap(false)
+                        .class("album-meta");
+                    })
+                    .class("album-meta-row");
                 })
-                .gap(Pixels(8.0));
+                .class("album-info");
             })
-            .width(Stretch(1.0))
-            .height(Auto)
-            .gap(Pixels(4.0));
+            .class("album-info-row");
 
             Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
                 .class("playback-toggle")
@@ -85,38 +91,30 @@ pub fn album_tracks_panel(
             .class("playlist-shuffle-toggle")
             .on_press(|cx| cx.emit(AlbumUiEvent::ShuffleAlbum));
         })
-        .height(Auto)
-        .width(Stretch(1.0))
-        .alignment(Alignment::Center)
-        .gap(Pixels(8.0));
+        .class("album-header");
 
         // Track list
         List::new(cx, album_tracks, |cx, index, item| {
             HStack::new(cx, |cx| {
-                Label::new(cx, format!("{}.", index + 1))
-                    .class("search-result-index")
-                    .width(Pixels(20.0));
+                Label::new(cx, format!("{}", index + 1)).class("album-track-index");
 
                 VStack::new(cx, |cx| {
                     Label::new(cx, item.map(|track| track.name.clone()))
                         .text_wrap(false)
-                        .class("search-result-title");
+                        .class("album-track-title");
                     Label::new(cx, item.map(|track| track.artist.clone()))
                         .text_wrap(false)
-                        .class("search-result-artist");
+                        .class("album-track-artist");
                 })
                 .width(Stretch(1.0))
                 .height(Auto)
                 .gap(Pixels(2.0));
 
                 Label::new(cx, item.map(|track| format_time(track.duration_ms)))
-                    .class("search-result-duration");
+                    .class("album-track-duration");
             })
             .hoverable(false)
-            .class("result-row")
-            .width(Stretch(1.0))
-            .alignment(Alignment::Center)
-            .gap(Pixels(8.0));
+            .class("album-track-row");
         })
         .selectable(Selectable::Single)
         .selection(album_selected_index.map(|idx| vec![*idx]))
