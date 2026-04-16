@@ -3,16 +3,18 @@ use crate::messages::{SearchResultsData, Track};
 #[derive(Clone, Debug)]
 pub enum SearchUiEvent {
     SelectResult(usize),
+    SelectAlbum(usize),
     SetInput(String),
     SubmitQuery(String),
-    SelectAlbum(usize),
-    OpenAlbumFromPlayback {
-        track_id: Option<String>,
-        image_key: Option<String>,
-        image_url: Option<String>,
-    },
+}
+
+#[derive(Clone, Debug)]
+pub enum AlbumUiEvent {
     BackFromAlbum,
     AlbumTrackSelected(usize),
+    PlayAlbumTrack(usize),
+    PlayAlbum,
+    ShuffleAlbum,
 }
 
 #[derive(Clone, Debug)]

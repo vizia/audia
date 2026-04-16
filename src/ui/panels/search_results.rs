@@ -123,7 +123,6 @@ pub fn search_results_panel(
             .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectAlbum(idx)))
             .width(Stretch(1.0))
             .height(Auto);
-
         })
         .gap(Pixels(4.0));
     })

@@ -16,6 +16,7 @@ pub struct SearchState {
     pub selected_index: Signal<usize>,
     pub selected_summary: Signal<String>,
     pub showing_playlist: Signal<bool>,
+    pub showing_album: Signal<bool>,
 }
 
 impl SearchState {
@@ -100,6 +101,21 @@ impl Model for SearchState {
                 let selected_track = search_results[*index].clone();
                 cx.emit(PlaybackUiEvent::AddToQueue(vec![selected_track]));
             }
+            SearchUiEvent::SelectAlbum(index) => {
+                let albums = self.search_album_rows.get();
+                if *index >= albums.len() {
+                    self.status
+                        .set("Selected album is unavailable.".to_string());
+                    return;
+                }
+
+                let album = albums[*index].clone();
+                self.status
+                    .set(format!("Loading tracks for '{}'...", album.name));
+                self.showing_playlist.set(false);
+                self.showing_album.set(true);
+                worker::fetch_album_tracks(self.backend.clone(), album, cx.get_proxy());
+            }
             SearchUiEvent::SetInput(value) => {
                 self.search_input.set(value.clone());
             }
@@ -111,13 +127,10 @@ impl Model for SearchState {
                 }
 
                 self.showing_playlist.set(false);
+                self.showing_album.set(false);
                 self.status.set(format!("Searching for '{query}'..."));
                 worker::search_tracks(self.backend.clone(), query, cx.get_proxy());
             }
-            SearchUiEvent::SelectAlbum(_)
-            | SearchUiEvent::OpenAlbumFromPlayback { .. }
-            | SearchUiEvent::BackFromAlbum
-            | SearchUiEvent::AlbumTrackSelected(_) => {}
         });
     }
 }

@@ -1,4 +1,4 @@
-use crate::ui::events::{PlaybackUiEvent, SearchUiEvent};
+use crate::ui::events::PlaybackUiEvent;
 use vizia::icons::{
     ICON_PLAYER_PAUSE_FILLED, ICON_PLAYER_PLAY_FILLED, ICON_PLAYER_SKIP_BACK_FILLED,
     ICON_PLAYER_SKIP_FORWARD_FILLED, ICON_VOLUME,
@@ -49,7 +49,7 @@ pub fn playback_controls_panel(
                     .variant(ButtonVariant::Text)
                     .class("playback-album-button")
                     .on_press(move |cx| {
-                        cx.emit(SearchUiEvent::OpenAlbumFromPlayback {
+                        cx.emit(PlaybackUiEvent::OpenAlbumFromPlayback {
                             track_id: playback_track_id.get(),
                             image_key: Some(image_key_for_event.clone()),
                             image_url: image_url.get(),

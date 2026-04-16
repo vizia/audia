@@ -84,6 +84,7 @@ pub fn run() {
         let album_total_duration_ms = Signal::new(0u64);
         let album_image_key = Signal::new(None::<String>);
         let album_selected_index = Signal::new(0usize);
+        let album_shuffle_mode = Signal::new(false);
         let queue_tracks = Signal::new(Vec::<Track>::new());
         let queue_current_index = Signal::new(None::<usize>);
         let recently_played = Signal::new(Vec::<Track>::new());
@@ -120,6 +121,11 @@ pub fn run() {
                 playback_track_image_key,
                 playback_track_image_url,
                 playback_overlay_image_key,
+                showing_playlist,
+                showing_album,
+                search_album_rows,
+                album_tracks,
+                album_image_key,
                 last_remote_volume_sent: None,
                 last_remote_volume_sent_at: None,
                 last_remote_seek_sent_ms: None,
@@ -151,13 +157,10 @@ pub fn run() {
                 selected_index,
                 selected_summary,
                 showing_playlist,
+                showing_album,
             },
             album_state: AlbumState {
-                backend: backend.clone(),
-                status,
-                showing_playlist,
                 showing_album,
-                search_album_rows,
                 album_tracks,
                 album_name,
                 album_artist,
@@ -166,6 +169,7 @@ pub fn run() {
                 album_total_duration_ms,
                 album_image_key,
                 album_selected_index,
+                album_shuffle_mode,
             },
             playlists_state: PlaylistsState {
                 backend: backend.clone(),
@@ -268,6 +272,7 @@ pub fn run() {
                             album_image_key,
                             album_tracks,
                             album_selected_index,
+                            album_shuffle_mode,
                         );
                     } else {
                         panels::search_results_panel(

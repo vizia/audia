@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::{
-    messages::{PlaybackDevice, Track},
+    messages::{AlbumResult, PlaybackDevice, Track},
     ui::{
         events::{PlaybackAppEvent, PlaybackProgressSource, PlaybackUiEvent},
         model_data::PlaybackTarget,
@@ -32,6 +32,11 @@ pub struct PlaybackState {
     pub playback_track_image_key: Signal<Option<String>>,
     pub playback_track_image_url: Signal<Option<String>>,
     pub playback_overlay_image_key: Signal<Option<String>>,
+    pub showing_playlist: Signal<bool>,
+    pub showing_album: Signal<bool>,
+    pub search_album_rows: Signal<Vec<AlbumResult>>,
+    pub album_tracks: Signal<Vec<Track>>,
+    pub album_image_key: Signal<Option<String>>,
     pub last_remote_volume_sent: Option<u8>,
     pub last_remote_volume_sent_at: Option<std::time::Instant>,
     pub last_remote_seek_sent_ms: Option<u32>,
@@ -170,6 +175,59 @@ impl Model for PlaybackState {
                 self.status
                     .set("Refreshing playback devices...".to_string());
                 worker::refresh_playback_devices(self.backend.clone(), cx.get_proxy());
+            }
+            PlaybackUiEvent::OpenAlbumFromPlayback {
+                track_id,
+                image_key,
+                image_url,
+            } => {
+                if let Some(track_id) = track_id {
+                    self.status
+                        .set("Loading album from current track...".to_string());
+                    self.showing_playlist.set(false);
+                    self.showing_album.set(true);
+                    worker::fetch_album_from_track(
+                        self.backend.clone(),
+                        track_id.clone(),
+                        cx.get_proxy(),
+                    );
+                    return;
+                }
+
+                let current_album_key = self.album_image_key.get();
+                if image_key.is_some()
+                    && *image_key == current_album_key
+                    && !self.album_tracks.get().is_empty()
+                {
+                    self.showing_playlist.set(false);
+                    self.showing_album.set(true);
+                    return;
+                }
+
+                let albums = self.search_album_rows.get();
+                let by_key = image_key.as_ref().and_then(|key| {
+                    albums
+                        .iter()
+                        .find(|album| album.image_key.as_ref() == Some(key))
+                        .cloned()
+                });
+                let by_url = image_url.as_ref().and_then(|url| {
+                    albums
+                        .iter()
+                        .find(|album| album.image_url.as_ref() == Some(url))
+                        .cloned()
+                });
+
+                if let Some(album) = by_key.or(by_url) {
+                    self.status
+                        .set(format!("Loading tracks for '{}'...", album.name));
+                    self.showing_playlist.set(false);
+                    self.showing_album.set(true);
+                    worker::fetch_album_tracks(self.backend.clone(), album, cx.get_proxy());
+                } else {
+                    self.status
+                        .set("Album not found in current search results.".to_string());
+                }
             }
             PlaybackUiEvent::SelectPlaybackDevice(index) => {
                 if *index == 0 {

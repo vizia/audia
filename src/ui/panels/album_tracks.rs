@@ -1,6 +1,6 @@
 use crate::messages::Track;
-use crate::ui::events::{PlaybackUiEvent, SearchUiEvent};
-use vizia::icons::{ICON_ARROW_LEFT, ICON_PLAYER_PLAY_FILLED};
+use crate::ui::events::AlbumUiEvent;
+use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_PLAYER_PLAY_FILLED};
 use vizia::prelude::*;
 
 pub fn album_tracks_panel(
@@ -13,6 +13,7 @@ pub fn album_tracks_panel(
     album_image_key: Signal<Option<String>>,
     album_tracks: Signal<Vec<Track>>,
     album_selected_index: Signal<usize>,
+    album_shuffle_mode: Signal<bool>,
 ) {
     fn format_time(ms: u32) -> String {
         let total_seconds = ms / 1000;
@@ -76,12 +77,13 @@ pub fn album_tracks_panel(
             Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
                 .class("playback-toggle")
                 .name("Play all")
-                .on_press(move |cx| {
-                    let tracks = album_tracks.get();
-                    if !tracks.is_empty() {
-                        cx.emit(PlaybackUiEvent::AddToQueue(tracks));
-                    }
-                });
+                .on_press(|cx| cx.emit(AlbumUiEvent::PlayAlbum));
+
+            ToggleButton::new(cx, album_shuffle_mode, |cx| {
+                Svg::new(cx, ICON_ARROWS_SHUFFLE)
+            })
+            .class("playlist-shuffle-toggle")
+            .on_press(|cx| cx.emit(AlbumUiEvent::ShuffleAlbum));
         })
         .height(Auto)
         .width(Stretch(1.0))
@@ -119,7 +121,7 @@ pub fn album_tracks_panel(
         .selectable(Selectable::Single)
         .selection(album_selected_index.map(|idx| vec![*idx]))
         .selection_follows_focus(true)
-        .on_select(|cx, idx| cx.emit(SearchUiEvent::AlbumTrackSelected(idx)))
+        .on_select(|cx, idx| cx.emit(AlbumUiEvent::AlbumTrackSelected(idx)))
         .width(Stretch(1.0))
         .height(Stretch(1.0));
     })

@@ -18,6 +18,11 @@ pub enum PlaybackUiEvent {
     Next,
     SetVolume(f32),
     SetScrub(f32),
+    OpenAlbumFromPlayback {
+        track_id: Option<String>,
+        image_key: Option<String>,
+        image_url: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug)]
