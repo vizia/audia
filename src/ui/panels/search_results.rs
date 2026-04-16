@@ -115,11 +115,15 @@ pub fn search_results_panel(
                     .height(Auto)
                     .gap(Pixels(2.0));
                 })
+                .hoverable(false)
                 .class("result-row");
             })
-            .selectable(Selectable::None)
+            .selectable(Selectable::Single)
+            .selection_follows_focus(true)
+            .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectAlbum(idx)))
             .width(Stretch(1.0))
             .height(Auto);
+
         })
         .gap(Pixels(4.0));
     })

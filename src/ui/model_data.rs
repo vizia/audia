@@ -1,5 +1,6 @@
 use crate::ui::data::{
-    OAuthState, PanelState, PlaybackState, PlaylistsState, PreferencesData, SearchState,
+    AlbumState, OAuthState, PanelState, PlaybackState, PlaylistsState, PreferencesData,
+    SearchState,
 };
 use vizia::prelude::*;
 
@@ -16,5 +17,6 @@ pub struct UiModel {
     pub(crate) panel_state: PanelState,
     pub(crate) playback_state: PlaybackState,
     pub(crate) search_state: SearchState,
+    pub(crate) album_state: AlbumState,
     pub(crate) playlists_state: PlaylistsState,
 }

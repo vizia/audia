@@ -85,6 +85,7 @@ impl Model for SearchState {
                 self.refresh_selected_summary();
                 self.refresh_result_selection();
             }
+            SearchAppEvent::AlbumTracks { .. } => {}
         });
 
         event.map(|search_ui_event, _: &mut _| match search_ui_event {
@@ -97,7 +98,6 @@ impl Model for SearchState {
                 }
 
                 let selected_track = search_results[*index].clone();
-
                 cx.emit(PlaybackUiEvent::AddToQueue(vec![selected_track]));
             }
             SearchUiEvent::SetInput(value) => {
@@ -114,6 +114,10 @@ impl Model for SearchState {
                 self.status.set(format!("Searching for '{query}'..."));
                 worker::search_tracks(self.backend.clone(), query, cx.get_proxy());
             }
+            SearchUiEvent::SelectAlbum(_)
+            | SearchUiEvent::OpenAlbumFromPlayback { .. }
+            | SearchUiEvent::BackFromAlbum
+            | SearchUiEvent::AlbumTrackSelected(_) => {}
         });
     }
 }

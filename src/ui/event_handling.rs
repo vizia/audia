@@ -9,6 +9,7 @@ impl Model for UiModel {
         self.panel_state.event(cx, event);
         self.playback_state.event(cx, event);
         self.search_state.event(cx, event);
+        self.album_state.event(cx, event);
         self.playlists_state.event(cx, event);
         event.map(|system_event: &SystemAppEvent, _| match system_event {
             SystemAppEvent::Ready => {

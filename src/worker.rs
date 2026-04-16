@@ -5,7 +5,7 @@ use std::{thread, time::Duration};
 use tokio::runtime::Runtime;
 use vizia::prelude::{ContextProxy, ImageRetentionPolicy};
 
-use crate::messages::{PlaylistEntry, Track};
+use crate::messages::{AlbumResult, PlaylistEntry, Track};
 use crate::oauth;
 use crate::playback::PlaybackService;
 use crate::spotify::SpotifyService;
@@ -673,6 +673,119 @@ pub fn fetch_playlist_tracks(
                 });
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
                     "Loaded {count} tracks from playlist."
+                )));
+            }
+            Err(err) => {
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+            }
+        }
+    });
+}
+
+// Fetches all tracks for an album from Spotify and emits SearchAppEvent::AlbumTracks.
+pub fn fetch_album_tracks(backend: SharedBackend, album: AlbumResult, mut proxy: ContextProxy) {
+    let runtime = {
+        let state = backend.lock().unwrap();
+        Arc::clone(&state.runtime)
+    };
+
+    runtime.spawn(async move {
+        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
+
+        let spotify = {
+            let state = backend.lock().unwrap();
+            state.spotify.clone()
+        };
+
+        match spotify.get_album_tracks(&album.id).await {
+            Ok(mut tracks) => {
+                // All tracks share the same album art; load it once.
+                let image_key = if let Some(url) = &album.image_url {
+                    let key = format!("album-artwork:{}", url);
+                    let image_jobs = vec![(0usize, key.clone(), url.clone())];
+                    let loaded = load_images_parallel(&mut proxy, image_jobs).await;
+                    loaded.into_iter().next().map(|(_, k)| k)
+                } else {
+                    None
+                };
+
+                for track in &mut tracks {
+                    track.album_image_key = image_key.clone();
+                }
+
+                let count = tracks.len();
+                let _ = proxy.emit(crate::ui::events::SearchAppEvent::AlbumTracks {
+                    id: album.id,
+                    name: album.name,
+                    artist: album.artist,
+                    image_key,
+                    tracks,
+                });
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                    "Loaded {count} tracks from album."
+                )));
+            }
+            Err(err) => {
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+            }
+        }
+    });
+}
+
+// Resolves a track id to its parent album and emits SearchAppEvent::AlbumTracks.
+pub fn fetch_album_from_track(backend: SharedBackend, track_id: String, mut proxy: ContextProxy) {
+    let runtime = {
+        let state = backend.lock().unwrap();
+        Arc::clone(&state.runtime)
+    };
+
+    runtime.spawn(async move {
+        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
+
+        let spotify = {
+            let state = backend.lock().unwrap();
+            state.spotify.clone()
+        };
+
+        let album = match spotify.get_album_for_track(&track_id).await {
+            Ok(album) => album,
+            Err(err) => {
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+                return;
+            }
+        };
+
+        match spotify.get_album_tracks(&album.id).await {
+            Ok(mut tracks) => {
+                let image_key = if let Some(url) = &album.image_url {
+                    let key = format!("album-artwork:{}", url);
+                    let image_jobs = vec![(0usize, key.clone(), url.clone())];
+                    let loaded = load_images_parallel(&mut proxy, image_jobs).await;
+                    loaded.into_iter().next().map(|(_, k)| k)
+                } else {
+                    None
+                };
+
+                for track in &mut tracks {
+                    track.album_image_key = image_key.clone();
+                }
+
+                let count = tracks.len();
+                let _ = proxy.emit(crate::ui::events::SearchAppEvent::AlbumTracks {
+                    id: album.id,
+                    name: album.name,
+                    artist: album.artist,
+                    image_key,
+                    tracks,
+                });
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                    "Loaded {count} tracks from album."
                 )));
             }
             Err(err) => {

@@ -493,6 +493,155 @@ impl SpotifyService {
     }
 
     // Plays a specific track by its Spotify track ID.
+    // Fetches all tracks from a Spotify album, paginated.
+    pub async fn get_album_tracks(&self, album_id: &str) -> Result<Vec<Track>, String> {
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or_else(|| "No token provided".to_string())?;
+
+        let encoded_id = urlencoding::encode(album_id);
+        let url = format!("https://api.spotify.com/v1/albums/{}/tracks", encoded_id);
+
+        #[derive(Deserialize)]
+        struct AlbumTracksResponse {
+            items: Vec<AlbumTrackObject>,
+            total: usize,
+        }
+
+        #[derive(Deserialize)]
+        struct AlbumTrackObject {
+            id: Option<String>,
+            name: String,
+            artists: Vec<SearchArtist>,
+            duration_ms: u32,
+            #[serde(rename = "type")]
+            item_type: Option<String>,
+        }
+
+        let mut all_tracks = Vec::new();
+        let mut offset = 0;
+        const PAGE_SIZE: usize = 50;
+
+        loop {
+            let offset_str = offset.to_string();
+            let response = self
+                .http
+                .get(&url)
+                .bearer_auth(token)
+                .query(&[
+                    ("limit", PAGE_SIZE.to_string().as_str()),
+                    ("offset", offset_str.as_str()),
+                    ("market", "from_token"),
+                ])
+                .send()
+                .await
+                .map_err(|err| format!("Spotify album tracks request failed: {err}"))?;
+
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                return Err(format!(
+                    "Spotify album tracks returned status {status}: {body}"
+                ));
+            }
+
+            let payload = response
+                .json::<AlbumTracksResponse>()
+                .await
+                .map_err(|err| format!("Invalid Spotify album tracks payload: {err}"))?;
+
+            let page_size = payload.items.len();
+            all_tracks.extend(payload.items.into_iter().filter_map(|item| {
+                if item.item_type.as_deref() != Some("track") {
+                    return None;
+                }
+                let track_id = item.id?;
+                Some(Track {
+                    id: track_id,
+                    name: item.name,
+                    artist: item
+                        .artists
+                        .into_iter()
+                        .map(|a| a.name)
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    duration_ms: item.duration_ms,
+                    album_image_url: None,
+                    album_image_key: None,
+                })
+            }));
+
+            offset += page_size;
+            if offset >= payload.total {
+                break;
+            }
+        }
+
+        Ok(all_tracks)
+    }
+
+    // Resolves a track ID to its parent album metadata.
+    pub async fn get_album_for_track(&self, track_id: &str) -> Result<AlbumResult, String> {
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or_else(|| "No token provided".to_string())?;
+
+        let encoded_id = urlencoding::encode(track_id);
+        let url = format!("https://api.spotify.com/v1/tracks/{}", encoded_id);
+
+        #[derive(Deserialize)]
+        struct TrackLookupResponse {
+            album: TrackLookupAlbum,
+        }
+
+        #[derive(Deserialize)]
+        struct TrackLookupAlbum {
+            id: String,
+            name: String,
+            artists: Vec<SearchArtist>,
+            images: Vec<SpotifyImage>,
+        }
+
+        let response = self
+            .http
+            .get(url)
+            .bearer_auth(token)
+            .query(&[("market", "from_token")])
+            .send()
+            .await
+            .map_err(|err| format!("Spotify track lookup failed: {err}"))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(format!(
+                "Spotify track lookup returned status {status}: {body}"
+            ));
+        }
+
+        let payload = response
+            .json::<TrackLookupResponse>()
+            .await
+            .map_err(|err| format!("Invalid Spotify track lookup payload: {err}"))?;
+
+        let artist = payload
+            .album
+            .artists
+            .first()
+            .map(|a| a.name.clone())
+            .unwrap_or_else(|| "Unknown artist".to_string());
+
+        Ok(AlbumResult {
+            id: payload.album.id,
+            name: payload.album.name,
+            artist,
+            image_url: payload.album.images.first().map(|img| img.url.clone()),
+            image_key: None,
+        })
+    }
+
     pub async fn playback_play_track(&self, track_id: &str) -> Result<(), String> {
         let token = self
             .access_token

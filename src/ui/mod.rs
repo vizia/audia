@@ -1,6 +1,7 @@
 use crate::messages::{AlbumResult, ArtistResult, PlaybackDevice, PlaylistEntry, Track};
 use crate::ui::data::{
-    OAuthState, PanelEvent, PanelState, PlaybackState, PlaylistsState, PreferencesData, SearchState,
+    AlbumState, OAuthState, PanelEvent, PanelState, PlaybackState, PlaylistsState, PreferencesData,
+    SearchState,
 };
 use crate::worker;
 use vizia::prelude::*;
@@ -43,7 +44,9 @@ pub fn run() {
         let profile_image_key = Signal::new(None::<String>);
         let playback_track_name = Signal::new("Nothing playing".to_string());
         let playback_track_artist = Signal::new(String::new());
+        let playback_track_id = Signal::new(None::<String>);
         let playback_track_image_key = Signal::new(None::<String>);
+        let playback_track_image_url = Signal::new(None::<String>);
         let playback_overlay_image_key = Signal::new(None::<String>);
 
         let artwork_fade_animation = cx.add_animation(
@@ -72,6 +75,12 @@ pub fn run() {
         let active_playlist_meta = Signal::new(String::new());
         let showing_playlist = Signal::new(false);
         let playlist_selected_index = Signal::new(0usize);
+        let showing_album = Signal::new(false);
+        let album_tracks = Signal::new(Vec::<Track>::new());
+        let album_name = Signal::new(String::new());
+        let album_artist = Signal::new(String::new());
+        let album_image_key = Signal::new(None::<String>);
+        let album_selected_index = Signal::new(0usize);
         let queue_tracks = Signal::new(Vec::<Track>::new());
         let queue_current_index = Signal::new(None::<usize>);
         let recently_played = Signal::new(Vec::<Track>::new());
@@ -104,7 +113,9 @@ pub fn run() {
             playback_state: PlaybackState {
                 playback_track_name,
                 playback_track_artist,
+                playback_track_id,
                 playback_track_image_key,
+                playback_track_image_url,
                 playback_overlay_image_key,
                 last_remote_volume_sent: None,
                 last_remote_volume_sent_at: None,
@@ -137,6 +148,18 @@ pub fn run() {
                 selected_index,
                 selected_summary,
                 showing_playlist,
+            },
+            album_state: AlbumState {
+                backend: backend.clone(),
+                status,
+                showing_playlist,
+                showing_album,
+                search_album_rows,
+                album_tracks,
+                album_name,
+                album_artist,
+                album_image_key,
+                album_selected_index,
             },
             playlists_state: PlaylistsState {
                 backend: backend.clone(),
@@ -215,8 +238,10 @@ pub fn run() {
                 )
                 .class("left-panel");
 
-                Binding::new(cx, showing_playlist, move |cx| {
-                    if showing_playlist.get() {
+                let center_view_key = showing_playlist.map(move |sp| (*sp, showing_album.get()));
+                Binding::new(cx, center_view_key, move |cx| {
+                    let (is_playlist, is_album) = center_view_key.get();
+                    if is_playlist {
                         panels::playlist_tracks_panel(
                             cx,
                             active_playlist_name,
@@ -225,6 +250,15 @@ pub fn run() {
                             filtered_playlist_tracks,
                             playlist_selected_index,
                             shuffle_mode,
+                        );
+                    } else if is_album {
+                        panels::album_tracks_panel(
+                            cx,
+                            album_name,
+                            album_artist,
+                            album_image_key,
+                            album_tracks,
+                            album_selected_index,
                         );
                     } else {
                         panels::search_results_panel(
@@ -265,6 +299,8 @@ pub fn run() {
                 playback_track_name,
                 playback_track_artist,
                 playback_track_image_key,
+                playback_track_id,
+                playback_track_image_url,
             );
         })
         .width(Stretch(1.0))

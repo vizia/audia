@@ -28,7 +28,9 @@ pub struct PlaybackState {
     pub playback_duration_ms: Signal<u32>,
     pub playback_track_name: Signal<String>,
     pub playback_track_artist: Signal<String>,
+    pub playback_track_id: Signal<Option<String>>,
     pub playback_track_image_key: Signal<Option<String>>,
+    pub playback_track_image_url: Signal<Option<String>>,
     pub playback_overlay_image_key: Signal<Option<String>>,
     pub last_remote_volume_sent: Option<u8>,
     pub last_remote_volume_sent_at: Option<std::time::Instant>,
@@ -95,6 +97,21 @@ impl PlaybackState {
             .set(Some(PlaybackTarget::Local));
         self.selected_playback_device_index.set(Some(0));
     }
+
+    fn set_current_track_artwork(&self, cx: &mut EventContext, track: &Track) {
+        if track.album_image_key.is_some() {
+            cx.emit(PlaybackAppEvent::ArtworkLoaded {
+                image_key: track.album_image_key.clone(),
+            });
+            return;
+        }
+
+        worker::load_playback_artwork(
+            self.backend.clone(),
+            track.album_image_url.clone(),
+            cx.get_proxy(),
+        );
+    }
 }
 
 impl Model for PlaybackState {
@@ -107,7 +124,9 @@ impl Model for PlaybackState {
                 self.playback_scrub_percent.set(0.0);
                 self.playback_track_name.set("".to_string());
                 self.playback_track_artist.set("".to_string());
+                self.playback_track_id.set(None);
                 self.playback_track_image_key.set(None);
+                self.playback_track_image_url.set(None);
                 self.playback_overlay_image_key.set(None);
                 cx.emit(PlaybackUiEvent::Stop);
             }
@@ -211,11 +230,10 @@ impl Model for PlaybackState {
                 self.playback_track_name.set(selected_track.name.clone());
                 self.playback_track_artist
                     .set(selected_track.artist.clone());
-                worker::load_playback_artwork(
-                    self.backend.clone(),
-                    selected_track.album_image_url.clone(),
-                    cx.get_proxy(),
-                );
+                self.playback_track_id.set(Some(selected_track.id.clone()));
+                self.playback_track_image_url
+                    .set(selected_track.album_image_url.clone());
+                self.set_current_track_artwork(cx, &selected_track);
 
                 match self.selected_playback_target.get() {
                     Some(PlaybackTarget::Local) => {
@@ -316,6 +334,8 @@ impl Model for PlaybackState {
                 self.playback_is_playing.set(false);
                 self.playback_scrub_percent.set(0.0);
                 self.playback_track_name.set("".to_string());
+                self.playback_track_id.set(None);
+                self.playback_track_image_url.set(None);
                 worker::playback_stop(self.backend.clone(), cx.get_proxy());
             }
             PlaybackUiEvent::Resume => match self.selected_playback_target.get() {
@@ -350,11 +370,10 @@ impl Model for PlaybackState {
                         self.playback_scrub_percent.set(0.0);
                         self.playback_track_name.set(track.name.clone());
                         self.playback_track_artist.set(track.artist.clone());
-                        worker::load_playback_artwork(
-                            self.backend.clone(),
-                            track.album_image_url.clone(),
-                            cx.get_proxy(),
-                        );
+                        self.playback_track_id.set(Some(track.id.clone()));
+                        self.playback_track_image_url
+                            .set(track.album_image_url.clone());
+                        self.set_current_track_artwork(cx, &track);
 
                         self.status
                             .set("Starting playback from queue on local device...".to_string());
@@ -413,11 +432,10 @@ impl Model for PlaybackState {
                         self.playback_scrub_percent.set(0.0);
                         self.playback_track_name.set(track.name.clone());
                         self.playback_track_artist.set(track.artist.clone());
-                        worker::load_playback_artwork(
-                            self.backend.clone(),
-                            track.album_image_url.clone(),
-                            cx.get_proxy(),
-                        );
+                        self.playback_track_id.set(Some(track.id.clone()));
+                        self.playback_track_image_url
+                            .set(track.album_image_url.clone());
+                        self.set_current_track_artwork(cx, &track);
                         self.status.set(format!(
                             "Playing queued track '{}' on selected Spotify device...",
                             track.name
@@ -576,11 +594,10 @@ impl Model for PlaybackState {
                         self.playback_scrub_percent.set(0.0);
                         self.playback_track_name.set(track.name.clone());
                         self.playback_track_artist.set(track.artist.clone());
-                        worker::load_playback_artwork(
-                            self.backend.clone(),
-                            track.album_image_url.clone(),
-                            cx.get_proxy(),
-                        );
+                        self.playback_track_id.set(Some(track.id.clone()));
+                        self.playback_track_image_url
+                            .set(track.album_image_url.clone());
+                        self.set_current_track_artwork(cx, &track);
 
                         self.status.set(format!(
                             "Playing next queued song '{}' on selected Spotify device...",

@@ -1,4 +1,4 @@
-use crate::ui::events::PlaybackUiEvent;
+use crate::ui::events::{PlaybackUiEvent, SearchUiEvent};
 use vizia::icons::{
     ICON_PLAYER_PAUSE_FILLED, ICON_PLAYER_PLAY_FILLED, ICON_PLAYER_SKIP_BACK_FILLED,
     ICON_PLAYER_SKIP_FORWARD_FILLED, ICON_VOLUME,
@@ -16,6 +16,8 @@ pub fn playback_controls_panel(
     playback_track_name: Signal<String>,
     playback_track_artist: Signal<String>,
     playback_track_image_key: Signal<Option<String>>,
+    playback_track_id: Signal<Option<String>>,
+    playback_track_image_url: Signal<Option<String>>,
 ) {
     fn format_time(ms: u32) -> String {
         let total_seconds = ms / 1000;
@@ -38,9 +40,21 @@ pub fn playback_controls_panel(
         HStack::new(cx, |cx| {
             Binding::new(cx, playback_track_image_key, move |cx| {
                 if let Some(image_key) = playback_track_image_key.get() {
-                    Image::new(cx, image_key)
-                        .size(Pixels(60.0))
-                        .class("album-art");
+                    let image_key_for_view = image_key.clone();
+                    let image_key_for_event = image_key.clone();
+                    let image_url = playback_track_image_url;
+                    Button::new(cx, move |cx| {
+                        Image::new(cx, image_key_for_view.clone()).class("album-art")
+                    })
+                    .variant(ButtonVariant::Text)
+                    .class("playback-album-button")
+                    .on_press(move |cx| {
+                        cx.emit(SearchUiEvent::OpenAlbumFromPlayback {
+                            track_id: playback_track_id.get(),
+                            image_key: Some(image_key_for_event.clone()),
+                            image_url: image_url.get(),
+                        });
+                    });
                 } else {
                     Label::new(cx, "♪").size(Pixels(60.0));
                 }

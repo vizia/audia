@@ -1,3 +1,6 @@
+mod album_state;
+pub use album_state::*;
+
 mod preferences_data;
 pub use preferences_data::*;
 

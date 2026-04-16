@@ -231,7 +231,16 @@ button.avatar-menu-trigger:hover {
 
 /* Now Playing */
 
+.playback-album-button,
+.playback-album-button:hover,
+.playback-album-button:active {
+    size: auto;
+    background-color: transparent;
+    padding: 0px;
+}
+
 .album-art {
+    size: 60px;
     corner-radius: 4px;
     background-size: cover;
 }
@@ -242,15 +251,17 @@ button.avatar-menu-trigger:hover {
     width: 1s;
     text-wrap: false;
 }
+
 .now-playing-artist {
     font-size: 14px;
-    color: var(--accent-foreground);
+    color: var(--muted-foreground);
 }
 
 /* Playlist */
 
 .playlist-name {
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: bold;
     width: 1s;
     text-wrap: false;
 }
@@ -308,7 +319,7 @@ button.avatar-menu-trigger:hover {
 
 .search-result-artist {
     font-size: 13px;
-    color: var(--accent-foreground);
+    color: var(--muted-foreground);
     width: 1s;
     text-wrap: false;
     text-overflow: ellipsis;
