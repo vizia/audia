@@ -16,7 +16,9 @@ pub struct PlaylistsState {
     pub filtered_track_indices: Signal<Vec<usize>>,
     pub track_filter_input: Signal<String>,
     pub active_playlist_name: Signal<String>,
-    pub active_playlist_meta: Signal<String>,
+    pub active_playlist_track_count: Signal<usize>,
+    pub active_playlist_duration_ms: Signal<u64>,
+    pub active_playlist_image_key: Signal<Option<String>>,
     pub playlist_selected_index: Signal<usize>,
     pub showing_playlist: Signal<bool>,
     pub shuffle_mode: Signal<bool>,
@@ -58,22 +60,6 @@ impl PlaylistsState {
 
 impl Model for PlaylistsState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        fn format_playlist_meta(track_count: usize, total_duration_ms: u64) -> String {
-            let total_seconds = total_duration_ms / 1000;
-            let hours = total_seconds / 3600;
-            let minutes = (total_seconds % 3600) / 60;
-            let seconds = total_seconds % 60;
-
-            let song_label = if track_count == 1 { "song" } else { "songs" };
-            let duration = if hours > 0 {
-                format!("{hours}:{minutes:02}:{seconds:02}")
-            } else {
-                format!("{minutes}:{seconds:02}")
-            };
-
-            format!("{track_count} {song_label} • {duration}")
-        }
-
         event.map(|playlists_event, _: &mut _| match playlists_event {
             PlaylistsAppEvent::Playlists(playlists) => {
                 self.playlist_rows.set(playlists.clone());
@@ -86,8 +72,8 @@ impl Model for PlaylistsState {
                 total_duration_ms,
             } => {
                 self.active_playlist_name.set(name.clone());
-                self.active_playlist_meta
-                    .set(format_playlist_meta(*track_count, *total_duration_ms));
+                self.active_playlist_track_count.set(*track_count);
+                self.active_playlist_duration_ms.set(*total_duration_ms);
                 self.playlist_tracks.set(tracks.clone());
                 self.track_filter_input.set(String::new());
                 self.apply_track_filter();
@@ -98,6 +84,7 @@ impl Model for PlaylistsState {
                 if let Some(row) = playlist_rows.iter_mut().find(|row| row.id == *id) {
                     row.total_duration_ms = *total_duration_ms;
                     row.track_count = *track_count;
+                    self.active_playlist_image_key.set(row.image_key.clone());
                 }
                 self.playlist_rows.set(playlist_rows);
             }
@@ -124,10 +111,11 @@ impl Model for PlaylistsState {
                 let playlist = playlists[*index].clone();
                 self.status
                     .set(format!("Loading playlist '{}'...", playlist.name));
-                self.active_playlist_meta.set(format_playlist_meta(
-                    playlist.track_count,
-                    playlist.total_duration_ms,
-                ));
+                self.active_playlist_track_count.set(playlist.track_count);
+                self.active_playlist_duration_ms
+                    .set(playlist.total_duration_ms);
+                self.active_playlist_image_key
+                    .set(playlist.image_key.clone());
                 worker::fetch_playlist_tracks(
                     self.backend.clone(),
                     playlist.id,

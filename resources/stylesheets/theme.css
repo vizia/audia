@@ -263,20 +263,45 @@ button.avatar-menu-trigger:hover {
     color: var(--muted-foreground);
 }
 
-/* Playlist */
+/* Playlist Tracks */
 
-.playlist-name {
-    font-size: 14px;
+.playlist-tracks-panel {
+    width: 1s;
+    height: 1s;
+    gap: 12px;
+}
+
+.playlist-header {
+    gap: 12px;
+    alignment: center;
+    height: auto;
+    width: 1s;
+}
+
+.playlist-info {
+    alignment: left;
+    height: auto;
+    width: 1s;
+    gap: 8px;
+}
+
+.playlist-title {
+    font-size: 40px;
     font-weight: bold;
     width: 1s;
     text-wrap: false;
+    text-overflow: ellipsis;
+}
+
+.playlist-meta-row {
+    gap: 0px;
+    alignment: left;
+    height: auto;
 }
 
 .playlist-meta {
-    font-size: 12px;
+    font-size: 16px;
     color: var(--muted-foreground);
-    padding-left: 4px;
-    padding-right: 4px;
 }
 
 .playlist-shuffle-toggle {
@@ -296,6 +321,62 @@ button.avatar-menu-trigger:hover {
 .playlist-shuffle-toggle:checked {
     fill: var(--primary-foreground);
     background-color: var(--primary);
+}
+
+.playlist-tracks-panel .album-art {
+    size: 100px;
+}
+
+.playlist-track-row {
+    gap: 4px;
+    alignment: center;
+    height: auto;
+    width: 1s;
+    padding: 4px;
+}
+
+.playlist-track-index {
+    font-size: 14px;
+    color: var(--muted-foreground);
+    size: 30px;
+    alignment: center;
+}
+
+.playlist-track-album-art {
+    size: 48px;
+    corner-radius: 4px;
+    background-size: cover;
+}
+
+.playlist-track-title {
+    font-size: 14px;
+    font-weight: bold;
+    width: 1s;
+    text-wrap: false;
+    text-overflow: ellipsis;
+}
+
+.playlist-track-artist {
+    font-size: 13px;
+    color: var(--muted-foreground);
+    width: 1s;
+    text-wrap: false;
+    text-overflow: ellipsis;
+}
+
+.playlist-track-duration {
+    width: 44px;
+    text-align: right;
+    color: var(--accent-foreground);
+}
+
+/* Playlists */
+
+.playlist-name {
+    font-size: 14px;
+    font-weight: bold;
+    width: 1s;
+    text-wrap: false;
 }
 
 /* Album */
