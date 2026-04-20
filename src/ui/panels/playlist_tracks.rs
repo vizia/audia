@@ -1,5 +1,5 @@
 use crate::messages::Track;
-use crate::ui::events::PlaylistsUiEvent;
+use crate::ui::events::{PlaylistsUiEvent, SearchUiEvent};
 use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_PLAYER_PLAY_FILLED};
 use vizia::prelude::*;
 
@@ -39,24 +39,34 @@ pub fn playlist_tracks_panel(
                     .width(Stretch(1.0));
 
                 HStack::new(cx, |cx| {
-                    Label::new(cx, playlist_track_count.map(|n| {
-                        if *n == 1 { "1 song".to_string() } else { format!("{n} songs") }
-                    }))
+                    Label::new(
+                        cx,
+                        playlist_track_count.map(|n| {
+                            if *n == 1 {
+                                "1 song".to_string()
+                            } else {
+                                format!("{n} songs")
+                            }
+                        }),
+                    )
                     .class("playlist-meta");
 
                     Label::new(cx, " • ").class("playlist-meta");
 
-                    Label::new(cx, playlist_duration_ms.map(|ms| {
-                        let total_seconds = ms / 1000;
-                        let hours = total_seconds / 3600;
-                        let minutes = (total_seconds % 3600) / 60;
-                        let seconds = total_seconds % 60;
-                        if hours > 0 {
-                            format!("{hours}:{minutes:02}:{seconds:02}")
-                        } else {
-                            format!("{minutes}:{seconds:02}")
-                        }
-                    }))
+                    Label::new(
+                        cx,
+                        playlist_duration_ms.map(|ms| {
+                            let total_seconds = ms / 1000;
+                            let hours = total_seconds / 3600;
+                            let minutes = (total_seconds % 3600) / 60;
+                            let seconds = total_seconds % 60;
+                            if hours > 0 {
+                                format!("{hours}:{minutes:02}:{seconds:02}")
+                            } else {
+                                format!("{minutes}:{seconds:02}")
+                            }
+                        }),
+                    )
                     .class("playlist-meta");
                 })
                 .class("playlist-meta-row")
@@ -70,11 +80,19 @@ pub fn playlist_tracks_panel(
         HStack::new(cx, |cx| {
             Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
                 .class("playback-toggle")
-                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Play playlist"); }))
+                .tooltip(|cx| {
+                    Tooltip::new(cx, |cx| {
+                        Label::new(cx, "Play playlist");
+                    })
+                })
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::PlayPlaylist));
             ToggleButton::new(cx, shuffle_mode, |cx| Svg::new(cx, ICON_ARROWS_SHUFFLE))
                 .class("playlist-shuffle-toggle")
-                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Shuffle playlist"); }))
+                .tooltip(|cx| {
+                    Tooltip::new(cx, |cx| {
+                        Label::new(cx, "Shuffle playlist");
+                    })
+                })
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::ShufflePlaylist));
             Textbox::new(cx, track_filter_input)
                 //.placeholder("Search tracks")
@@ -93,12 +111,24 @@ pub fn playlist_tracks_panel(
                 Label::new(cx, format!("{}.", index + 1)).class("playlist-track-index");
 
                 let image_key = item.map(|track| track.album_image_key.clone());
+                let track_id = item.map(|track| track.id.clone());
 
                 Binding::new(cx, image_key, move |cx| {
+                    let tid = track_id.get();
                     if let Some(key) = image_key.get() {
-                        Image::new(cx, key).class("playlist-track-album-art");
+                        Image::new(cx, key)
+                            .class("playlist-track-album-art")
+                            .pointer_events(PointerEvents::Auto)
+                            .on_press(move |cx| {
+                                cx.emit(SearchUiEvent::OpenAlbumFromTrack(tid.clone()))
+                            });
                     } else {
-                        Label::new(cx, "♪").class("playlist-track-album-art");
+                        Label::new(cx, "♪")
+                            .class("playlist-track-album-art")
+                            .pointer_events(PointerEvents::Auto)
+                            .on_press(move |cx| {
+                                cx.emit(SearchUiEvent::OpenAlbumFromTrack(tid.clone()))
+                            });
                     }
                 });
 
@@ -115,9 +145,11 @@ pub fn playlist_tracks_panel(
                 .gap(Pixels(2.0));
 
                 Label::new(cx, item.map(|track| format_time(track.duration_ms)))
+                    .hoverable(false)
                     .class("playlist-track-duration");
             })
-            .hoverable(false)
+            // .hoverable(false)
+            .pointer_events(PointerEvents::None)
             .class("playlist-track-row");
         })
         .selectable(Selectable::Single)

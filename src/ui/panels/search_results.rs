@@ -32,14 +32,30 @@ pub fn search_results_panel(
                         List::new(cx, search_result_rows, |cx, _index, item| {
                             HStack::new(cx, |cx| {
                                 let image_key = item.map(|track| track.album_image_key.clone());
+                                let track_id = item.map(|track| track.id.clone());
 
                                 Binding::new(cx, image_key, move |cx| {
+                                    let tid = track_id.get();
                                     if let Some(key) = image_key.get() {
-                                        Image::new(cx, key).size(Pixels(48.0)).class("album-art");
+                                        Image::new(cx, key)
+                                            .size(Pixels(48.0))
+                                            .class("album-art")
+                                            .pointer_events(PointerEvents::Auto)
+                                            .on_press(move |cx| {
+                                                cx.emit(SearchUiEvent::OpenAlbumFromTrack(
+                                                    tid.clone(),
+                                                ))
+                                            });
                                     } else {
                                         Label::new(cx, "♪")
                                             .size(Pixels(48.0))
-                                            .class("search-result-fallback");
+                                            .class("search-result-fallback")
+                                            .pointer_events(PointerEvents::Auto)
+                                            .on_press(move |cx| {
+                                                cx.emit(SearchUiEvent::OpenAlbumFromTrack(
+                                                    tid.clone(),
+                                                ))
+                                            });
                                     }
                                 });
 
@@ -58,7 +74,7 @@ pub fn search_results_panel(
                                 Label::new(cx, item.map(|track| format_time(track.duration_ms)))
                                     .class("search-result-duration");
                             })
-                            .hoverable(false)
+                            .pointer_events(PointerEvents::None)
                             .class("result-row");
                         })
                         .selectable(Selectable::Single)

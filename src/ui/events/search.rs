@@ -5,6 +5,7 @@ pub enum SearchUiEvent {
     SelectTab(usize),
     SelectResult(usize),
     SelectAlbum(usize),
+    OpenAlbumFromTrack(String),
     SetInput(String),
     SubmitQuery(String),
 }

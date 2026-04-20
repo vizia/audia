@@ -1,6 +1,6 @@
 use crate::ui::data::{
-    AlbumState, CenterState, OAuthState, PanelState, PlaybackState, PlaylistsState, PreferencesData,
-    SearchState,
+    AlbumState, CenterState, OAuthState, PanelState, PlaybackState, PlaylistsState,
+    PreferencesData, SearchState,
 };
 use vizia::prelude::*;
 

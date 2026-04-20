@@ -120,6 +120,15 @@ impl Model for SearchState {
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
                 worker::fetch_album_tracks(self.backend.clone(), album, cx.get_proxy());
             }
+            SearchUiEvent::OpenAlbumFromTrack(track_id) => {
+                self.status.set("Loading album...".to_string());
+                cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
+                worker::fetch_album_from_track(
+                    self.backend.clone(),
+                    track_id.clone(),
+                    cx.get_proxy(),
+                );
+            }
             SearchUiEvent::SetInput(value) => {
                 self.search_input.set(value.clone());
             }
