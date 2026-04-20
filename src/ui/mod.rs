@@ -134,6 +134,7 @@ pub fn run() {
                 last_remote_seek_sent_ms: None,
                 last_remote_seek_sent_at: None,
                 last_scrub_user_input_at: None,
+                last_local_track_end_handled_at: None,
                 backend: backend.clone(),
                 status,
                 playback_devices,

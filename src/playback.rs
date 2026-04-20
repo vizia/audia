@@ -22,6 +22,9 @@ pub struct PlaybackService {
     progress_duration_ms: Arc<AtomicU32>,
     progress_is_playing: Arc<AtomicBool>,
     progress_track_finished: Arc<AtomicBool>,
+    // Set while a new track is being loaded so stale completion events from the
+    // previous track cannot advance the queue a second time.
+    loading_track: Arc<AtomicBool>,
 }
 
 impl Default for PlaybackService {
@@ -35,6 +38,7 @@ impl Default for PlaybackService {
             progress_duration_ms: Arc::new(AtomicU32::new(0)),
             progress_is_playing: Arc::new(AtomicBool::new(false)),
             progress_track_finished: Arc::new(AtomicBool::new(false)),
+            loading_track: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -90,6 +94,7 @@ impl PlaybackService {
         let duration = Arc::clone(&self.progress_duration_ms);
         let is_playing = Arc::clone(&self.progress_is_playing);
         let track_finished = Arc::clone(&self.progress_track_finished);
+        let loading_track = Arc::clone(&self.loading_track);
         let mut events = player.get_player_event_channel();
         thread::spawn(move || {
             while let Some(event) = events.blocking_recv() {
@@ -100,25 +105,38 @@ impl PlaybackService {
                     | PlayerEvent::Seeked { position_ms, .. } => {
                         position.store(position_ms, Ordering::Relaxed);
                         is_playing.store(true, Ordering::Relaxed);
+                        loading_track.store(false, Ordering::Relaxed);
                     }
                     PlayerEvent::Paused { position_ms, .. } => {
                         position.store(position_ms, Ordering::Relaxed);
                         is_playing.store(false, Ordering::Relaxed);
+                        // Only clear the loading flag once the track has actually advanced past
+                        // position 0, so a spurious Paused at startup is not mistaken for a
+                        // settled pause.
+                        if position_ms > 0 {
+                            loading_track.store(false, Ordering::Relaxed);
+                        }
                     }
                     PlayerEvent::Stopped { .. } => {
                         is_playing.store(false, Ordering::Relaxed);
 
-                        // Some backends can stop at track end without reliably sending EndOfTrack.
-                        // If we are at (or very near) the known duration, treat this as a finished track.
+                        // Some backends stop at track end without sending EndOfTrack.
+                        // Treat a stop near the known duration as a finished track, unless
+                        // a new track is already being loaded.
                         let d = duration.load(Ordering::Relaxed);
                         let p = position.load(Ordering::Relaxed);
-                        if d > 0 && p >= d.saturating_sub(750) {
+                        if !loading_track.load(Ordering::Relaxed)
+                            && d > 0
+                            && p >= d.saturating_sub(750)
+                        {
                             track_finished.store(true, Ordering::Relaxed);
                         }
                     }
                     PlayerEvent::EndOfTrack { .. } => {
                         is_playing.store(false, Ordering::Relaxed);
-                        track_finished.store(true, Ordering::Relaxed);
+                        if !loading_track.load(Ordering::Relaxed) {
+                            track_finished.store(true, Ordering::Relaxed);
+                        }
                     }
                     _ => {}
                 }
@@ -172,15 +190,19 @@ impl PlaybackService {
             .store(track.duration_ms, Ordering::Relaxed);
 
         self.progress_position_ms.store(0, Ordering::Relaxed);
+        self.progress_is_playing.store(false, Ordering::Relaxed);
         self.progress_track_finished.store(false, Ordering::Relaxed);
+        self.loading_track.store(true, Ordering::Relaxed);
 
-        let track_id = &track.id;
-
-        let uri = SpotifyUri::from_uri(&format!("spotify:track:{track_id}"))
+        let uri = SpotifyUri::from_uri(&format!("spotify:track:{}", track.id))
             .map_err(|err| format!("Invalid Spotify track id: {err}"))?;
 
+        // Stop the previous track, load the new one, then explicitly start playback.
+        // Calling play() after load() makes the transition deterministic regardless
+        // of whether the backend auto-starts after load.
+        player.stop();
         player.load(uri, true, 0);
-
+        player.play();
         Ok(())
     }
 
@@ -223,6 +245,22 @@ impl PlaybackService {
         ))
     }
 
+    pub fn mark_track_finished_if_stalled(&self) -> bool {
+        let position_ms = self.progress_position_ms.load(Ordering::Relaxed);
+        let duration_ms = self.progress_duration_ms.load(Ordering::Relaxed);
+        let is_playing = self.progress_is_playing.load(Ordering::Relaxed);
+
+        if is_playing
+            || self.loading_track.load(Ordering::Relaxed)
+            || duration_ms == 0
+            || position_ms < duration_ms.saturating_sub(900)
+        {
+            return false;
+        }
+
+        !self.progress_track_finished.swap(true, Ordering::Relaxed)
+    }
+
     pub fn consume_track_finished(&self) -> bool {
         self.progress_track_finished.swap(false, Ordering::Relaxed)
     }
@@ -236,5 +274,6 @@ impl PlaybackService {
         self.progress_duration_ms.store(0, Ordering::Relaxed);
         self.progress_is_playing.store(false, Ordering::Relaxed);
         self.progress_track_finished.store(false, Ordering::Relaxed);
+        self.loading_track.store(false, Ordering::Relaxed);
     }
 }

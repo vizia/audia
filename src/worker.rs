@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{thread, time::Duration};
+use std::{future::Future, thread, time::Duration};
 
 use tokio::runtime::Runtime;
 use vizia::prelude::{ContextProxy, ImageRetentionPolicy};
@@ -95,12 +95,92 @@ impl BackendState {
 
         match self.token_expires_at {
             Some(expires_at) => Self::now_secs() + 60 >= expires_at,
-            None => false,
+            None => true,
         }
     }
 }
 
 pub type SharedBackend = Arc<Mutex<BackendState>>;
+
+fn lock_backend(backend: &SharedBackend) -> MutexGuard<'_, BackendState> {
+    backend
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn is_auth_error(err: &str) -> bool {
+    let lowered = err.to_ascii_lowercase();
+    lowered.contains("status 401")
+        || lowered.contains("401 unauthorized")
+        || lowered.contains("invalid access token")
+        || lowered.contains("the access token expired")
+}
+
+async fn force_refresh_access_token_async(backend: &SharedBackend) -> Result<(), String> {
+    let (cid, rt) = {
+        let state = lock_backend(backend);
+        (state.client_id.clone(), state.refresh_token.clone())
+    };
+
+    let (cid, rt) = match (cid, rt) {
+        (Some(cid), Some(rt)) => (cid, rt),
+        _ => {
+            return Err(
+                "Token refresh required but client ID or refresh token is missing.".to_string(),
+            );
+        }
+    };
+
+    let tokens = oauth::refresh_access_token(&cid, &rt)
+        .await
+        .map_err(|err| format!("Auto-refresh failed: {err}"))?;
+
+    let expires_at = BackendState::now_secs() + tokens.expires_in;
+    let new_refresh = tokens.refresh_token.clone();
+
+    {
+        let mut state = lock_backend(backend);
+        state.spotify.set_access_token(tokens.access_token.clone());
+        if let Some(rt) = new_refresh {
+            state.refresh_token = Some(rt);
+        }
+        state.token_expires_at = Some(expires_at);
+
+        let runtime = Arc::clone(&state.runtime);
+        let _ = state
+            .playback
+            .bootstrap_from_access_token(runtime.as_ref(), &tokens.access_token);
+    }
+
+    let refresh_token = lock_backend(backend).refresh_token.clone();
+    let _ = TokenStore {
+        access_token: tokens.access_token,
+        refresh_token,
+        expires_at: Some(expires_at),
+    }
+    .save();
+
+    Ok(())
+}
+
+async fn with_spotify_auth_retry<T, F, Fut>(backend: &SharedBackend, mut op: F) -> Result<T, String>
+where
+    F: FnMut(SpotifyService) -> Fut,
+    Fut: Future<Output = Result<T, String>>,
+{
+    ensure_fresh_access_token_async(backend).await?;
+
+    let spotify = { lock_backend(backend).spotify.clone() };
+    match op(spotify).await {
+        Ok(value) => Ok(value),
+        Err(err) if is_auth_error(&err) => {
+            force_refresh_access_token_async(backend).await?;
+            let spotify = { lock_backend(backend).spotify.clone() };
+            op(spotify).await
+        }
+        Err(err) => Err(err),
+    }
+}
 
 // Initializes the backend state and starts the initial authentication check.
 pub fn init_backend(proxy: ContextProxy) -> SharedBackend {
@@ -203,6 +283,7 @@ pub fn start_playback_progress_poller(backend: SharedBackend, proxy: ContextProx
             let local_track_ended = {
                 let state = backend.lock().unwrap();
                 state.playback.consume_track_finished()
+                    || state.playback.mark_track_finished_if_stalled()
             };
 
             if local_track_ended {
@@ -430,18 +511,11 @@ pub fn search_tracks(backend: SharedBackend, query: String, mut proxy: ContextPr
     };
 
     runtime.spawn(async move {
-
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        let result = spotify.search_catalog(&query).await;
+        let result = with_spotify_auth_retry(&backend, |spotify| {
+            let query = query.clone();
+            async move { spotify.search_catalog(&query).await }
+        })
+        .await;
 
         match result {
             Ok(mut results) => {
@@ -535,17 +609,11 @@ pub fn refresh_playback_devices(backend: SharedBackend, mut proxy: ContextProxy)
     };
 
     runtime.spawn(async move {
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        match spotify.list_playback_devices().await {
+        match with_spotify_auth_retry(&backend, |spotify| async move {
+            spotify.list_playback_devices().await
+        })
+        .await
+        {
             Ok(devices) => {
                 let _ = proxy.emit(PlaybackAppEvent::Devices(devices));
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(
@@ -568,17 +636,11 @@ pub fn refresh_user_playlists(backend: SharedBackend, mut proxy: ContextProxy) {
     };
 
     runtime.spawn(async move {
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        match spotify.list_user_playlists(20).await {
+        match with_spotify_auth_retry(&backend, |spotify| async move {
+            spotify.list_user_playlists(20).await
+        })
+        .await
+        {
             Ok(playlists) => {
                 let mut mapped = Vec::with_capacity(playlists.len());
                 let mut image_jobs = Vec::new();
@@ -626,17 +688,12 @@ pub fn fetch_playlist_tracks(
     };
 
     runtime.spawn(async move {
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        match spotify.get_playlist_tracks(&playlist_id, 50).await {
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let playlist_id = playlist_id.clone();
+            async move { spotify.get_playlist_tracks(&playlist_id, 50).await }
+        })
+        .await
+        {
             Ok(mut tracks) => {
                 let image_jobs = tracks
                     .iter()
@@ -690,19 +747,15 @@ pub fn fetch_album_tracks(backend: SharedBackend, album: AlbumResult, mut proxy:
     };
 
     runtime.spawn(async move {
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        match spotify.get_album_tracks(&album.id).await {
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let album_id = album.id.clone();
+            async move { spotify.get_album_tracks(&album_id).await }
+        })
+        .await
+        {
             Ok(mut tracks) => {
                 // All tracks share the same album art; load it once.
+                let album_id = album.id.clone();
                 let (image_key, release_year) = tokio::join!(
                     async {
                         if let Some(url) = &album.image_url {
@@ -714,7 +767,10 @@ pub fn fetch_album_tracks(backend: SharedBackend, album: AlbumResult, mut proxy:
                             None
                         }
                     },
-                    spotify.get_album_release_year(&album.id)
+                    with_spotify_auth_retry(&backend, |spotify| {
+                        let album_id = album_id.clone();
+                        async move { Ok(spotify.get_album_release_year(&album_id).await) }
+                    })
                 );
 
                 for track in &mut tracks {
@@ -730,7 +786,7 @@ pub fn fetch_album_tracks(backend: SharedBackend, album: AlbumResult, mut proxy:
                     artist: album.artist,
                     image_key,
                     tracks,
-                    release_year,
+                    release_year: release_year.unwrap_or(None),
                     track_count,
                     total_duration_ms,
                 });
@@ -753,17 +809,12 @@ pub fn fetch_album_from_track(backend: SharedBackend, track_id: String, mut prox
     };
 
     runtime.spawn(async move {
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        let album = match spotify.get_album_for_track(&track_id).await {
+        let album = match with_spotify_auth_retry(&backend, |spotify| {
+            let track_id = track_id.clone();
+            async move { spotify.get_album_for_track(&track_id).await }
+        })
+        .await
+        {
             Ok(album) => album,
             Err(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
@@ -771,8 +822,14 @@ pub fn fetch_album_from_track(backend: SharedBackend, track_id: String, mut prox
             }
         };
 
-        match spotify.get_album_tracks(&album.id).await {
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let album_id = album.id.clone();
+            async move { spotify.get_album_tracks(&album_id).await }
+        })
+        .await
+        {
             Ok(mut tracks) => {
+                let album_id = album.id.clone();
                 let (image_key, release_year) = tokio::join!(
                     async {
                         if let Some(url) = &album.image_url {
@@ -784,7 +841,10 @@ pub fn fetch_album_from_track(backend: SharedBackend, track_id: String, mut prox
                             None
                         }
                     },
-                    spotify.get_album_release_year(&album.id)
+                    with_spotify_auth_retry(&backend, |spotify| {
+                        let album_id = album_id.clone();
+                        async move { Ok(spotify.get_album_release_year(&album_id).await) }
+                    })
                 );
 
                 for track in &mut tracks {
@@ -800,7 +860,7 @@ pub fn fetch_album_from_track(backend: SharedBackend, track_id: String, mut prox
                     artist: album.artist,
                     image_key,
                     tracks,
-                    release_year,
+                    release_year: release_year.unwrap_or(None),
                     track_count,
                     total_duration_ms,
                 });
@@ -890,22 +950,17 @@ pub fn playback_play_selected_track(
     };
 
     runtime.spawn(async move {
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
         if let Err(err) = ensure_active_playback_device_async(&backend).await {
             let _ = proxy.emit(SystemAppEvent::Error(err));
             return;
         }
 
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        match spotify.playback_play_track(&track_id).await {
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let track_id = track_id.clone();
+            async move { spotify.playback_play_track(&track_id).await }
+        })
+        .await
+        {
             Ok(()) => {
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(
                     "Playing selected track on Spotify device.".to_string(),
@@ -1017,22 +1072,16 @@ pub fn playback_seek(backend: SharedBackend, position_ms: u32, mut proxy: Contex
     };
 
     runtime.spawn(async move {
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
         if let Err(err) = ensure_active_playback_device_async(&backend).await {
             let _ = proxy.emit(SystemAppEvent::Error(err));
             return;
         }
 
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        if let Err(err) = spotify.playback_seek(position_ms).await {
+        if let Err(err) = with_spotify_auth_retry(&backend, |spotify| async move {
+            spotify.playback_seek(position_ms).await
+        })
+        .await
+        {
             let _ = proxy.emit(SystemAppEvent::Error(err));
         }
     });
@@ -1050,17 +1099,12 @@ pub fn playback_transfer_device(
     };
 
     runtime.spawn(async move {
-        if let Err(err) = ensure_fresh_access_token_async(&backend).await {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-
-        let spotify = {
-            let state = backend.lock().unwrap();
-            state.spotify.clone()
-        };
-
-        match spotify.transfer_playback(&device_id).await {
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let device_id = device_id.clone();
+            async move { spotify.transfer_playback(&device_id).await }
+        })
+        .await
+        {
             Ok(()) => {
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(
                     "Playback transferred to selected Spotify device.".to_string(),
@@ -1098,29 +1142,22 @@ async fn playback_action_remote_async(
     label: &'static str,
     action: RemotePlaybackAction,
 ) {
-    if let Err(err) = ensure_fresh_access_token_async(backend).await {
-        let _ = proxy.emit(SystemAppEvent::Error(err));
-        return;
-    }
-
     if let Err(err) = ensure_active_playback_device_async(backend).await {
         let _ = proxy.emit(SystemAppEvent::Error(err));
         return;
     }
 
-    let spotify = {
-        let state = backend.lock().unwrap();
-        state.spotify.clone()
-    };
-
-    let result = match action {
-        RemotePlaybackAction::Pause => spotify.playback_pause().await,
-        RemotePlaybackAction::Resume => spotify.playback_resume().await,
-        RemotePlaybackAction::Stop => spotify.playback_stop().await,
-        RemotePlaybackAction::Next => spotify.playback_next().await,
-        RemotePlaybackAction::Previous => spotify.playback_previous().await,
-        RemotePlaybackAction::SetVolume(volume) => spotify.playback_set_volume(volume).await,
-    };
+    let result = with_spotify_auth_retry(backend, |spotify| async move {
+        match action {
+            RemotePlaybackAction::Pause => spotify.playback_pause().await,
+            RemotePlaybackAction::Resume => spotify.playback_resume().await,
+            RemotePlaybackAction::Stop => spotify.playback_stop().await,
+            RemotePlaybackAction::Next => spotify.playback_next().await,
+            RemotePlaybackAction::Previous => spotify.playback_previous().await,
+            RemotePlaybackAction::SetVolume(volume) => spotify.playback_set_volume(volume).await,
+        }
+    })
+    .await;
 
     match result {
         Ok(()) => {
@@ -1134,6 +1171,7 @@ async fn playback_action_remote_async(
     }
 }
 
+#[derive(Clone, Copy)]
 enum RemotePlaybackAction {
     Pause,
     Resume,
@@ -1144,12 +1182,10 @@ enum RemotePlaybackAction {
 }
 
 async fn ensure_active_playback_device_async(backend: &SharedBackend) -> Result<(), String> {
-    let spotify = {
-        let state = backend.lock().unwrap();
-        state.spotify.clone()
-    };
-
-    let devices = spotify.list_playback_devices().await?;
+    let devices = with_spotify_auth_retry(backend, |spotify| async move {
+        spotify.list_playback_devices().await
+    })
+    .await?;
 
     if devices.iter().any(|device| device.is_active) {
         return Ok(());
@@ -1163,64 +1199,23 @@ async fn ensure_active_playback_device_async(backend: &SharedBackend) -> Result<
                 .to_string()
         })?;
 
-    spotify.transfer_playback(&device_id).await?;
+    with_spotify_auth_retry(backend, |spotify| {
+        let device_id = device_id.clone();
+        async move { spotify.transfer_playback(&device_id).await }
+    })
+    .await?;
 
     Ok(())
 }
 
 async fn ensure_fresh_access_token_async(backend: &SharedBackend) -> Result<(), String> {
-    let (needs_refresh, cid, rt) = {
-        let state = backend.lock().unwrap();
-        (
-            state.token_needs_refresh(),
-            state.client_id.clone(),
-            state.refresh_token.clone(),
-        )
-    };
+    let needs_refresh = { lock_backend(backend).token_needs_refresh() };
 
     if !needs_refresh {
         return Ok(());
     }
 
-    let (cid, rt) = match (cid, rt) {
-        (Some(cid), Some(rt)) => (cid, rt),
-        _ => {
-            return Err(
-                "Token refresh required but client ID or refresh token is missing.".to_string(),
-            );
-        }
-    };
-
-    let tokens = oauth::refresh_access_token(&cid, &rt)
-        .await
-        .map_err(|err| format!("Auto-refresh failed: {err}"))?;
-
-    let expires_at = BackendState::now_secs() + tokens.expires_in;
-    let new_refresh = tokens.refresh_token.clone();
-
-    {
-        let mut state = backend.lock().unwrap();
-        state.spotify.set_access_token(tokens.access_token.clone());
-        if let Some(rt) = new_refresh {
-            state.refresh_token = Some(rt);
-        }
-        state.token_expires_at = Some(expires_at);
-
-        let runtime = Arc::clone(&state.runtime);
-        let _ = state
-            .playback
-            .bootstrap_from_access_token(runtime.as_ref(), &tokens.access_token);
-    }
-
-    let refresh_token = backend.lock().unwrap().refresh_token.clone();
-    let _ = TokenStore {
-        access_token: tokens.access_token,
-        refresh_token,
-        expires_at: Some(expires_at),
-    }
-    .save();
-
-    Ok(())
+    force_refresh_access_token_async(backend).await
 }
 
 // Applies the token response from Spotify by updating the backend state with the new access token, refresh token, and expiration time. It also attempts to bootstrap the playback state with the new access token and emits a login profile event to update the UI with the user's profile information.

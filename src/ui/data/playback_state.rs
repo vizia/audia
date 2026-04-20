@@ -44,6 +44,7 @@ pub struct PlaybackState {
     pub last_remote_seek_sent_ms: Option<u32>,
     pub last_remote_seek_sent_at: Option<std::time::Instant>,
     pub last_scrub_user_input_at: Option<std::time::Instant>,
+    pub last_local_track_end_handled_at: Option<std::time::Instant>,
     pub artwork_fade_animation: Animation,
 }
 
@@ -118,6 +119,24 @@ impl PlaybackState {
             track.album_image_url.clone(),
             cx.get_proxy(),
         );
+    }
+
+    fn local_track_near_end(&self) -> bool {
+        let duration_ms = self.playback_duration_ms.get();
+        if duration_ms == 0 {
+            return false;
+        }
+        let position_ms =
+            (self.playback_scrub_percent.get() / 100.0 * duration_ms as f32).round() as u32;
+        position_ms >= duration_ms.saturating_sub(900)
+    }
+
+    fn local_should_start_from_queue(&self) -> bool {
+        if self.queue_tracks.with(|queue| queue.is_empty()) {
+            return false;
+        }
+
+        self.queue_current_index.get().is_none() || self.local_track_near_end()
     }
 }
 
@@ -375,7 +394,9 @@ impl Model for PlaybackState {
                 } else {
                     match self.selected_playback_target.get() {
                         Some(PlaybackTarget::Local) => {
-                            if self.playback_scrub_percent.get() > 0.0 {
+                            if self.local_should_start_from_queue() {
+                                cx.emit(PlaybackUiEvent::Play);
+                            } else if self.playback_scrub_percent.get() > 0.0 {
                                 cx.emit(PlaybackUiEvent::Resume);
                             } else {
                                 cx.emit(PlaybackUiEvent::Play);
@@ -400,6 +421,13 @@ impl Model for PlaybackState {
             }
             PlaybackUiEvent::Resume => match self.selected_playback_target.get() {
                 Some(PlaybackTarget::Local) => {
+                    if self.local_should_start_from_queue() {
+                        self.status
+                            .set("Starting playback from queue on local device...".to_string());
+                        cx.emit(PlaybackUiEvent::Play);
+                        return;
+                    }
+
                     self.status
                         .set("Resuming playback on local device...".to_string());
                     worker::playback_resume_local(self.backend.clone(), cx.get_proxy());
@@ -806,6 +834,15 @@ impl Model for PlaybackState {
                 ) {
                     return;
                 }
+
+                if self
+                    .last_local_track_end_handled_at
+                    .map(|at| at.elapsed() < Duration::from_millis(700))
+                    .unwrap_or(false)
+                {
+                    return;
+                }
+                self.last_local_track_end_handled_at = Some(Instant::now());
 
                 // Remove the finished track from the front of the queue and record it.
                 let finished_track = self.queue_tracks.with(|queue| queue.first().cloned());
