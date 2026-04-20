@@ -67,6 +67,7 @@ pub fn run() {
         let search_result_rows = Signal::new(Vec::<Track>::new());
         let search_artist_rows = Signal::new(Vec::<ArtistResult>::new());
         let search_album_rows = Signal::new(Vec::<AlbumResult>::new());
+        let search_tabs = Signal::new(vec!["Songs", "Artists", "Albums"]);
         let playlist_rows = Signal::new(Vec::<PlaylistEntry>::new());
         let playlist_tracks = Signal::new(Vec::<Track>::new());
         let filtered_playlist_tracks = Signal::new(Vec::<Track>::new());
@@ -96,6 +97,7 @@ pub fn run() {
         let left_panel_width = panel_state.left_width;
         let right_panel_width = panel_state.right_width;
         let selected_index = Signal::new(0usize);
+        let selected_search_tab = Signal::new(0usize);
         let selected_summary = Signal::new("Selected: none".to_string());
         let shuffle_mode = Signal::new(false);
 
@@ -155,6 +157,7 @@ pub fn run() {
             },
             search_state: SearchState {
                 backend: backend.clone(),
+                selected_search_tab,
                 status,
                 search_input,
                 search_result_rows,
@@ -291,6 +294,8 @@ pub fn run() {
                             search_artist_rows,
                             search_album_rows,
                             selected_index,
+                            search_tabs,
+                            selected_search_tab,
                         );
                     }
                 });

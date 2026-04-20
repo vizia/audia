@@ -84,7 +84,8 @@ impl Model for AlbumState {
             SearchUiEvent::SubmitQuery(_) => {
                 self.showing_album.set(false);
             }
-            SearchUiEvent::SelectResult(_)
+            SearchUiEvent::SelectTab(_)
+            | SearchUiEvent::SelectResult(_)
             | SearchUiEvent::SelectAlbum(_)
             | SearchUiEvent::SetInput(_) => {}
         });

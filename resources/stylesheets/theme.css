@@ -498,6 +498,65 @@ button.avatar-menu-trigger:hover {
 
 /* Search */
 
+.search-tabs {
+    width: 1s;
+    height: 1s;
+    gap: 8px;
+}
+
+.search-tabs > scrollview {
+    width: 1s;
+    height: auto;
+}
+
+.search-tabs > scrollview > scroll-content {
+    gap: 6px;
+}
+
+.search-tabs tabheader {
+    height: auto;
+    background-color: transparent;
+    corner-radius: 999px;
+}
+
+.search-tabs tabheader:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.search-tabs tabheader:checked {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.search-tabs tabheader label {
+    height: auto;
+    min-height: 32px;
+    padding-left: 14px;
+    padding-right: 14px;
+    color: var(--muted-foreground);
+}
+
+.search-tabs tabheader:checked label {
+    color: var(--primary-foreground);
+}
+
+.search-tabs tabheader .indicator {
+    height: 2px;
+    background-color: transparent;
+}
+
+.search-tabs tabheader:checked .indicator {
+    background-color: transparent;
+}
+
+.search-tab-content {
+    width: 1s;
+    height: 1s;
+}
+
+.search-tab-content list {
+    width: 1s;
+}
+
 .result-row {
     gap: 8px;
     alignment: center;

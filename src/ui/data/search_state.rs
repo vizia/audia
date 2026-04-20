@@ -8,6 +8,7 @@ use crate::{
 
 pub struct SearchState {
     pub backend: crate::worker::SharedBackend,
+    pub selected_search_tab: Signal<usize>,
     pub status: Signal<String>,
     pub search_input: Signal<String>,
     pub search_result_rows: Signal<Vec<Track>>,
@@ -90,6 +91,9 @@ impl Model for SearchState {
         });
 
         event.map(|search_ui_event, _: &mut _| match search_ui_event {
+            SearchUiEvent::SelectTab(index) => {
+                self.selected_search_tab.set(*index);
+            }
             SearchUiEvent::SelectResult(index) => {
                 let search_results = self.search_result_rows.get();
                 if *index >= search_results.len() {

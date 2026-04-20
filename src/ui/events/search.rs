@@ -2,6 +2,7 @@ use crate::messages::{SearchResultsData, Track};
 
 #[derive(Clone, Debug)]
 pub enum SearchUiEvent {
+    SelectTab(usize),
     SelectResult(usize),
     SelectAlbum(usize),
     SetInput(String),
