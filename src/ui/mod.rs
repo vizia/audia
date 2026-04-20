@@ -1,7 +1,7 @@
 use crate::messages::{AlbumResult, ArtistResult, PlaybackDevice, PlaylistEntry, Track};
 use crate::ui::data::{
-    AlbumState, OAuthState, PanelEvent, PanelState, PlaybackState, PlaylistsState, PreferencesData,
-    SearchState,
+    AlbumState, CenterState, OAuthState, PanelEvent, PanelState, PlaybackState, PlaylistsState,
+    PreferencesData, SearchState,
 };
 use crate::worker;
 use vizia::prelude::*;
@@ -13,7 +13,7 @@ pub mod events;
 pub mod model_data;
 pub mod panels;
 
-use model_data::{PlaybackTarget, UiModel};
+use model_data::{CenterPage, PlaybackTarget, UiModel};
 
 pub fn run() {
     let icon = image::ImageReader::new(std::io::Cursor::new(include_bytes!(
@@ -77,9 +77,7 @@ pub fn run() {
         let active_playlist_track_count = Signal::new(0usize);
         let active_playlist_duration_ms = Signal::new(0u64);
         let active_playlist_image_key = Signal::new(None::<String>);
-        let showing_playlist = Signal::new(false);
         let playlist_selected_index = Signal::new(0usize);
-        let showing_album = Signal::new(false);
         let album_tracks = Signal::new(Vec::<Track>::new());
         let album_name = Signal::new(String::new());
         let album_artist = Signal::new(String::new());
@@ -100,6 +98,11 @@ pub fn run() {
         let selected_search_tab = Signal::new(0usize);
         let selected_summary = Signal::new("Selected: none".to_string());
         let shuffle_mode = Signal::new(false);
+        let current_center_page = Signal::new(CenterPage::Search);
+        let page_history = Signal::new(vec![CenterPage::Search]);
+        let page_history_index = Signal::new(0usize);
+        let can_go_back = Signal::new(false);
+        let can_go_forward = Signal::new(false);
 
         let backend = worker::init_backend(cx.get_proxy());
 
@@ -119,6 +122,13 @@ pub fn run() {
             },
             preferences_data,
             panel_state,
+            center_state: CenterState {
+                current_page: current_center_page,
+                page_history,
+                page_history_index,
+                can_go_back,
+                can_go_forward,
+            },
             playback_state: PlaybackState {
                 playback_track_name,
                 playback_track_artist,
@@ -126,8 +136,6 @@ pub fn run() {
                 playback_track_image_key,
                 playback_track_image_url,
                 playback_overlay_image_key,
-                showing_playlist,
-                showing_album,
                 search_album_rows,
                 album_tracks,
                 album_image_key,
@@ -165,11 +173,8 @@ pub fn run() {
                 search_album_rows,
                 selected_index,
                 selected_summary,
-                showing_playlist,
-                showing_album,
             },
             album_state: AlbumState {
-                showing_album,
                 album_tracks,
                 album_name,
                 album_artist,
@@ -192,7 +197,6 @@ pub fn run() {
                 active_playlist_track_count,
                 active_playlist_duration_ms,
                 active_playlist_image_key,
-                showing_playlist,
                 playlist_selected_index,
                 shuffle_mode,
             },
@@ -240,7 +244,14 @@ pub fn run() {
         });
 
         VStack::new(cx, |cx| {
-            panels::header_panel(cx, search_input, auth_username, profile_image_key);
+            panels::header_panel(
+                cx,
+                search_input,
+                auth_username,
+                profile_image_key,
+                can_go_back,
+                can_go_forward,
+            );
 
             Label::new(cx, selected_summary).class("status");
             Label::new(cx, status).class("status");
@@ -259,10 +270,9 @@ pub fn run() {
                 )
                 .class("left-panel");
 
-                let center_view_key = showing_playlist.map(move |sp| (*sp, showing_album.get()));
-                Binding::new(cx, center_view_key, move |cx| {
-                    let (is_playlist, is_album) = center_view_key.get();
-                    if is_playlist {
+                Binding::new(cx, current_center_page, move |cx| {
+                    match current_center_page.get() {
+                        CenterPage::PlaylistTracks => {
                         panels::playlist_tracks_panel(
                             cx,
                             active_playlist_name,
@@ -274,8 +284,9 @@ pub fn run() {
                             playlist_selected_index,
                             shuffle_mode,
                         );
-                    } else if is_album {
-                        panels::album_tracks_panel(
+                        }
+                        CenterPage::AlbumTracks => {
+                            panels::album_tracks_panel(
                             cx,
                             album_name,
                             album_artist,
@@ -287,8 +298,9 @@ pub fn run() {
                             album_selected_index,
                             album_shuffle_mode,
                         );
-                    } else {
-                        panels::search_results_panel(
+                        }
+                        CenterPage::Search => {
+                            panels::search_results_panel(
                             cx,
                             search_result_rows,
                             search_artist_rows,
@@ -297,6 +309,7 @@ pub fn run() {
                             search_tabs,
                             selected_search_tab,
                         );
+                        }
                     }
                 });
 

@@ -2,7 +2,10 @@ use vizia::prelude::*;
 
 use crate::{
     messages::{AlbumResult, ArtistResult, Track},
-    ui::events::{PlaybackUiEvent, SearchAppEvent, SearchUiEvent},
+    ui::{
+        events::{CenterUiEvent, PlaybackUiEvent, SearchAppEvent, SearchUiEvent},
+        model_data::CenterPage,
+    },
     worker,
 };
 
@@ -16,8 +19,6 @@ pub struct SearchState {
     pub search_album_rows: Signal<Vec<AlbumResult>>,
     pub selected_index: Signal<usize>,
     pub selected_summary: Signal<String>,
-    pub showing_playlist: Signal<bool>,
-    pub showing_album: Signal<bool>,
 }
 
 impl SearchState {
@@ -116,8 +117,7 @@ impl Model for SearchState {
                 let album = albums[*index].clone();
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
-                self.showing_playlist.set(false);
-                self.showing_album.set(true);
+                cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
                 worker::fetch_album_tracks(self.backend.clone(), album, cx.get_proxy());
             }
             SearchUiEvent::SetInput(value) => {
@@ -130,8 +130,7 @@ impl Model for SearchState {
                     return;
                 }
 
-                self.showing_playlist.set(false);
-                self.showing_album.set(false);
+                cx.emit(CenterUiEvent::NavigateTo(CenterPage::Search));
                 self.status.set(format!("Searching for '{query}'..."));
                 worker::search_tracks(self.backend.clone(), query, cx.get_proxy());
             }

@@ -3,7 +3,10 @@ use vizia::prelude::*;
 
 use crate::{
     messages::{PlaylistEntry, Track},
-    ui::events::{PlaybackUiEvent, PlaylistsAppEvent, PlaylistsUiEvent},
+    ui::{
+        events::{CenterUiEvent, PlaybackUiEvent, PlaylistsAppEvent, PlaylistsUiEvent},
+        model_data::CenterPage,
+    },
     worker,
 };
 
@@ -20,7 +23,6 @@ pub struct PlaylistsState {
     pub active_playlist_duration_ms: Signal<u64>,
     pub active_playlist_image_key: Signal<Option<String>>,
     pub playlist_selected_index: Signal<usize>,
-    pub showing_playlist: Signal<bool>,
     pub shuffle_mode: Signal<bool>,
 }
 
@@ -78,7 +80,7 @@ impl Model for PlaylistsState {
                 self.track_filter_input.set(String::new());
                 self.apply_track_filter();
                 self.playlist_selected_index.set(0);
-                self.showing_playlist.set(true);
+                cx.emit(CenterUiEvent::NavigateTo(CenterPage::PlaylistTracks));
 
                 let mut playlist_rows = self.playlist_rows.get();
                 if let Some(row) = playlist_rows.iter_mut().find(|row| row.id == *id) {

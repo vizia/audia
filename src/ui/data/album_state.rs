@@ -2,11 +2,10 @@ use vizia::prelude::*;
 
 use crate::{
     messages::Track,
-    ui::events::{AlbumUiEvent, PlaybackUiEvent, SearchAppEvent, SearchUiEvent},
+    ui::events::{AlbumUiEvent, CenterUiEvent, PlaybackUiEvent, SearchAppEvent, SearchUiEvent},
 };
 
 pub struct AlbumState {
-    pub showing_album: Signal<bool>,
     pub album_tracks: Signal<Vec<Track>>,
     pub album_name: Signal<String>,
     pub album_artist: Signal<String>,
@@ -45,7 +44,7 @@ impl Model for AlbumState {
 
         event.map(|ui_event, _: &mut _| match ui_event {
             AlbumUiEvent::BackFromAlbum => {
-                self.showing_album.set(false);
+                cx.emit(CenterUiEvent::NavigateBack);
             }
             AlbumUiEvent::AlbumTrackSelected(index) => {
                 let tracks = self.album_tracks.get();
@@ -81,9 +80,7 @@ impl Model for AlbumState {
         });
 
         event.map(|ui_event, _: &mut _| match ui_event {
-            SearchUiEvent::SubmitQuery(_) => {
-                self.showing_album.set(false);
-            }
+            SearchUiEvent::SubmitQuery(_) => {}
             SearchUiEvent::SelectTab(_)
             | SearchUiEvent::SelectResult(_)
             | SearchUiEvent::SelectAlbum(_)

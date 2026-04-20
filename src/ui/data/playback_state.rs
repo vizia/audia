@@ -3,8 +3,8 @@ use vizia::prelude::*;
 use crate::{
     messages::{AlbumResult, PlaybackDevice, Track},
     ui::{
-        events::{PlaybackAppEvent, PlaybackProgressSource, PlaybackUiEvent},
-        model_data::PlaybackTarget,
+        events::{CenterUiEvent, PlaybackAppEvent, PlaybackProgressSource, PlaybackUiEvent},
+        model_data::{CenterPage, PlaybackTarget},
     },
     worker::{self, SharedBackend},
 };
@@ -34,8 +34,6 @@ pub struct PlaybackState {
     pub playback_track_image_key: Signal<Option<String>>,
     pub playback_track_image_url: Signal<Option<String>>,
     pub playback_overlay_image_key: Signal<Option<String>>,
-    pub showing_playlist: Signal<bool>,
-    pub showing_album: Signal<bool>,
     pub search_album_rows: Signal<Vec<AlbumResult>>,
     pub album_tracks: Signal<Vec<Track>>,
     pub album_image_key: Signal<Option<String>>,
@@ -205,8 +203,7 @@ impl Model for PlaybackState {
                 if let Some(track_id) = track_id {
                     self.status
                         .set("Loading album from current track...".to_string());
-                    self.showing_playlist.set(false);
-                    self.showing_album.set(true);
+                    cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
                     worker::fetch_album_from_track(
                         self.backend.clone(),
                         track_id.clone(),
@@ -220,8 +217,7 @@ impl Model for PlaybackState {
                     && *image_key == current_album_key
                     && !self.album_tracks.get().is_empty()
                 {
-                    self.showing_playlist.set(false);
-                    self.showing_album.set(true);
+                    cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
                     return;
                 }
 
@@ -242,8 +238,7 @@ impl Model for PlaybackState {
                 if let Some(album) = by_key.or(by_url) {
                     self.status
                         .set(format!("Loading tracks for '{}'...", album.name));
-                    self.showing_playlist.set(false);
-                    self.showing_album.set(true);
+                    cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
                     worker::fetch_album_tracks(self.backend.clone(), album, cx.get_proxy());
                 } else {
                     self.status
