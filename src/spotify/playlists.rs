@@ -1,6 +1,9 @@
 use serde::Deserialize;
 
-use super::{SpotifyPlaylist, SpotifyService, types::{PlaylistListResponse, SearchArtist, SpotifyImage}};
+use super::{
+    SpotifyPlaylist, SpotifyService,
+    types::{PlaylistListResponse, SearchArtist, SpotifyImage},
+};
 use crate::messages::Track;
 
 impl SpotifyService {
@@ -48,6 +51,33 @@ impl SpotifyService {
         playlist_id: &str,
         _limit: usize,
     ) -> Result<Vec<Track>, String> {
+        let mut all_tracks = Vec::new();
+        let mut offset = 0;
+        const PAGE_SIZE: usize = 50;
+
+        loop {
+            let (mut page_tracks, total) = self
+                .get_playlist_tracks_page(playlist_id, PAGE_SIZE, offset)
+                .await?;
+
+            let page_size = page_tracks.len();
+            all_tracks.append(&mut page_tracks);
+
+            offset += page_size;
+            if offset >= total || page_size == 0 {
+                break;
+            }
+        }
+
+        Ok(all_tracks)
+    }
+
+    pub async fn get_playlist_tracks_page(
+        &self,
+        playlist_id: &str,
+        limit: usize,
+        offset: usize,
+    ) -> Result<(Vec<Track>, usize), String> {
         let token = self.access_token()?;
         let encoded_playlist_id = urlencoding::encode(playlist_id);
         let url = format!(
@@ -83,47 +113,46 @@ impl SpotifyService {
             images: Vec<SpotifyImage>,
         }
 
-        let mut all_tracks = Vec::new();
-        let mut offset = 0;
-        const PAGE_SIZE: usize = 50;
+        let bounded_limit = limit.clamp(1, 50);
+        let limit_str = bounded_limit.to_string();
+        let offset_str = offset.to_string();
 
-        loop {
-            let offset_str = offset.to_string();
+        let response = self
+            .http
+            .get(&url)
+            .bearer_auth(token)
+            .query(&[
+                ("limit", limit_str.as_str()),
+                ("offset", offset_str.as_str()),
+                ("market", "from_token"),
+                ("additional_types", "track"),
+                (
+                    "fields",
+                    "items(item(type,id,name,duration_ms,artists(name),album(images(url))),track(type,id,name,duration_ms,artists(name),album(images(url)))),total",
+                ),
+            ])
+            .send()
+            .await
+            .map_err(|err| format!("Spotify playlist tracks request failed: {err}"))?;
 
-            let response = self
-                .http
-                .get(&url)
-                .bearer_auth(token)
-                .query(&[
-                    ("limit", PAGE_SIZE.to_string().as_str()),
-                    ("offset", offset_str.as_str()),
-                    ("market", "from_token"),
-                    ("additional_types", "track"),
-                    (
-                        "fields",
-                        "items(item(type,id,name,duration_ms,artists(name),album(images(url))),track(type,id,name,duration_ms,artists(name),album(images(url)))),total",
-                    ),
-                ])
-                .send()
-                .await
-                .map_err(|err| format!("Spotify playlist tracks request failed: {err}"))?;
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
 
-            if !response.status().is_success() {
-                let status = response.status();
-                let body = response.text().await.unwrap_or_default();
+            return Err(format!(
+                "Spotify playlist tracks returned status {status}: {body}"
+            ));
+        }
 
-                return Err(format!(
-                    "Spotify playlist tracks returned status {status}: {body}"
-                ));
-            }
+        let payload = response
+            .json::<PlaylistTracksResponse>()
+            .await
+            .map_err(|err| format!("Invalid Spotify playlist tracks payload: {err}"))?;
 
-            let payload = response
-                .json::<PlaylistTracksResponse>()
-                .await
-                .map_err(|err| format!("Invalid Spotify playlist tracks payload: {err}"))?;
-
-            let page_size = payload.items.len();
-            all_tracks.extend(payload.items.into_iter().filter_map(|wrapper| {
+        let tracks = payload
+            .items
+            .into_iter()
+            .filter_map(|wrapper| {
                 let track = wrapper.item.or(wrapper.track)?;
                 if track.item_type.as_deref() != Some("track") {
                     return None;
@@ -143,14 +172,9 @@ impl SpotifyService {
                     album_image_url: track.album.images.first().map(|img| img.url.clone()),
                     album_image_key: None,
                 })
-            }));
+            })
+            .collect::<Vec<_>>();
 
-            offset += page_size;
-            if offset >= payload.total {
-                break;
-            }
-        }
-
-        Ok(all_tracks)
+        Ok((tracks, payload.total))
     }
 }

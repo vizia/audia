@@ -44,6 +44,40 @@ pub fn fetch_artist_view(backend: SharedBackend, artist_id: String, mut proxy: C
             albums: albums.clone(),
         });
 
+        let first_page_image_ids = albums
+            .iter()
+            .map(|album| album.id.clone())
+            .collect::<Vec<_>>();
+        let first_page_image_jobs = albums
+            .iter()
+            .enumerate()
+            .filter_map(|(index, album)| {
+                album.image_url.as_ref().map(|url| {
+                    (
+                        index,
+                        format!("artist-album-artwork:{}:{}", artist_id, album.id),
+                        url.clone(),
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let first_page_images = load_images_parallel(&mut proxy, first_page_image_jobs).await;
+        for (local_index, key) in first_page_images {
+            if let Some(album_id) = first_page_image_ids.get(local_index)
+                && let Some(album) = albums.iter_mut().find(|album| album.id == *album_id)
+            {
+                album.image_key = Some(key);
+            }
+        }
+
+        let _ = proxy.emit(SearchAppEvent::ArtistView {
+            id: artist_id.clone(),
+            name: artist_name.clone(),
+            image_key: None,
+            albums: albums.clone(),
+        });
+
         while has_more {
             let page_result = with_spotify_auth_retry(&backend, |spotify| {
                 let artist_id = artist_id.clone();
@@ -60,6 +94,24 @@ pub fn fetch_artist_view(backend: SharedBackend, artist_id: String, mut proxy: C
             };
 
             let page_size = page_albums.len();
+            let page_image_ids = page_albums
+                .iter()
+                .map(|album| album.id.clone())
+                .collect::<Vec<_>>();
+            let page_image_jobs = page_albums
+                .iter()
+                .enumerate()
+                .filter_map(|(index, album)| {
+                    album.image_url.as_ref().map(|url| {
+                        (
+                            index,
+                            format!("artist-album-artwork:{}:{}", artist_id, album.id),
+                            url.clone(),
+                        )
+                    })
+                })
+                .collect::<Vec<_>>();
+
             albums.append(&mut page_albums);
             albums.sort_by(|a, b| {
                 b.release_date
@@ -67,6 +119,22 @@ pub fn fetch_artist_view(backend: SharedBackend, artist_id: String, mut proxy: C
                     .then_with(|| a.name.cmp(&b.name))
             });
             albums.dedup_by(|a, b| a.id == b.id);
+
+            let _ = proxy.emit(SearchAppEvent::ArtistView {
+                id: artist_id.clone(),
+                name: artist_name.clone(),
+                image_key: None,
+                albums: albums.clone(),
+            });
+
+            let page_images = load_images_parallel(&mut proxy, page_image_jobs).await;
+            for (local_index, key) in page_images {
+                if let Some(album_id) = page_image_ids.get(local_index)
+                    && let Some(album) = albums.iter_mut().find(|album| album.id == *album_id)
+                {
+                    album.image_key = Some(key);
+                }
+            }
 
             let _ = proxy.emit(SearchAppEvent::ArtistView {
                 id: artist_id.clone(),
@@ -95,27 +163,6 @@ pub fn fetch_artist_view(backend: SharedBackend, artist_id: String, mut proxy: C
                 image_key: artist_image_key.clone(),
                 albums: albums.clone(),
             });
-        }
-
-        let album_image_jobs = albums
-            .iter()
-            .enumerate()
-            .filter_map(|(index, album)| {
-                album.image_url.as_ref().map(|url| {
-                    (
-                        index,
-                        format!("artist-album-artwork:{}:{}", artist.id, album.id),
-                        url.clone(),
-                    )
-                })
-            })
-            .collect::<Vec<_>>();
-
-        let loaded_album_images = load_images_parallel(&mut proxy, album_image_jobs).await;
-        for (index, key) in loaded_album_images {
-            if let Some(album) = albums.get_mut(index) {
-                album.image_key = Some(key);
-            }
         }
 
         let album_count = albums.len();

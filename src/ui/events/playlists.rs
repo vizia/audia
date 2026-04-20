@@ -14,6 +14,7 @@ pub enum PlaylistsUiEvent {
 pub enum PlaylistsAppEvent {
     Playlists(Vec<PlaylistEntry>),
     PlaylistTracks {
+        request_id: u64,
         id: String,
         name: String,
         tracks: Vec<Track>,

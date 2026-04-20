@@ -37,6 +37,8 @@ pub fn refresh_user_playlists(backend: SharedBackend, mut proxy: ContextProxy) {
                     });
                 }
 
+                let _ = proxy.emit(PlaylistsAppEvent::Playlists(mapped.clone()));
+
                 let loaded_images = load_images_parallel(&mut proxy, image_jobs).await;
                 for (index, key) in loaded_images {
                     if let Some(playlist) = mapped.get_mut(index) {
@@ -57,6 +59,7 @@ pub fn fetch_playlist_tracks(
     backend: SharedBackend,
     playlist_id: String,
     playlist_name: String,
+    request_id: u64,
     mut proxy: ContextProxy,
 ) {
     let runtime = {
@@ -65,50 +68,168 @@ pub fn fetch_playlist_tracks(
     };
 
     runtime.spawn(async move {
-        match with_spotify_auth_retry(&backend, |spotify| {
+        let first_page = with_spotify_auth_retry(&backend, |spotify| {
             let playlist_id = playlist_id.clone();
-            async move { spotify.get_playlist_tracks(&playlist_id, 50).await }
+            async move { spotify.get_playlist_tracks_page(&playlist_id, 50, 0).await }
         })
-        .await
-        {
-            Ok(mut tracks) => {
-                let image_jobs = tracks
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(index, track)| {
-                        track.album_image_url.as_ref().map(|url| {
-                            (
-                                index,
-                                format!("playlist-track-artwork:{}", url),
-                                url.clone(),
-                            )
-                        })
-                    })
-                    .collect::<Vec<_>>();
+        .await;
 
-                let loaded_images = load_images_parallel(&mut proxy, image_jobs).await;
-                for (index, key) in loaded_images {
-                    if let Some(track) = tracks.get_mut(index) {
-                        track.album_image_key = Some(key);
-                    }
-                }
-
-                let count = tracks.len();
-                let total_duration_ms = tracks.iter().map(|track| track.duration_ms as u64).sum::<u64>();
-                let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
-                    id: playlist_id,
-                    name: playlist_name,
-                    tracks,
-                    track_count: count,
-                    total_duration_ms,
-                });
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
-                    "Loaded {count} tracks from playlist."
-                )));
-            }
+        let (mut tracks, total) = match first_page {
+            Ok(page) => page,
             Err(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
+                return;
+            }
+        };
+
+        let mut offset = tracks.len();
+        let mut has_more = offset < total;
+
+        let count = tracks.len();
+        let total_duration_ms = tracks
+            .iter()
+            .map(|track| track.duration_ms as u64)
+            .sum::<u64>();
+        let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+            request_id,
+            id: playlist_id.clone(),
+            name: playlist_name.clone(),
+            tracks: tracks.clone(),
+            track_count: count,
+            total_duration_ms,
+        });
+
+        let first_page_len = tracks.len();
+        let first_page_image_jobs = tracks
+            .iter()
+            .take(first_page_len)
+            .enumerate()
+            .filter_map(|(index, track)| {
+                track.album_image_url.as_ref().map(|url| {
+                    (
+                        index,
+                        format!("playlist-track-artwork:{}", url),
+                        url.clone(),
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let first_page_images = load_images_parallel(&mut proxy, first_page_image_jobs).await;
+        for (index, key) in first_page_images {
+            if let Some(track) = tracks.get_mut(index) {
+                track.album_image_key = Some(key);
             }
         }
+
+        let count = tracks.len();
+        let total_duration_ms = tracks
+            .iter()
+            .map(|track| track.duration_ms as u64)
+            .sum::<u64>();
+        let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+            request_id,
+            id: playlist_id.clone(),
+            name: playlist_name.clone(),
+            tracks: tracks.clone(),
+            track_count: count,
+            total_duration_ms,
+        });
+
+        while has_more {
+            let page_result = with_spotify_auth_retry(&backend, |spotify| {
+                let playlist_id = playlist_id.clone();
+                async move {
+                    spotify
+                        .get_playlist_tracks_page(&playlist_id, 50, offset)
+                        .await
+                }
+            })
+            .await;
+
+            let (mut page_tracks, total) = match page_result {
+                Ok(page) => page,
+                Err(err) => {
+                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                    return;
+                }
+            };
+
+            let page_size = page_tracks.len();
+            let page_start = tracks.len();
+            tracks.append(&mut page_tracks);
+
+            let count = tracks.len();
+            let total_duration_ms = tracks
+                .iter()
+                .map(|track| track.duration_ms as u64)
+                .sum::<u64>();
+            let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+                request_id,
+                id: playlist_id.clone(),
+                name: playlist_name.clone(),
+                tracks: tracks.clone(),
+                track_count: count,
+                total_duration_ms,
+            });
+
+            let page_end = tracks.len();
+            let page_image_jobs = tracks
+                .iter()
+                .enumerate()
+                .skip(page_start)
+                .take(page_end - page_start)
+                .filter_map(|(index, track)| {
+                    track.album_image_url.as_ref().map(|url| {
+                        (
+                            index,
+                            format!("playlist-track-artwork:{}", url),
+                            url.clone(),
+                        )
+                    })
+                })
+                .collect::<Vec<_>>();
+
+            let page_images = load_images_parallel(&mut proxy, page_image_jobs).await;
+            for (index, key) in page_images {
+                if let Some(track) = tracks.get_mut(index) {
+                    track.album_image_key = Some(key);
+                }
+            }
+
+            let count = tracks.len();
+            let total_duration_ms = tracks
+                .iter()
+                .map(|track| track.duration_ms as u64)
+                .sum::<u64>();
+            let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+                request_id,
+                id: playlist_id.clone(),
+                name: playlist_name.clone(),
+                tracks: tracks.clone(),
+                track_count: count,
+                total_duration_ms,
+            });
+
+            offset += page_size;
+            has_more = page_size > 0 && offset < total;
+        }
+
+        let count = tracks.len();
+        let total_duration_ms = tracks
+            .iter()
+            .map(|track| track.duration_ms as u64)
+            .sum::<u64>();
+        let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+            request_id,
+            id: playlist_id,
+            name: playlist_name,
+            tracks,
+            track_count: count,
+            total_duration_ms,
+        });
+        let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+            "Loaded {count} tracks from playlist."
+        )));
     });
 }

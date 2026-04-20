@@ -18,12 +18,14 @@ pub struct PlaylistsState {
     pub filtered_playlist_tracks: Signal<Vec<Track>>,
     pub filtered_track_indices: Signal<Vec<usize>>,
     pub track_filter_input: Signal<String>,
+    pub active_playlist_id: Signal<Option<String>>,
     pub active_playlist_name: Signal<String>,
     pub active_playlist_track_count: Signal<usize>,
     pub active_playlist_duration_ms: Signal<u64>,
     pub active_playlist_image_key: Signal<Option<String>>,
     pub playlist_selected_index: Signal<usize>,
     pub shuffle_mode: Signal<bool>,
+    pub current_playlist_request_id: u64,
 }
 
 impl PlaylistsState {
@@ -67,12 +69,18 @@ impl Model for PlaylistsState {
                 self.playlist_rows.set(playlists.clone());
             }
             PlaylistsAppEvent::PlaylistTracks {
+                request_id,
                 id,
                 name,
                 tracks,
                 track_count,
                 total_duration_ms,
             } => {
+                if *request_id != self.current_playlist_request_id {
+                    return;
+                }
+
+                self.active_playlist_id.set(Some(id.clone()));
                 self.active_playlist_name.set(name.clone());
                 self.active_playlist_track_count.set(*track_count);
                 self.active_playlist_duration_ms.set(*total_duration_ms);
@@ -111,6 +119,15 @@ impl Model for PlaylistsState {
                 }
 
                 let playlist = playlists[*index].clone();
+                if self.active_playlist_id.get().as_deref() == Some(playlist.id.as_str())
+                    && !self.playlist_tracks.get().is_empty()
+                {
+                    self.status
+                        .set(format!("Showing cached playlist '{}'...", playlist.name));
+                    cx.emit(CenterUiEvent::NavigateTo(CenterPage::PlaylistTracks));
+                    return;
+                }
+
                 self.status
                     .set(format!("Loading playlist '{}'...", playlist.name));
                 self.active_playlist_track_count.set(playlist.track_count);
@@ -118,10 +135,15 @@ impl Model for PlaylistsState {
                     .set(playlist.total_duration_ms);
                 self.active_playlist_image_key
                     .set(playlist.image_key.clone());
+
+                self.current_playlist_request_id =
+                    self.current_playlist_request_id.saturating_add(1);
+
                 worker::fetch_playlist_tracks(
                     self.backend.clone(),
                     playlist.id,
                     playlist.name,
+                    self.current_playlist_request_id,
                     cx.get_proxy(),
                 );
             }

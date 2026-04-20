@@ -73,6 +73,7 @@ pub fn run() {
         let filtered_playlist_tracks = Signal::new(Vec::<Track>::new());
         let filtered_track_indices = Signal::new(Vec::<usize>::new());
         let playlist_track_filter_input = Signal::new(String::new());
+        let active_playlist_id = Signal::new(None::<String>);
         let active_playlist_name = Signal::new(String::new());
         let active_playlist_track_count = Signal::new(0usize);
         let active_playlist_duration_ms = Signal::new(0u64);
@@ -207,12 +208,14 @@ pub fn run() {
                 filtered_playlist_tracks,
                 filtered_track_indices,
                 track_filter_input: playlist_track_filter_input,
+                active_playlist_id,
                 active_playlist_name,
                 active_playlist_track_count,
                 active_playlist_duration_ms,
                 active_playlist_image_key,
                 playlist_selected_index,
                 shuffle_mode,
+                current_playlist_request_id: 0,
             },
         }
         .build(cx);
