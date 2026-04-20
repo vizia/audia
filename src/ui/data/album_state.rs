@@ -86,6 +86,7 @@ impl Model for AlbumState {
             | SearchUiEvent::SelectArtist(_)
             | SearchUiEvent::SelectAlbum(_)
             | SearchUiEvent::OpenAlbumFromTrack(_)
+            | SearchUiEvent::OpenArtistFromTrack(_)
             | SearchUiEvent::OpenArtistByName(_)
             | SearchUiEvent::SetInput(_) => {}
         });

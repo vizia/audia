@@ -67,6 +67,7 @@ pub fn artist_panel(
                 .height(Auto)
                 .gap(Pixels(2.0));
             })
+            .hoverable(false)
             .class("result-row");
         })
         .selectable(Selectable::Single)

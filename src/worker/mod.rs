@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::sync::OnceLock;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -20,7 +21,7 @@ mod playlists;
 mod search;
 
 pub use albums::{fetch_album_from_track, fetch_album_tracks};
-pub use artists::{fetch_artist_view, fetch_artist_view_by_name};
+pub use artists::{fetch_artist_view, fetch_artist_view_by_name, fetch_artist_view_from_track};
 pub use auth::init_backend;
 pub use oauth::{refresh_access_token, reset_login, start_oauth_login};
 pub use playback::{
@@ -34,9 +35,14 @@ pub use playlists::{fetch_playlist_tracks, refresh_user_playlists};
 pub use search::search_tracks;
 
 const IMAGE_FETCH_CONCURRENCY: usize = 8;
+static IMAGE_HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+fn image_http_client() -> &'static reqwest::Client {
+    IMAGE_HTTP_CLIENT.get_or_init(reqwest::Client::new)
+}
 
 async fn fetch_image_bytes(url: String) -> Option<Vec<u8>> {
-    let response = reqwest::get(url).await.ok()?;
+    let response = image_http_client().get(url).send().await.ok()?;
     if !response.status().is_success() {
         return None;
     }

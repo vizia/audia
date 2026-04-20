@@ -7,6 +7,7 @@ pub enum SearchUiEvent {
     SelectArtist(usize),
     SelectAlbum(usize),
     OpenAlbumFromTrack(String),
+    OpenArtistFromTrack(String),
     OpenArtistByName(String),
     SetInput(String),
     SubmitQuery(String),

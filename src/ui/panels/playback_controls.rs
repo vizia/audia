@@ -74,7 +74,11 @@ pub fn playback_controls_panel(
                     .text_wrap(false)
                     .class("now-playing-artist")
                     .on_press(move |cx| {
-                        cx.emit(SearchUiEvent::OpenArtistByName(playback_track_artist.get()));
+                        if let Some(track_id) = playback_track_id.get() {
+                            cx.emit(SearchUiEvent::OpenArtistFromTrack(track_id));
+                        } else {
+                            cx.emit(SearchUiEvent::OpenArtistByName(playback_track_artist.get()));
+                        }
                     });
             })
             .height(Auto)

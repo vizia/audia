@@ -17,6 +17,8 @@ pub struct SearchState {
     pub search_result_rows: Signal<Vec<Track>>,
     pub search_artist_rows: Signal<Vec<ArtistResult>>,
     pub search_album_rows: Signal<Vec<AlbumResult>>,
+    pub current_artist_id: Signal<Option<String>>,
+    pub current_artist_albums: Signal<Vec<AlbumResult>>,
     pub selected_index: Signal<usize>,
     pub selected_summary: Signal<String>,
 }
@@ -115,8 +117,17 @@ impl Model for SearchState {
                 }
 
                 let artist = artists[*index].clone();
+                if self.current_artist_id.get().as_deref() == Some(artist.id.as_str())
+                    && !self.current_artist_albums.get().is_empty()
+                {
+                    self.status
+                        .set(format!("Showing cached albums for '{}'", artist.name));
+                    cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
+                    return;
+                }
+
                 self.status
-                    .set(format!("Loading top songs and albums for '{}'...", artist.name));
+                    .set(format!("Loading albums for '{}'...", artist.name));
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
                 worker::fetch_artist_view(self.backend.clone(), artist.id, cx.get_proxy());
             }
@@ -143,6 +154,16 @@ impl Model for SearchState {
                     cx.get_proxy(),
                 );
             }
+            SearchUiEvent::OpenArtistFromTrack(track_id) => {
+                self.status
+                    .set("Loading artist from current track...".to_string());
+                cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
+                worker::fetch_artist_view_from_track(
+                    self.backend.clone(),
+                    track_id.clone(),
+                    cx.get_proxy(),
+                );
+            }
             SearchUiEvent::OpenArtistByName(artist_name) => {
                 let artist_name = artist_name.trim().to_string();
                 if artist_name.is_empty() {
@@ -152,7 +173,7 @@ impl Model for SearchState {
                 }
 
                 self.status
-                    .set(format!("Loading top songs and albums for '{}'...", artist_name));
+                    .set(format!("Loading albums for '{}'...", artist_name));
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
                 worker::fetch_artist_view_by_name(
                     self.backend.clone(),

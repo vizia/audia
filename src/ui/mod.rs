@@ -175,6 +175,8 @@ pub fn run() {
                 search_result_rows,
                 search_artist_rows,
                 search_album_rows,
+                current_artist_id: artist_id,
+                current_artist_albums: artist_albums,
                 selected_index,
                 selected_summary,
             },

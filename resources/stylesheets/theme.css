@@ -607,11 +607,6 @@ button.avatar-menu-trigger:hover {
     text-align: center;
 }
 
-.search-results-panel list > scrollview {
-    width: 1s;
-    height: auto;
-}
-
 /* Queue */
 .resizable-stack {
     gap: 0px;
