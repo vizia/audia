@@ -1,7 +1,7 @@
 use crate::messages::{AlbumResult, ArtistResult, PlaybackDevice, PlaylistEntry, Track};
 use crate::ui::data::{
-    AlbumState, CenterState, OAuthState, PanelEvent, PanelState, PlaybackState, PlaylistsState,
-    PreferencesData, SearchState,
+    AlbumState, ArtistState, CenterState, OAuthState, PanelEvent, PanelState, PlaybackState,
+    PlaylistsState, PreferencesData, SearchState,
 };
 use crate::worker;
 use vizia::prelude::*;
@@ -87,6 +87,10 @@ pub fn run() {
         let album_image_key = Signal::new(None::<String>);
         let album_selected_index = Signal::new(0usize);
         let album_shuffle_mode = Signal::new(false);
+        let artist_id = Signal::new(None::<String>);
+        let artist_name = Signal::new(String::new());
+        let artist_image_key = Signal::new(None::<String>);
+        let artist_albums = Signal::new(Vec::<AlbumResult>::new());
         let queue_tracks = Signal::new(Vec::<Track>::new());
         let queue_current_index = Signal::new(None::<usize>);
         let recently_played = Signal::new(Vec::<Track>::new());
@@ -185,6 +189,14 @@ pub fn run() {
                 album_selected_index,
                 album_shuffle_mode,
             },
+            artist_state: ArtistState {
+                backend: backend.clone(),
+                status,
+                artist_id,
+                artist_name,
+                artist_image_key,
+                artist_albums,
+            },
             playlists_state: PlaylistsState {
                 backend: backend.clone(),
                 status,
@@ -270,48 +282,53 @@ pub fn run() {
                 )
                 .class("left-panel");
 
-                Binding::new(cx, current_center_page, move |cx| {
-                    match current_center_page.get() {
+                Binding::new(
+                    cx,
+                    current_center_page,
+                    move |cx| match current_center_page.get() {
                         CenterPage::PlaylistTracks => {
-                        panels::playlist_tracks_panel(
-                            cx,
-                            active_playlist_name,
-                            active_playlist_track_count,
-                            active_playlist_duration_ms,
-                            active_playlist_image_key,
-                            playlist_track_filter_input,
-                            filtered_playlist_tracks,
-                            playlist_selected_index,
-                            shuffle_mode,
-                        );
+                            panels::playlist_tracks_panel(
+                                cx,
+                                active_playlist_name,
+                                active_playlist_track_count,
+                                active_playlist_duration_ms,
+                                active_playlist_image_key,
+                                playlist_track_filter_input,
+                                filtered_playlist_tracks,
+                                playlist_selected_index,
+                                shuffle_mode,
+                            );
                         }
                         CenterPage::AlbumTracks => {
                             panels::album_tracks_panel(
-                            cx,
-                            album_name,
-                            album_artist,
-                            album_release_year,
-                            album_track_count,
-                            album_total_duration_ms,
-                            album_image_key,
-                            album_tracks,
-                            album_selected_index,
-                            album_shuffle_mode,
-                        );
+                                cx,
+                                album_name,
+                                album_artist,
+                                album_release_year,
+                                album_track_count,
+                                album_total_duration_ms,
+                                album_image_key,
+                                album_tracks,
+                                album_selected_index,
+                                album_shuffle_mode,
+                            );
                         }
                         CenterPage::Search => {
                             panels::search_results_panel(
-                            cx,
-                            search_result_rows,
-                            search_artist_rows,
-                            search_album_rows,
-                            selected_index,
-                            search_tabs,
-                            selected_search_tab,
-                        );
+                                cx,
+                                search_result_rows,
+                                search_artist_rows,
+                                search_album_rows,
+                                selected_index,
+                                search_tabs,
+                                selected_search_tab,
+                            );
                         }
-                    }
-                });
+                        CenterPage::Artist => {
+                            panels::artist_panel(cx, artist_name, artist_image_key, artist_albums);
+                        }
+                    },
+                );
 
                 Resizable::new(
                     cx,

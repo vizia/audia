@@ -1,5 +1,5 @@
 use crate::ui::data::{
-    AlbumState, CenterState, OAuthState, PanelState, PlaybackState, PlaylistsState,
+    AlbumState, ArtistState, CenterState, OAuthState, PanelState, PlaybackState, PlaylistsState,
     PreferencesData, SearchState,
 };
 use vizia::prelude::*;
@@ -15,6 +15,7 @@ pub(crate) enum CenterPage {
     Search,
     PlaylistTracks,
     AlbumTracks,
+    Artist,
 }
 
 pub struct UiModel {
@@ -26,5 +27,6 @@ pub struct UiModel {
     pub(crate) playback_state: PlaybackState,
     pub(crate) search_state: SearchState,
     pub(crate) album_state: AlbumState,
+    pub(crate) artist_state: ArtistState,
     pub(crate) playlists_state: PlaylistsState,
 }

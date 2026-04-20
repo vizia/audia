@@ -1,4 +1,5 @@
 mod album_tracks;
+mod artist;
 mod header;
 mod playback_controls;
 mod playlist_tracks;
@@ -7,6 +8,7 @@ mod queue;
 mod search_results;
 
 pub use album_tracks::album_tracks_panel;
+pub use artist::artist_panel;
 pub use header::header_panel;
 pub use playback_controls::playback_controls_panel;
 pub use playlist_tracks::playlist_tracks_panel;

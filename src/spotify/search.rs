@@ -132,6 +132,7 @@ impl SpotifyService {
                         .first()
                         .map(|artist| artist.name.clone())
                         .unwrap_or_else(|| "Unknown artist".to_string()),
+                    release_date: item.release_date,
                     image_url: item.images.first().map(|img| img.url.clone()),
                     image_key: None,
                 })

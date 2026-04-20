@@ -263,7 +263,10 @@ button.avatar-menu-trigger:hover {
 
 .playback-album-button,
 .playback-album-button:hover,
-.playback-album-button:active {
+.playback-album-button:active,
+.playback-artist-button,
+.playback-artist-button:hover,
+.playback-artist-button:active {
     size: auto;
     background-color: transparent;
     padding: 0px;

@@ -1,6 +1,9 @@
 mod album_state;
 pub use album_state::*;
 
+mod artist_state;
+pub use artist_state::*;
+
 mod center_state;
 pub use center_state::*;
 

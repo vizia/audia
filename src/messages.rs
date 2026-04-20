@@ -23,6 +23,7 @@ pub struct AlbumResult {
     pub id: String,
     pub name: String,
     pub artist: String,
+    pub release_date: Option<String>,
     pub image_url: Option<String>,
     pub image_key: Option<String>,
 }

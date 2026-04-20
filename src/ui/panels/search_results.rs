@@ -28,63 +28,56 @@ pub fn search_results_panel(
                     Element::new(cx).class("indicator");
                 },
                 move |cx| {
-                    ScrollView::new(cx, move |cx| {
-                        List::new(cx, search_result_rows, |cx, _index, item| {
-                            HStack::new(cx, |cx| {
-                                let image_key = item.map(|track| track.album_image_key.clone());
-                                let track_id = item.map(|track| track.id.clone());
+                    List::new(cx, search_result_rows, |cx, _index, item| {
+                        HStack::new(cx, |cx| {
+                            let image_key = item.map(|track| track.album_image_key.clone());
+                            let track_id = item.map(|track| track.id.clone());
 
-                                Binding::new(cx, image_key, move |cx| {
-                                    let tid = track_id.get();
-                                    if let Some(key) = image_key.get() {
-                                        Image::new(cx, key)
-                                            .size(Pixels(48.0))
-                                            .class("album-art")
-                                            .pointer_events(PointerEvents::Auto)
-                                            .on_press(move |cx| {
-                                                cx.emit(SearchUiEvent::OpenAlbumFromTrack(
-                                                    tid.clone(),
-                                                ))
-                                            });
-                                    } else {
-                                        Label::new(cx, "♪")
-                                            .size(Pixels(48.0))
-                                            .class("search-result-fallback")
-                                            .pointer_events(PointerEvents::Auto)
-                                            .on_press(move |cx| {
-                                                cx.emit(SearchUiEvent::OpenAlbumFromTrack(
-                                                    tid.clone(),
-                                                ))
-                                            });
-                                    }
-                                });
+                            Binding::new(cx, image_key, move |cx| {
+                                let tid = track_id.get();
+                                if let Some(key) = image_key.get() {
+                                    Image::new(cx, key)
+                                        .size(Pixels(48.0))
+                                        .class("album-art")
+                                        .pointer_events(PointerEvents::Auto)
+                                        .on_press(move |cx| {
+                                            cx.emit(SearchUiEvent::OpenAlbumFromTrack(tid.clone()))
+                                        });
+                                } else {
+                                    Label::new(cx, "♪")
+                                        .size(Pixels(48.0))
+                                        .class("search-result-fallback")
+                                        .pointer_events(PointerEvents::Auto)
+                                        .on_press(move |cx| {
+                                            cx.emit(SearchUiEvent::OpenAlbumFromTrack(tid.clone()))
+                                        });
+                                }
+                            });
 
-                                VStack::new(cx, |cx| {
-                                    Label::new(cx, item.map(|track| track.name.clone()))
-                                        .text_wrap(false)
-                                        .class("search-result-title");
-                                    Label::new(cx, item.map(|track| track.artist.clone()))
-                                        .text_wrap(false)
-                                        .class("search-result-artist");
-                                })
-                                .width(Stretch(1.0))
-                                .height(Auto)
-                                .gap(Pixels(2.0));
-
-                                Label::new(cx, item.map(|track| format_time(track.duration_ms)))
-                                    .class("search-result-duration");
+                            VStack::new(cx, |cx| {
+                                Label::new(cx, item.map(|track| track.name.clone()))
+                                    .text_wrap(false)
+                                    .class("search-result-title");
+                                Label::new(cx, item.map(|track| track.artist.clone()))
+                                    .text_wrap(false)
+                                    .class("search-result-artist");
                             })
-                            .pointer_events(PointerEvents::None)
-                            .class("result-row");
+                            .width(Stretch(1.0))
+                            .height(Auto)
+                            .gap(Pixels(2.0));
+
+                            Label::new(cx, item.map(|track| format_time(track.duration_ms)))
+                                .class("search-result-duration");
                         })
-                        .selectable(Selectable::Single)
-                        .selection(selected_index.map(|idx| vec![*idx]))
-                        .selection_follows_focus(true)
-                        .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectResult(idx)))
-                        .width(Stretch(1.0))
-                        .height(Auto);
+                        .pointer_events(PointerEvents::None)
+                        .class("result-row");
                     })
-                    .class("search-tab-content");
+                    .selectable(Selectable::Single)
+                    .selection(selected_index.map(|idx| vec![*idx]))
+                    .selection_follows_focus(true)
+                    .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectResult(idx)))
+                    .width(Stretch(1.0))
+                    .height(Stretch(1.0));
                 },
             ),
             1 => TabPair::new(
@@ -93,33 +86,33 @@ pub fn search_results_panel(
                     Element::new(cx).class("indicator");
                 },
                 move |cx| {
-                    ScrollView::new(cx, move |cx| {
-                        List::new(cx, search_artist_rows, |cx, _index, item| {
-                            HStack::new(cx, |cx| {
-                                let image_key = item.map(|artist| artist.image_key.clone());
+                    List::new(cx, search_artist_rows, |cx, _index, item| {
+                        HStack::new(cx, |cx| {
+                            let image_key = item.map(|artist| artist.image_key.clone());
 
-                                Binding::new(cx, image_key, move |cx| {
-                                    if let Some(key) = image_key.get() {
-                                        Image::new(cx, key).size(Pixels(40.0)).class("album-art");
-                                    } else {
-                                        Label::new(cx, "◉")
-                                            .size(Pixels(40.0))
-                                            .class("search-result-fallback");
-                                    }
-                                });
+                            Binding::new(cx, image_key, move |cx| {
+                                if let Some(key) = image_key.get() {
+                                    Image::new(cx, key).size(Pixels(40.0)).class("album-art");
+                                } else {
+                                    Label::new(cx, "◉")
+                                        .size(Pixels(40.0))
+                                        .class("search-result-fallback");
+                                }
+                            });
 
-                                Label::new(cx, item.map(|artist| artist.name.clone()))
-                                    .text_wrap(false)
-                                    .class("search-result-title")
-                                    .width(Stretch(1.0));
-                            })
-                            .class("result-row");
+                            Label::new(cx, item.map(|artist| artist.name.clone()))
+                                .text_wrap(false)
+                                .class("search-result-title")
+                                .width(Stretch(1.0));
                         })
-                        .selectable(Selectable::None)
-                        .width(Stretch(1.0))
-                        .height(Auto);
+                        .hoverable(false)
+                        .class("result-row");
                     })
-                    .class("search-tab-content");
+                    .selectable(Selectable::Single)
+                    .selection_follows_focus(true)
+                    .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectArtist(idx)))
+                    .width(Stretch(1.0))
+                    .height(Stretch(1.0));
                 },
             ),
             2 => TabPair::new(
@@ -128,45 +121,42 @@ pub fn search_results_panel(
                     Element::new(cx).class("indicator");
                 },
                 move |cx| {
-                    ScrollView::new(cx, move |cx| {
-                        List::new(cx, search_album_rows, |cx, _index, item| {
-                            HStack::new(cx, |cx| {
-                                let image_key = item.map(|album| album.image_key.clone());
+                    List::new(cx, search_album_rows, |cx, _index, item| {
+                        HStack::new(cx, |cx| {
+                            let image_key = item.map(|album| album.image_key.clone());
 
-                                Binding::new(cx, image_key, move |cx| {
-                                    if let Some(key) = image_key.get() {
-                                        Image::new(cx, key).size(Pixels(40.0)).class("album-art");
-                                    } else {
-                                        Label::new(cx, "◫")
-                                            .size(Pixels(40.0))
-                                            .class("search-result-fallback");
-                                    }
-                                });
+                            Binding::new(cx, image_key, move |cx| {
+                                if let Some(key) = image_key.get() {
+                                    Image::new(cx, key).size(Pixels(40.0)).class("album-art");
+                                } else {
+                                    Label::new(cx, "◫")
+                                        .size(Pixels(40.0))
+                                        .class("search-result-fallback");
+                                }
+                            });
 
-                                VStack::new(cx, |cx| {
-                                    Label::new(cx, item.map(|album| album.name.clone()))
-                                        .text_wrap(false)
-                                        .width(Stretch(1.0))
-                                        .class("search-result-title");
-                                    Label::new(cx, item.map(|album| album.artist.clone()))
-                                        .text_wrap(false)
-                                        .width(Stretch(1.0))
-                                        .class("search-result-artist");
-                                })
-                                .width(Stretch(1.0))
-                                .height(Auto)
-                                .gap(Pixels(2.0));
+                            VStack::new(cx, |cx| {
+                                Label::new(cx, item.map(|album| album.name.clone()))
+                                    .text_wrap(false)
+                                    .width(Stretch(1.0))
+                                    .class("search-result-title");
+                                Label::new(cx, item.map(|album| album.artist.clone()))
+                                    .text_wrap(false)
+                                    .width(Stretch(1.0))
+                                    .class("search-result-artist");
                             })
-                            .hoverable(false)
-                            .class("result-row");
+                            .width(Stretch(1.0))
+                            .height(Auto)
+                            .gap(Pixels(2.0));
                         })
-                        .selectable(Selectable::Single)
-                        .selection_follows_focus(true)
-                        .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectAlbum(idx)))
-                        .width(Stretch(1.0))
-                        .height(Auto);
+                        .hoverable(false)
+                        .class("result-row");
                     })
-                    .class("search-tab-content");
+                    .selectable(Selectable::Single)
+                    .selection_follows_focus(true)
+                    .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectAlbum(idx)))
+                    .width(Stretch(1.0))
+                    .height(Stretch(1.0));
                 },
             ),
             _ => unreachable!(),

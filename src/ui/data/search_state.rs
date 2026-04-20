@@ -88,7 +88,7 @@ impl Model for SearchState {
                 self.refresh_selected_summary();
                 self.refresh_result_selection();
             }
-            SearchAppEvent::AlbumTracks { .. } => {}
+            SearchAppEvent::AlbumTracks { .. } | SearchAppEvent::ArtistView { .. } => {}
         });
 
         event.map(|search_ui_event, _: &mut _| match search_ui_event {
@@ -105,6 +105,20 @@ impl Model for SearchState {
 
                 let selected_track = search_results[*index].clone();
                 cx.emit(PlaybackUiEvent::AddToQueue(vec![selected_track]));
+            }
+            SearchUiEvent::SelectArtist(index) => {
+                let artists = self.search_artist_rows.get();
+                if *index >= artists.len() {
+                    self.status
+                        .set("Selected artist is unavailable.".to_string());
+                    return;
+                }
+
+                let artist = artists[*index].clone();
+                self.status
+                    .set(format!("Loading top songs and albums for '{}'...", artist.name));
+                cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
+                worker::fetch_artist_view(self.backend.clone(), artist.id, cx.get_proxy());
             }
             SearchUiEvent::SelectAlbum(index) => {
                 let albums = self.search_album_rows.get();
@@ -126,6 +140,23 @@ impl Model for SearchState {
                 worker::fetch_album_from_track(
                     self.backend.clone(),
                     track_id.clone(),
+                    cx.get_proxy(),
+                );
+            }
+            SearchUiEvent::OpenArtistByName(artist_name) => {
+                let artist_name = artist_name.trim().to_string();
+                if artist_name.is_empty() {
+                    self.status
+                        .set("No artist name available from playback.".to_string());
+                    return;
+                }
+
+                self.status
+                    .set(format!("Loading top songs and albums for '{}'...", artist_name));
+                cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
+                worker::fetch_artist_view_by_name(
+                    self.backend.clone(),
+                    artist_name,
                     cx.get_proxy(),
                 );
             }

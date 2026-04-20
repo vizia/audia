@@ -102,6 +102,7 @@ impl SpotifyService {
             id: String,
             name: String,
             artists: Vec<SearchArtist>,
+            release_date: Option<String>,
             images: Vec<SpotifyImage>,
         }
 
@@ -138,6 +139,7 @@ impl SpotifyService {
             id: payload.album.id,
             name: payload.album.name,
             artist,
+            release_date: payload.album.release_date,
             image_url: payload.album.images.first().map(|img| img.url.clone()),
             image_key: None,
         })

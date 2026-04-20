@@ -12,6 +12,7 @@ use crate::storage::TokenStore;
 use crate::ui::events::{OAuthAppEvent, PlaybackAppEvent};
 
 mod albums;
+mod artists;
 mod auth;
 mod oauth;
 mod playback;
@@ -19,6 +20,7 @@ mod playlists;
 mod search;
 
 pub use albums::{fetch_album_from_track, fetch_album_tracks};
+pub use artists::{fetch_artist_view, fetch_artist_view_by_name};
 pub use auth::init_backend;
 pub use oauth::{refresh_access_token, reset_login, start_oauth_login};
 pub use playback::{

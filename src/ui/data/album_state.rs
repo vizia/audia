@@ -39,7 +39,7 @@ impl Model for AlbumState {
                 self.album_tracks.set(tracks.clone());
                 self.album_selected_index.set(0);
             }
-            SearchAppEvent::Results(_) => {}
+            SearchAppEvent::Results(_) | SearchAppEvent::ArtistView { .. } => {}
         });
 
         event.map(|ui_event, _: &mut _| match ui_event {
@@ -83,8 +83,10 @@ impl Model for AlbumState {
             SearchUiEvent::SubmitQuery(_) => {}
             SearchUiEvent::SelectTab(_)
             | SearchUiEvent::SelectResult(_)
+            | SearchUiEvent::SelectArtist(_)
             | SearchUiEvent::SelectAlbum(_)
             | SearchUiEvent::OpenAlbumFromTrack(_)
+            | SearchUiEvent::OpenArtistByName(_)
             | SearchUiEvent::SetInput(_) => {}
         });
     }

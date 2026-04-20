@@ -1,4 +1,4 @@
-use crate::ui::events::PlaybackUiEvent;
+use crate::ui::events::{PlaybackUiEvent, SearchUiEvent};
 use vizia::icons::{
     ICON_PLAYER_PAUSE_FILLED, ICON_PLAYER_PLAY_FILLED, ICON_PLAYER_SKIP_BACK_FILLED,
     ICON_PLAYER_SKIP_FORWARD_FILLED, ICON_VOLUME, ICON_VOLUME_OFF,
@@ -72,7 +72,10 @@ pub fn playback_controls_panel(
                     .class("now-playing-title");
                 Label::new(cx, playback_track_artist)
                     .text_wrap(false)
-                    .class("now-playing-artist");
+                    .class("now-playing-artist")
+                    .on_press(move |cx| {
+                        cx.emit(SearchUiEvent::OpenArtistByName(playback_track_artist.get()));
+                    });
             })
             .height(Auto)
             .width(Stretch(1.0))

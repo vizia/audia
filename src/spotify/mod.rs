@@ -1,6 +1,7 @@
 use reqwest::Client;
 
 mod albums;
+mod artists;
 mod auth;
 mod playback;
 mod playlists;

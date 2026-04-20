@@ -37,6 +37,7 @@ pub(super) struct AlbumSearchItem {
     pub(super) id: String,
     pub(super) name: String,
     pub(super) artists: Vec<SearchArtist>,
+    pub(super) release_date: Option<String>,
     pub(super) images: Vec<SpotifyImage>,
 }
 
