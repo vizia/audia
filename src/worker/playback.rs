@@ -19,7 +19,8 @@ pub fn start_playback_progress_poller(backend: SharedBackend, proxy: ContextProx
 
             let local_track_ended = {
                 let state = backend.lock().unwrap();
-                state.playback.consume_track_finished() || state.playback.mark_track_finished_if_stalled()
+                state.playback.consume_track_finished()
+                    || state.playback.mark_track_finished_if_stalled()
             };
 
             if local_track_ended {
@@ -40,9 +41,13 @@ pub fn start_playback_progress_poller(backend: SharedBackend, proxy: ContextProx
                 });
             }
 
+            // Use with_spotify_auth_retry to ensure token is fresh before polling
             let remote_progress = {
-                let state = backend.lock().unwrap();
-                runtime.block_on(state.spotify.playback_progress())
+                let backend_clone = Arc::clone(&backend);
+                runtime.block_on(with_spotify_auth_retry(
+                    &backend_clone,
+                    |spotify| async move { spotify.playback_progress().await },
+                ))
             };
 
             if let Ok(Some((position_ms, duration_ms, is_playing))) = remote_progress {

@@ -662,9 +662,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.60"
+version = "1.2.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43c5703da9466b66a946814e1adf53ea2c90f10063b86290cc9eb67ce3478a20"
+checksum = "d16d90359e986641506914ba71350897565610e87ce0ad9e6f28569db3dd5c6d"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1022,9 +1022,9 @@ checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
 
 [[package]]
 name = "data-encoding"
-version = "2.10.0"
+version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7a1e2f27636f116493b8b860f5546edb47c8d8f8ea73e1d2a20be88e28d1fea"
+checksum = "a4ae5f15dda3c708c0ade84bfee31ccab44a3da4f88015ed22f63732abe300c8"
 
 [[package]]
 name = "der"
@@ -2333,9 +2333,9 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "libc"
-version = "0.2.185"
+version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ff2c0fe9bc6cb6b14a0592c2ff4fa9ceb83eea9db979b0487cd054946a2b8f"
+checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
 name = "libloading"
@@ -2610,8 +2610,9 @@ dependencies = [
 
 [[package]]
 name = "morphorm"
-version = "0.7.0"
-source = "git+https://github.com/vizia/morphorm.git?branch=direction#0954fea10cdb35450008cc0d8e10cc9df57cdc98"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "810a18a0afed4cf6e711e3bd61d1611cadf81d5281a89af945d943868a6a8060"
 dependencies = [
  "smallvec",
 ]
@@ -4067,9 +4068,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.38"
+version = "0.23.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69f9466fb2c14ea04357e91413efb882e2a6d4a406e625449bc0a5d360d53a21"
+checksum = "7c2c118cb077cca2822033836dfb1b975355dfb784b5e8da48f7b6c5db74e60e"
 dependencies = [
  "once_cell",
  "ring",
@@ -4081,9 +4082,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-pki-types"
-version = "1.14.0"
+version = "1.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be040f8b0a225e40375822a563fa9524378b9d63112f53e19ffff34df5d33fdd"
+checksum = "30a7197ae7eb376e574fe940d068c30fe0462554a3ddbe4eca7838e049c937a9"
 dependencies = [
  "web-time",
  "zeroize",
@@ -4091,9 +4092,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.12"
+version = "0.103.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8279bb85272c9f10811ae6a6c547ff594d6a7f3c6c6b02ee9726d1d0dcfcdd06"
+checksum = "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -5019,7 +5020,7 @@ dependencies = [
  "toml_datetime",
  "toml_parser",
  "toml_writer",
- "winnow 1.0.1",
+ "winnow 1.0.2",
 ]
 
 [[package]]
@@ -5040,7 +5041,7 @@ dependencies = [
  "indexmap",
  "toml_datetime",
  "toml_parser",
- "winnow 1.0.1",
+ "winnow 1.0.2",
 ]
 
 [[package]]
@@ -5049,7 +5050,7 @@ version = "1.1.2+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
 dependencies = [
- "winnow 1.0.1",
+ "winnow 1.0.2",
 ]
 
 [[package]]
@@ -5380,8 +5381,8 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vizia"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 dependencies = [
  "skia-safe",
  "vizia_core",
@@ -5390,8 +5391,8 @@ dependencies = [
 
 [[package]]
 name = "vizia_core"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 dependencies = [
  "accesskit",
  "bitflags 2.11.1",
@@ -5424,13 +5425,13 @@ dependencies = [
 
 [[package]]
 name = "vizia_id"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 
 [[package]]
 name = "vizia_input"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 dependencies = [
  "bitflags 2.11.1",
  "keyboard-types",
@@ -5439,8 +5440,8 @@ dependencies = [
 
 [[package]]
 name = "vizia_reactive"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 dependencies = [
  "parking_lot",
  "serde",
@@ -5449,16 +5450,16 @@ dependencies = [
 
 [[package]]
 name = "vizia_storage"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 dependencies = [
  "vizia_id",
 ]
 
 [[package]]
 name = "vizia_style"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 dependencies = [
  "bitflags 2.11.1",
  "cssparser",
@@ -5472,8 +5473,8 @@ dependencies = [
 
 [[package]]
 name = "vizia_window"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 dependencies = [
  "bitflags 2.11.1",
  "vizia_input",
@@ -5481,8 +5482,8 @@ dependencies = [
 
 [[package]]
 name = "vizia_winit"
-version = "0.3.0"
-source = "git+https://github.com/vizia/vizia?branch=main#8f89e0d219fc04ed579e36a174e47c4d8e8b999e"
+version = "0.4.0"
+source = "git+https://github.com/vizia/vizia?branch=main#2c9190a8a2a747f7b28e1f9615b82d0d22a8f3b3"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -6390,9 +6391,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09dac053f1cd375980747450bfc7250c264eaae0583872e845c0c7cd578872b5"
+checksum = "2ee1708bef14716a11bae175f579062d4554d95be2c6829f518df847b7b3fdd0"
 dependencies = [
  "memchr",
 ]
