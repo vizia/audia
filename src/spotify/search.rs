@@ -1,5 +1,8 @@
-use super::{SpotifyService, types::{AlbumSearchResponse, ArtistSearchResponse, SearchResponse, RecommendationsResponse}};
-use crate::messages::{AlbumResult, ArtistResult, SearchResultsData, Track};
+use super::{
+    SpotifyService,
+    types::{AlbumSearchResponse, ArtistSearchResponse, RecommendationsResponse, SearchResponse},
+};
+use crate::messages::{Album, Artist, SearchResultsData, Track};
 
 impl SpotifyService {
     pub async fn search_catalog(&self, query: &str) -> Result<SearchResultsData, String> {
@@ -58,7 +61,7 @@ impl SpotifyService {
         async fn fetch_artists(
             service: &SpotifyService,
             query: &str,
-        ) -> Result<Vec<ArtistResult>, String> {
+        ) -> Result<Vec<Artist>, String> {
             let token = service.access_token()?;
             let response = service
                 .http
@@ -85,7 +88,7 @@ impl SpotifyService {
                 .artists
                 .items
                 .into_iter()
-                .map(|item| ArtistResult {
+                .map(|item| Artist {
                     id: item.id,
                     name: item.name,
                     image_url: item.images.first().map(|img| img.url.clone()),
@@ -94,10 +97,7 @@ impl SpotifyService {
                 .collect())
         }
 
-        async fn fetch_albums(
-            service: &SpotifyService,
-            query: &str,
-        ) -> Result<Vec<AlbumResult>, String> {
+        async fn fetch_albums(service: &SpotifyService, query: &str) -> Result<Vec<Album>, String> {
             let token = service.access_token()?;
             let response = service
                 .http
@@ -124,7 +124,7 @@ impl SpotifyService {
                 .albums
                 .items
                 .into_iter()
-                .map(|item| AlbumResult {
+                .map(|item| Album {
                     id: item.id,
                     name: item.name,
                     artist: item

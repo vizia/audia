@@ -1,4 +1,4 @@
-use crate::messages::{AlbumResult, ArtistResult, PlaylistEntry, Track};
+use crate::messages::{Album, Artist, PlaylistEntry, Track};
 use crate::ui::events::{PlaylistsUiEvent, SearchUiEvent};
 use vizia::icons::ICON_DOTS;
 use vizia::prelude::*;
@@ -6,8 +6,8 @@ use vizia::prelude::*;
 pub fn search_results_panel(
     cx: &mut Context,
     search_result_rows: Signal<Vec<Track>>,
-    search_artist_rows: Signal<Vec<ArtistResult>>,
-    search_album_rows: Signal<Vec<AlbumResult>>,
+    search_artist_rows: Signal<Vec<Artist>>,
+    search_album_rows: Signal<Vec<Album>>,
     selected_index: Signal<usize>,
     search_tabs: Signal<Vec<&'static str>>,
     selected_search_tab: Signal<usize>,

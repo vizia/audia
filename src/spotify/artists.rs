@@ -4,11 +4,11 @@ use super::{
     SpotifyService,
     types::{SearchArtist, SpotifyImage},
 };
-use crate::messages::{AlbumResult, ArtistResult, Track};
+use crate::messages::{Album, Artist};
 
 const ARTIST_ALBUMS_PAGE_SIZE: usize = 10;
 
-fn sort_and_dedup_albums(albums: &mut Vec<AlbumResult>) {
+fn sort_and_dedup_albums(albums: &mut Vec<Album>) {
     albums.sort_by(|a, b| {
         b.release_date
             .cmp(&a.release_date)
@@ -18,7 +18,7 @@ fn sort_and_dedup_albums(albums: &mut Vec<AlbumResult>) {
 }
 
 impl SpotifyService {
-    pub async fn get_artist(&self, artist_id: &str) -> Result<ArtistResult, String> {
+    pub async fn get_artist(&self, artist_id: &str) -> Result<Artist, String> {
         let token = self.access_token()?;
         let encoded_id = urlencoding::encode(artist_id);
         let url = format!("https://api.spotify.com/v1/artists/{}", encoded_id);
@@ -52,7 +52,7 @@ impl SpotifyService {
             .await
             .map_err(|err| format!("Invalid Spotify artist lookup payload: {err}"))?;
 
-        Ok(ArtistResult {
+        Ok(Artist {
             id: payload.id,
             name: payload.name,
             image_url: payload.images.first().map(|img| img.url.clone()),
@@ -60,66 +60,7 @@ impl SpotifyService {
         })
     }
 
-    pub async fn search_artist_first(&self, query: &str) -> Result<Option<ArtistResult>, String> {
-        let token = self.access_token()?;
-
-        #[derive(Deserialize)]
-        struct ArtistSearchResponse {
-            artists: ArtistContainer,
-        }
-
-        #[derive(Deserialize)]
-        struct ArtistContainer {
-            items: Vec<ArtistItem>,
-        }
-
-        #[derive(Deserialize)]
-        struct ArtistItem {
-            id: String,
-            name: String,
-            #[serde(default)]
-            images: Vec<SpotifyImage>,
-        }
-
-        let response = self
-            .http
-            .get("https://api.spotify.com/v1/search")
-            .bearer_auth(token)
-            .query(&[("q", query), ("type", "artist"), ("limit", "1")])
-            .send()
-            .await
-            .map_err(|err| format!("Spotify artist search failed: {err}"))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            return Err(format!(
-                "Spotify artist search returned status {status}: {body}"
-            ));
-        }
-
-        let payload = response
-            .json::<ArtistSearchResponse>()
-            .await
-            .map_err(|err| format!("Invalid Spotify artist search payload: {err}"))?;
-
-        Ok(payload
-            .artists
-            .items
-            .into_iter()
-            .next()
-            .map(|item| ArtistResult {
-                id: item.id,
-                name: item.name,
-                image_url: item.images.first().map(|img| img.url.clone()),
-                image_key: None,
-            }))
-    }
-
-    pub async fn get_primary_artist_for_track(
-        &self,
-        track_id: &str,
-    ) -> Result<ArtistResult, String> {
+    pub async fn get_primary_artist_for_track(&self, track_id: &str) -> Result<Artist, String> {
         let token = self.access_token()?;
         let encoded_id = urlencoding::encode(track_id);
         let url = format!("https://api.spotify.com/v1/tracks/{}", encoded_id);
@@ -161,7 +102,7 @@ impl SpotifyService {
             return Err("Track has no associated artist in Spotify response.".to_string());
         };
 
-        Ok(ArtistResult {
+        Ok(Artist {
             id: primary_artist.id,
             name: primary_artist.name,
             image_url: None,
@@ -169,75 +110,7 @@ impl SpotifyService {
         })
     }
 
-    pub async fn get_artist_top_tracks(&self, artist_id: &str) -> Result<Vec<Track>, String> {
-        let token = self.access_token()?;
-        let encoded_id = urlencoding::encode(artist_id);
-        let url = format!(
-            "https://api.spotify.com/v1/artists/{}/top-tracks",
-            encoded_id
-        );
-
-        #[derive(Deserialize)]
-        struct TopTracksResponse {
-            tracks: Vec<TopTrackItem>,
-        }
-
-        #[derive(Deserialize)]
-        struct TopTrackItem {
-            id: String,
-            name: String,
-            artists: Vec<SearchArtist>,
-            duration_ms: u32,
-            album: TopTrackAlbum,
-        }
-
-        #[derive(Deserialize)]
-        struct TopTrackAlbum {
-            #[serde(default)]
-            images: Vec<SpotifyImage>,
-        }
-
-        let response = self
-            .http
-            .get(url)
-            .bearer_auth(token)
-            .send()
-            .await
-            .map_err(|err| format!("Spotify artist top tracks request failed: {err}"))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            return Err(format!(
-                "Spotify artist top tracks returned status {status}: {body}"
-            ));
-        }
-
-        let payload = response
-            .json::<TopTracksResponse>()
-            .await
-            .map_err(|err| format!("Invalid Spotify artist top tracks payload: {err}"))?;
-
-        Ok(payload
-            .tracks
-            .into_iter()
-            .map(|item| Track {
-                id: item.id,
-                name: item.name,
-                artist: item
-                    .artists
-                    .into_iter()
-                    .map(|artist| artist.name)
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                duration_ms: item.duration_ms,
-                album_image_url: item.album.images.first().map(|img| img.url.clone()),
-                album_image_key: None,
-            })
-            .collect())
-    }
-
-    pub async fn get_artist_albums(&self, artist_id: &str) -> Result<Vec<AlbumResult>, String> {
+    pub async fn get_artist_albums(&self, artist_id: &str) -> Result<Vec<Album>, String> {
         let mut albums = Vec::new();
         let mut offset = 0usize;
 
@@ -264,7 +137,7 @@ impl SpotifyService {
         artist_id: &str,
         limit: usize,
         offset: usize,
-    ) -> Result<(Vec<AlbumResult>, usize), String> {
+    ) -> Result<(Vec<Album>, usize), String> {
         let token = self.access_token()?;
         let encoded_id = urlencoding::encode(artist_id);
         let url = format!("https://api.spotify.com/v1/artists/{}/albums", encoded_id);
@@ -324,7 +197,7 @@ impl SpotifyService {
                     return None;
                 }
 
-                Some(AlbumResult {
+                Some(Album {
                     id: item.id,
                     name: item.name,
                     artist: item

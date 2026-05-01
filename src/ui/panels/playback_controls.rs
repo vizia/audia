@@ -74,8 +74,6 @@ pub fn playback_controls_panel(
                     .on_press(move |cx| {
                         if let Some(track_id) = playback_track_id.get() {
                             cx.emit(SearchUiEvent::OpenArtistFromTrack(track_id));
-                        } else {
-                            cx.emit(SearchUiEvent::OpenArtistByName(playback_track_artist.get()));
                         }
                     });
             })

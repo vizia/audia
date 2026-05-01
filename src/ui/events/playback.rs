@@ -1,9 +1,7 @@
-use crate::messages::{PlaybackDevice, Track};
+use crate::messages::Track;
 
 #[derive(Clone, Debug)]
 pub enum PlaybackUiEvent {
-    RefreshDevices,
-    SelectPlaybackDevice(usize),
     SelectQueueTrack(usize),
     AddToQueue(Vec<Track>),
     ShuffleQueue,
@@ -27,19 +25,11 @@ pub enum PlaybackUiEvent {
 }
 
 #[derive(Clone, Debug)]
-pub enum PlaybackProgressSource {
-    Local,
-    Remote,
-}
-
-#[derive(Clone, Debug)]
 pub enum PlaybackAppEvent {
     SessionReady,
-    Devices(Vec<PlaybackDevice>),
     LocalTrackEnded,
 
     Progress {
-        source: PlaybackProgressSource,
         position_ms: u32,
         duration_ms: u32,
         is_playing: bool,

@@ -11,7 +11,7 @@ pub struct Track {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ArtistResult {
+pub struct Artist {
     pub id: String,
     pub name: String,
     pub image_url: Option<String>,
@@ -19,7 +19,7 @@ pub struct ArtistResult {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct AlbumResult {
+pub struct Album {
     pub id: String,
     pub name: String,
     pub artist: String,
@@ -31,15 +31,8 @@ pub struct AlbumResult {
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct SearchResultsData {
     pub tracks: Vec<Track>,
-    pub artists: Vec<ArtistResult>,
-    pub albums: Vec<AlbumResult>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PlaybackDevice {
-    pub id: Option<String>,
-    pub name: String,
-    pub is_active: bool,
+    pub artists: Vec<Artist>,
+    pub albums: Vec<Album>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

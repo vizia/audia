@@ -5,12 +5,6 @@ use crate::ui::data::{
 use crate::worker;
 use vizia::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum PlaybackTarget {
-    Local,
-    Remote(String),
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum CenterPage {
     Search,

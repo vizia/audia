@@ -2,7 +2,7 @@ use vizia::prelude::*;
 
 use crate::{
     messages::Track,
-    ui::events::{AlbumUiEvent, CenterUiEvent, PlaybackUiEvent, SearchAppEvent, SearchUiEvent},
+    ui::events::{AlbumUiEvent, PlaybackUiEvent, SearchAppEvent},
 };
 
 #[derive(Clone)]
@@ -56,35 +56,25 @@ impl Model for AlbumState {
                 self.album_tracks.set(tracks.clone());
                 self.album_selected_index.set(0);
             }
-            SearchAppEvent::Results(_) | SearchAppEvent::ArtistView { .. } => {}
+
+            _ => {}
         });
 
         event.map(|ui_event, _: &mut _| match ui_event {
-            AlbumUiEvent::BackFromAlbum => {
-                cx.emit(CenterUiEvent::NavigateBack);
-            }
             AlbumUiEvent::AlbumTrackSelected(index) => {
-                let tracks = self.album_tracks.get();
-                if *index >= tracks.len() {
+                let tracks_len = self.album_tracks.with(|tracks| tracks.len());
+                if *index >= tracks_len {
                     return;
                 }
-                let track = tracks[*index].clone();
-                cx.emit(PlaybackUiEvent::AddToQueue(vec![track]));
-            }
-            AlbumUiEvent::PlayAlbumTrack(index) => {
-                let tracks = self.album_tracks.get();
-                if *index >= tracks.len() {
-                    return;
-                }
-                let track = tracks[*index].clone();
+                let track = self.album_tracks.with(|tracks| tracks[*index].clone());
                 cx.emit(PlaybackUiEvent::AddToQueue(vec![track]));
             }
             AlbumUiEvent::PlayAlbum => {
-                let tracks = self.album_tracks.get();
-                if tracks.is_empty() {
+                if self.album_tracks.with(|tracks| tracks.is_empty()) {
                     return;
                 }
 
+                let tracks = self.album_tracks.get();
                 cx.emit(PlaybackUiEvent::AddToQueue(tracks));
                 if self.album_shuffle_mode.get() {
                     cx.emit(PlaybackUiEvent::ShuffleQueue);
@@ -94,18 +84,6 @@ impl Model for AlbumState {
                 let current = self.album_shuffle_mode.get();
                 self.album_shuffle_mode.set(!current);
             }
-        });
-
-        event.map(|ui_event, _: &mut _| match ui_event {
-            SearchUiEvent::SubmitQuery(_) => {}
-            SearchUiEvent::SelectTab(_)
-            | SearchUiEvent::SelectResult(_)
-            | SearchUiEvent::SelectArtist(_)
-            | SearchUiEvent::SelectAlbum(_)
-            | SearchUiEvent::OpenAlbumFromTrack(_)
-            | SearchUiEvent::OpenArtistFromTrack(_)
-            | SearchUiEvent::OpenArtistByName(_)
-            | SearchUiEvent::SetInput(_) => {}
         });
     }
 }

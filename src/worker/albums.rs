@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use vizia::prelude::ContextProxy;
 
-use crate::messages::AlbumResult;
+use crate::messages::Album;
 use crate::ui::events::{SearchAppEvent, SystemAppEvent};
 
 use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
 
-pub fn fetch_album_tracks(backend: SharedBackend, album: AlbumResult, mut proxy: ContextProxy) {
+pub fn fetch_album_tracks(backend: SharedBackend, album: Album, mut proxy: ContextProxy) {
     let runtime = {
         let state = backend.lock().unwrap();
         Arc::clone(&state.runtime)

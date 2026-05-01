@@ -180,47 +180,6 @@ pub fn fetch_artist_view(backend: SharedBackend, artist_id: String, mut proxy: C
     });
 }
 
-pub fn fetch_artist_view_by_name(
-    backend: SharedBackend,
-    artist_name: String,
-    mut proxy: ContextProxy,
-) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
-    };
-
-    runtime.spawn(async move {
-        let primary_query = artist_name
-            .split(',')
-            .next()
-            .unwrap_or(artist_name.as_str())
-            .trim()
-            .to_string();
-
-        let matched_artist = match with_spotify_auth_retry(&backend, |spotify| {
-            let query = primary_query.clone();
-            async move { spotify.search_artist_first(&query).await }
-        })
-        .await
-        {
-            Ok(Some(artist)) => artist,
-            Ok(None) => {
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(
-                    "Could not find this artist on Spotify.".to_string(),
-                ));
-                return;
-            }
-            Err(err) => {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
-                return;
-            }
-        };
-
-        fetch_artist_view(backend, matched_artist.id, proxy);
-    });
-}
-
 pub fn fetch_artist_view_from_track(
     backend: SharedBackend,
     track_id: String,

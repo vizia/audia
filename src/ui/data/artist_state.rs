@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::{
-    messages::AlbumResult,
+    messages::Album,
     ui::{
         events::{ArtistUiEvent, CenterUiEvent, SearchAppEvent},
         model_data::CenterPage,
@@ -16,7 +16,7 @@ pub struct ArtistState {
     pub artist_id: Signal<Option<String>>,
     pub artist_name: Signal<String>,
     pub artist_image_key: Signal<Option<String>>,
-    pub artist_albums: Signal<Vec<AlbumResult>>,
+    pub artist_albums: Signal<Vec<Album>>,
 }
 
 impl ArtistState {

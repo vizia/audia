@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::{
-    messages::{AlbumResult, ArtistResult, Track},
+    messages::{Album, Artist, Track},
     ui::{
         events::{CenterUiEvent, PlaybackUiEvent, SearchAppEvent, SearchUiEvent},
         model_data::CenterPage,
@@ -16,10 +16,10 @@ pub struct SearchState {
     pub status: Signal<String>,
     pub search_input: Signal<String>,
     pub search_result_rows: Signal<Vec<Track>>,
-    pub search_artist_rows: Signal<Vec<ArtistResult>>,
-    pub search_album_rows: Signal<Vec<AlbumResult>>,
+    pub search_artist_rows: Signal<Vec<Artist>>,
+    pub search_album_rows: Signal<Vec<Album>>,
     pub current_artist_id: Signal<Option<String>>,
-    pub current_artist_albums: Signal<Vec<AlbumResult>>,
+    pub current_artist_albums: Signal<Vec<Album>>,
     pub selected_index: Signal<usize>,
     pub selected_summary: Signal<String>,
     pub search_tabs: Signal<Vec<&'static str>>,
@@ -62,8 +62,8 @@ impl SearchState {
     pub(crate) fn set_search_results(
         &mut self,
         tracks: Vec<Track>,
-        artists: Vec<ArtistResult>,
-        albums: Vec<AlbumResult>,
+        artists: Vec<Artist>,
+        albums: Vec<Album>,
     ) {
         self.search_result_rows.set(tracks);
         self.search_artist_rows.set(artists);
@@ -182,23 +182,7 @@ impl Model for SearchState {
                     cx.get_proxy(),
                 );
             }
-            SearchUiEvent::OpenArtistByName(artist_name) => {
-                let artist_name = artist_name.trim().to_string();
-                if artist_name.is_empty() {
-                    self.status
-                        .set("No artist name available from playback.".to_string());
-                    return;
-                }
 
-                self.status
-                    .set(format!("Loading albums for '{}'...", artist_name));
-                cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
-                worker::fetch_artist_view_by_name(
-                    self.backend.clone(),
-                    artist_name,
-                    cx.get_proxy(),
-                );
-            }
             SearchUiEvent::SetInput(value) => {
                 self.search_input.set(value.clone());
             }

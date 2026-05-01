@@ -1,7 +1,10 @@
 use serde::Deserialize;
 
-use super::{SpotifyService, types::{SearchArtist, SpotifyImage}};
-use crate::messages::{AlbumResult, Track};
+use super::{
+    SpotifyService,
+    types::{SearchArtist, SpotifyImage},
+};
+use crate::messages::{Album, Track};
 
 impl SpotifyService {
     pub async fn get_album_tracks(&self, album_id: &str) -> Result<Vec<Track>, String> {
@@ -87,7 +90,7 @@ impl SpotifyService {
         Ok(all_tracks)
     }
 
-    pub async fn get_album_for_track(&self, track_id: &str) -> Result<AlbumResult, String> {
+    pub async fn get_album_for_track(&self, track_id: &str) -> Result<Album, String> {
         let token = self.access_token()?;
         let encoded_id = urlencoding::encode(track_id);
         let url = format!("https://api.spotify.com/v1/tracks/{}", encoded_id);
@@ -135,7 +138,7 @@ impl SpotifyService {
             .map(|artist| artist.name.clone())
             .unwrap_or_else(|| "Unknown artist".to_string());
 
-        Ok(AlbumResult {
+        Ok(Album {
             id: payload.album.id,
             name: payload.album.name,
             artist,

@@ -61,7 +61,6 @@ fn settings_card_theme(cx: &mut Context, data: PreferencesData) {
         .height(Auto)
         .class("settings-card-bottom");
     })
-    .class("settings-card")
     .height(Auto)
     .gap(Pixels(1.0));
 }

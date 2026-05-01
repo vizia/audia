@@ -1,4 +1,4 @@
-use crate::messages::{AlbumResult, SearchResultsData, Track};
+use crate::messages::{Album, SearchResultsData, Track};
 
 #[derive(Clone, Debug)]
 pub enum SearchUiEvent {
@@ -8,16 +8,13 @@ pub enum SearchUiEvent {
     SelectAlbum(usize),
     OpenAlbumFromTrack(String),
     OpenArtistFromTrack(String),
-    OpenArtistByName(String),
     SetInput(String),
     SubmitQuery(String),
 }
 
 #[derive(Clone, Debug)]
 pub enum AlbumUiEvent {
-    BackFromAlbum,
     AlbumTrackSelected(usize),
-    PlayAlbumTrack(usize),
     PlayAlbum,
     ShuffleAlbum,
 }
@@ -44,6 +41,6 @@ pub enum SearchAppEvent {
         id: String,
         name: String,
         image_key: Option<String>,
-        albums: Vec<AlbumResult>,
+        albums: Vec<Album>,
     },
 }

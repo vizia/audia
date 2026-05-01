@@ -1,4 +1,4 @@
-use crate::messages::AlbumResult;
+use crate::messages::Album;
 use crate::ui::events::ArtistUiEvent;
 use vizia::prelude::*;
 
@@ -6,7 +6,7 @@ pub fn artist_panel(
     cx: &mut Context,
     artist_name: Signal<String>,
     artist_image_key: Signal<Option<String>>,
-    artist_albums: Signal<Vec<AlbumResult>>,
+    artist_albums: Signal<Vec<Album>>,
 ) {
     VStack::new(cx, move |cx| {
         HStack::new(cx, |cx| {

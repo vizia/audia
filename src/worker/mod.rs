@@ -21,15 +21,12 @@ mod playlists;
 mod search;
 
 pub use albums::{fetch_album_from_track, fetch_album_tracks};
-pub use artists::{fetch_artist_view, fetch_artist_view_by_name, fetch_artist_view_from_track};
+pub use artists::{fetch_artist_view, fetch_artist_view_from_track};
 pub use auth::init_backend;
 pub use oauth::{refresh_access_token, reset_login, start_oauth_login};
 pub use playback::{
-    load_playback_artwork, playback_next, playback_pause, playback_pause_local,
-    playback_play_local_track, playback_play_selected_track, playback_previous,
-    playback_resume_local, playback_resume_remote, playback_seek, playback_seek_local,
-    playback_set_volume, playback_stop, playback_transfer_device, refresh_playback_devices,
-    start_playback_progress_poller,
+    load_playback_artwork, playback_pause_local, playback_play_local_track, playback_resume_local,
+    playback_seek_local, start_playback_progress_poller,
 };
 pub use playlists::{
     add_track_to_playlist, create_playlist, delete_playlist, fetch_playlist_tracks,

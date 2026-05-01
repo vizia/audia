@@ -1,8 +1,4 @@
-use crate::messages::{AlbumResult, ArtistResult, PlaybackDevice, PlaylistEntry, Track};
-use crate::ui::data::{
-    AlbumState, ArtistState, CenterState, OAuthState, PanelEvent, PanelState, PlaybackState,
-    PlaylistsState, PreferencesData, SearchState,
-};
+use crate::ui::data::{PanelEvent, PanelState};
 use crate::worker;
 use vizia::prelude::*;
 
@@ -13,7 +9,7 @@ pub mod events;
 pub mod model_data;
 pub mod panels;
 
-use model_data::{CenterPage, PlaybackTarget, UiModel};
+use model_data::{CenterPage, UiModel};
 
 pub fn run() -> Result<(), ApplicationError> {
     let icon = image::ImageReader::new(std::io::Cursor::new(include_bytes!(
