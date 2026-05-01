@@ -9,6 +9,7 @@ use crate::{
     worker,
 };
 
+#[derive(Clone)]
 pub struct ArtistState {
     pub backend: crate::worker::SharedBackend,
     pub status: Signal<String>,
@@ -16,6 +17,19 @@ pub struct ArtistState {
     pub artist_name: Signal<String>,
     pub artist_image_key: Signal<Option<String>>,
     pub artist_albums: Signal<Vec<AlbumResult>>,
+}
+
+impl ArtistState {
+    pub fn new(backend: crate::worker::SharedBackend, status: Signal<String>) -> Self {
+        Self {
+            backend,
+            status,
+            artist_id: Signal::new(None),
+            artist_name: Signal::new(String::new()),
+            artist_image_key: Signal::new(None),
+            artist_albums: Signal::new(Vec::new()),
+        }
+    }
 }
 
 impl Model for ArtistState {

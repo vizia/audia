@@ -2,6 +2,26 @@ use crate::messages::{PlaylistEntry, Track};
 
 #[derive(Clone, Debug)]
 pub enum PlaylistsUiEvent {
+    OpenCreatePlaylistModal,
+    CloseCreatePlaylistModal,
+    SetCreatePlaylistName(String),
+    SubmitCreatePlaylist,
+    OpenRenamePlaylistModal {
+        id: String,
+        name: String,
+    },
+    CloseRenamePlaylistModal,
+    SetRenamePlaylistName(String),
+    SubmitRenamePlaylist,
+    DeletePlaylist(String),
+    AddTrackToPlaylist {
+        track_id: String,
+        playlist_id: String,
+    },
+    RemoveTrackFromPlaylist {
+        track_id: String,
+        playlist_id: String,
+    },
     SelectPlaylist(usize),
     AddPlaylistToQueue,
     PlayPlaylist,
@@ -13,6 +33,18 @@ pub enum PlaylistsUiEvent {
 #[derive(Clone, Debug)]
 pub enum PlaylistsAppEvent {
     Playlists(Vec<PlaylistEntry>),
+    PlaylistCreated {
+        id: String,
+        name: String,
+    },
+    PlaylistCreateFailed(String),
+    PlaylistRenamed {
+        id: String,
+        name: String,
+    },
+    PlaylistRenameFailed(String),
+    PlaylistDeleted(String),
+    PlaylistDeleteFailed(String),
     PlaylistTracks {
         request_id: u64,
         id: String,

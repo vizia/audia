@@ -1,4 +1,12 @@
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
+
+pub(super) fn null_as_default<'de, D, T>(d: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Default + Deserialize<'de>,
+{
+    Ok(Option::<T>::deserialize(d)?.unwrap_or_default())
+}
 
 #[derive(Debug, Deserialize)]
 pub(super) struct SearchResponse {
@@ -84,17 +92,25 @@ pub(super) struct DeviceItem {
 
 #[derive(Debug, Deserialize)]
 pub(super) struct PlaylistListResponse {
-    pub(super) items: Vec<PlaylistItem>,
+    pub(super) items: Vec<Option<PlaylistItem>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(super) struct PlaylistItem {
-    pub(super) id: String,
-    pub(super) name: String,
-    #[serde(default)]
+    pub(super) id: Option<String>,
+    pub(super) name: Option<String>,
+    pub(super) owner: Option<PlaylistOwner>,
+    pub(super) collaborative: Option<bool>,
+    pub(super) public: Option<bool>,
+    #[serde(default, deserialize_with = "null_as_default")]
     pub(super) images: Vec<SpotifyImage>,
-    #[serde(default)]
+    #[serde(default, rename = "items")]
     pub(super) tracks: Option<PlaylistTrackCount>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct PlaylistOwner {
+    pub(super) id: String,
 }
 
 #[derive(Debug, Deserialize)]

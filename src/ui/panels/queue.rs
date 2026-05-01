@@ -17,15 +17,23 @@ pub fn queue_panel(
 
             Button::new(cx, |cx| Svg::new(cx, ICON_ARROWS_SHUFFLE))
                 .class("playlist-shuffle-toggle")
-                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Shuffle queue"); }))
+                .tooltip(|cx| {
+                    Tooltip::new(cx, |cx| {
+                        Label::new(cx, "Shuffle queue");
+                    })
+                })
                 .on_press(|cx| cx.emit(PlaybackUiEvent::ShuffleQueue));
 
             Button::new(cx, |cx| Svg::new(cx, ICON_CLEAR_ALL))
                 .class("playlist-shuffle-toggle")
-                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Clear queue"); }))
+                .tooltip(|cx| {
+                    Tooltip::new(cx, |cx| {
+                        Label::new(cx, "Clear queue");
+                    })
+                })
                 .on_press(|cx| cx.emit(PlaybackUiEvent::ClearQueue));
         })
-        .class("queue-controls")
+        .class("panel-header")
         .width(Stretch(1.0))
         .height(Auto)
         .alignment(Alignment::Center);
@@ -86,7 +94,9 @@ pub fn queue_panel(
                         Button::new(cx, |cx| Svg::new(cx, ICON_CLEAR_ALL))
                             .class("playlist-shuffle-toggle")
                             .tooltip(|cx| {
-                                Tooltip::new(cx, |cx| { Label::new(cx, "Clear recently played"); })
+                                Tooltip::new(cx, |cx| {
+                                    Label::new(cx, "Clear recently played");
+                                })
                             })
                             .on_press(|cx| cx.emit(PlaybackUiEvent::ClearRecentlyPlayed));
                     })

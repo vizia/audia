@@ -7,8 +7,6 @@ use vizia::prelude::*;
 
 pub fn playback_controls_panel(
     cx: &mut Context,
-    playback_device_options: Signal<Vec<String>>,
-    selected_playback_device_index: Signal<Option<usize>>,
     playback_is_playing: Signal<bool>,
     playback_volume: Signal<f32>,
     playback_is_muted: Signal<bool>,

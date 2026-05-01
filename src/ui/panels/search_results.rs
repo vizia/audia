@@ -1,5 +1,6 @@
-use crate::messages::{AlbumResult, ArtistResult, Track};
-use crate::ui::events::SearchUiEvent;
+use crate::messages::{AlbumResult, ArtistResult, PlaylistEntry, Track};
+use crate::ui::events::{PlaylistsUiEvent, SearchUiEvent};
+use vizia::icons::ICON_DOTS;
 use vizia::prelude::*;
 
 pub fn search_results_panel(
@@ -10,6 +11,7 @@ pub fn search_results_panel(
     selected_index: Signal<usize>,
     search_tabs: Signal<Vec<&'static str>>,
     selected_search_tab: Signal<usize>,
+    playlist_rows: Signal<Vec<PlaylistEntry>>,
 ) {
     fn format_time(ms: u32) -> String {
         let total_seconds = ms / 1000;
@@ -28,7 +30,7 @@ pub fn search_results_panel(
                     Element::new(cx).class("indicator");
                 },
                 move |cx| {
-                    List::new(cx, search_result_rows, |cx, _index, item| {
+                    List::new(cx, search_result_rows, move |cx, _index, item| {
                         HStack::new(cx, |cx| {
                             let image_key = item.map(|track| track.album_image_key.clone());
                             let track_id = item.map(|track| track.id.clone());
@@ -57,17 +59,49 @@ pub fn search_results_panel(
                             VStack::new(cx, |cx| {
                                 Label::new(cx, item.map(|track| track.name.clone()))
                                     .text_wrap(false)
-                                    .class("search-result-title");
+                                    .class("track-title");
                                 Label::new(cx, item.map(|track| track.artist.clone()))
                                     .text_wrap(false)
-                                    .class("search-result-artist");
+                                    .class("track-artist");
                             })
                             .width(Stretch(1.0))
                             .height(Auto)
                             .gap(Pixels(2.0));
 
                             Label::new(cx, item.map(|track| format_time(track.duration_ms)))
-                                .class("search-result-duration");
+                                .class("track-duration");
+
+                            // Add to Playlist menu
+                            let track_id_for_menu = item.map(|track| track.id.clone());
+                            let track_id_copy = track_id_for_menu.get();
+                            let playlists_copy = playlist_rows.get();
+
+                            Submenu::new(
+                                cx,
+                                |cx| Svg::new(cx, ICON_DOTS),
+                                move |cx| {
+                                    for playlist in &playlists_copy {
+                                        let pid = playlist.id.clone();
+                                        let tid = track_id_copy.clone();
+                                        let pname = playlist.name.clone();
+
+                                        MenuButton::new(
+                                            cx,
+                                            move |cx| {
+                                                if !pid.is_empty() && !tid.is_empty() {
+                                                    cx.emit(PlaylistsUiEvent::AddTrackToPlaylist {
+                                                        track_id: tid.clone(),
+                                                        playlist_id: pid.clone(),
+                                                    });
+                                                }
+                                            },
+                                            move |cx| Label::new(cx, format!("{}", pname)),
+                                        );
+                                    }
+                                },
+                            )
+                            .pointer_events(PointerEvents::Auto)
+                            .class("track-menu");
                         })
                         .pointer_events(PointerEvents::None)
                         .class("result-row");

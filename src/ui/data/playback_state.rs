@@ -47,6 +47,48 @@ pub struct PlaybackState {
 }
 
 impl PlaybackState {
+    pub fn new(
+        backend: SharedBackend,
+        status: Signal<String>,
+        artwork_fade_animation: Animation,
+    ) -> Self {
+        Self {
+            backend,
+            status,
+            playback_devices: Signal::new(Vec::new()),
+            playback_device_options: Signal::new(Vec::new()),
+            selected_playback_device_index: Signal::new(None),
+            playback_ready: Signal::new(false),
+            playback_is_playing: Signal::new(false),
+            queue_tracks: Signal::new(Vec::new()),
+            playback_scrub_percent: Signal::new(0.0),
+            queue_current_index: Signal::new(None),
+            selected_playback_target: Signal::new(None),
+            playback_volume: Signal::new(1.0),
+            playback_is_muted: Signal::new(false),
+            pre_mute_volume: 1.0,
+            recently_played: Signal::new(Vec::new()),
+
+            playback_duration_ms: Signal::new(0),
+            playback_track_name: Signal::new(String::new()),
+            playback_track_artist: Signal::new(String::new()),
+            playback_track_id: Signal::new(None),
+            playback_track_image_key: Signal::new(None),
+            playback_track_image_url: Signal::new(None),
+            playback_overlay_image_key: Signal::new(None),
+            search_album_rows: Signal::new(Vec::new()),
+            album_tracks: Signal::new(Vec::new()),
+            album_image_key: Signal::new(None),
+            last_remote_volume_sent: None,
+            last_remote_volume_sent_at: None,
+            last_remote_seek_sent_ms: None,
+            last_remote_seek_sent_at: None,
+            last_scrub_user_input_at: None,
+            last_local_track_end_handled_at: None,
+            artwork_fade_animation,
+        }
+    }
+
     pub(crate) fn local_playback_option_label(&self) -> String {
         if self.playback_ready.get() {
             "Local Device [ready]".to_string()

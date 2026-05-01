@@ -55,6 +55,111 @@ pub fn refresh_user_playlists(backend: SharedBackend, mut proxy: ContextProxy) {
     });
 }
 
+pub fn create_playlist(backend: SharedBackend, name: String, mut proxy: ContextProxy) {
+    let runtime = {
+        let state = backend.lock().unwrap();
+        Arc::clone(&state.runtime)
+    };
+
+    runtime.spawn(async move {
+        let trimmed_name = name.trim().to_string();
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let trimmed_name = trimmed_name.clone();
+            async move { spotify.create_playlist(&trimmed_name).await }
+        })
+        .await
+        {
+            Ok(playlist) => {
+                let _ = proxy.emit(PlaylistsAppEvent::PlaylistCreated {
+                    id: playlist.id,
+                    name: playlist.name.clone(),
+                });
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                    "Created playlist '{}'.",
+                    playlist.name
+                )));
+                refresh_user_playlists(backend, proxy);
+            }
+            Err(err) => {
+                let message = if err.contains("status 403") {
+                    "Spotify denied playlist creation (403). Reset login and sign in again to grant playlist-modify scopes."
+                        .to_string()
+                } else {
+                    err
+                };
+                let _ = proxy.emit(PlaylistsAppEvent::PlaylistCreateFailed(message.clone()));
+                let _ = proxy.emit(SystemAppEvent::Error(message));
+            }
+        }
+    });
+}
+
+pub fn rename_playlist(
+    backend: SharedBackend,
+    playlist_id: String,
+    name: String,
+    mut proxy: ContextProxy,
+) {
+    let runtime = {
+        let state = backend.lock().unwrap();
+        Arc::clone(&state.runtime)
+    };
+
+    runtime.spawn(async move {
+        let trimmed_name = name.trim().to_string();
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let playlist_id = playlist_id.clone();
+            let trimmed_name = trimmed_name.clone();
+            async move { spotify.rename_playlist(&playlist_id, &trimmed_name).await }
+        })
+        .await
+        {
+            Ok(()) => {
+                let _ = proxy.emit(PlaylistsAppEvent::PlaylistRenamed {
+                    id: playlist_id,
+                    name: trimmed_name.clone(),
+                });
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                    "Renamed playlist to '{trimmed_name}'."
+                )));
+                refresh_user_playlists(backend, proxy);
+            }
+            Err(err) => {
+                let _ = proxy.emit(PlaylistsAppEvent::PlaylistRenameFailed(err.clone()));
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+            }
+        }
+    });
+}
+
+pub fn delete_playlist(backend: SharedBackend, playlist_id: String, mut proxy: ContextProxy) {
+    let runtime = {
+        let state = backend.lock().unwrap();
+        Arc::clone(&state.runtime)
+    };
+
+    runtime.spawn(async move {
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let playlist_id = playlist_id.clone();
+            async move { spotify.unfollow_playlist(&playlist_id).await }
+        })
+        .await
+        {
+            Ok(()) => {
+                let _ = proxy.emit(PlaylistsAppEvent::PlaylistDeleted(playlist_id));
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                    "Playlist removed.".to_string(),
+                ));
+                refresh_user_playlists(backend, proxy);
+            }
+            Err(err) => {
+                let _ = proxy.emit(PlaylistsAppEvent::PlaylistDeleteFailed(err.clone()));
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+            }
+        }
+    });
+}
+
 pub fn fetch_playlist_tracks(
     backend: SharedBackend,
     playlist_id: String,
@@ -231,5 +336,109 @@ pub fn fetch_playlist_tracks(
         let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
             "Loaded {count} tracks from playlist."
         )));
+    });
+}
+
+pub fn add_track_to_playlist(
+    backend: SharedBackend,
+    track_id: String,
+    playlist_id: String,
+    mut proxy: ContextProxy,
+) {
+    let runtime = {
+        let state = backend.lock().unwrap();
+        Arc::clone(&state.runtime)
+    };
+
+    runtime.spawn(async move {
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let track_id = track_id.clone();
+            let playlist_id = playlist_id.clone();
+            async move {
+                let track_uri = format!("spotify:track:{}", track_id);
+                spotify
+                    .add_tracks_to_playlist(&playlist_id, vec![track_uri])
+                    .await
+            }
+        })
+        .await
+        {
+            Ok(()) => {
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                    "Track added to playlist.".to_string(),
+                ));
+            }
+            Err(err) => {
+                let message = if err.contains("status 403") {
+                    let lowered = err.to_ascii_lowercase();
+                    if lowered.contains("insufficient_scope")
+                        || lowered.contains("insufficient client scope")
+                    {
+                        format!(
+                            "Spotify denied adding track (403): {err}. Your token is missing playlist modify scopes. Re-login once and approve `playlist-modify-private` and `playlist-modify-public`, then retry."
+                        )
+                    } else {
+                        format!(
+                            "Spotify denied adding track (403): {err}. This playlist is likely read-only for your account (for example followed but not owned/collaborative). Choose a playlist you can edit."
+                        )
+                    }
+                } else {
+                    err
+                };
+                let _ = proxy.emit(SystemAppEvent::Error(message));
+            }
+        }
+    });
+}
+
+pub fn remove_track_from_playlist(
+    backend: SharedBackend,
+    track_id: String,
+    playlist_id: String,
+    playlist_name: String,
+    request_id: u64,
+    mut proxy: ContextProxy,
+) {
+    let runtime = {
+        let state = backend.lock().unwrap();
+        Arc::clone(&state.runtime)
+    };
+
+    runtime.spawn(async move {
+        match with_spotify_auth_retry(&backend, |spotify| {
+            let track_id = track_id.clone();
+            let playlist_id = playlist_id.clone();
+            async move {
+                let track_uri = format!("spotify:track:{track_id}");
+                spotify
+                    .remove_tracks_from_playlist(&playlist_id, vec![track_uri])
+                    .await
+            }
+        })
+        .await
+        {
+            Ok(()) => {
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                    "Removed track from playlist.".to_string(),
+                ));
+                fetch_playlist_tracks(
+                    backend,
+                    playlist_id,
+                    playlist_name,
+                    request_id,
+                    proxy,
+                );
+            }
+            Err(err) => {
+                let message = if err.contains("status 403") {
+                    format!(
+                        "Spotify denied removing track (403): {err}. This playlist may be read-only for your account or missing playlist modify scopes."
+                    )
+                } else {
+                    err
+                };
+                let _ = proxy.emit(SystemAppEvent::Error(message));
+            }
+        }
     });
 }

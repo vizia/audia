@@ -1,6 +1,6 @@
-use crate::messages::Track;
-use crate::ui::events::AlbumUiEvent;
-use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_PLAYER_PLAY_FILLED};
+use crate::messages::{PlaylistEntry, Track};
+use crate::ui::events::{AlbumUiEvent, PlaylistsUiEvent};
+use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_DOTS, ICON_PLAYER_PLAY_FILLED};
 use vizia::prelude::*;
 
 pub fn album_tracks_panel(
@@ -14,6 +14,7 @@ pub fn album_tracks_panel(
     album_tracks: Signal<Vec<Track>>,
     album_selected_index: Signal<usize>,
     album_shuffle_mode: Signal<bool>,
+    playlist_rows: Signal<Vec<PlaylistEntry>>,
 ) {
     fn format_time(ms: u32) -> String {
         let total_seconds = ms / 1000;
@@ -83,39 +84,79 @@ pub fn album_tracks_panel(
             Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY_FILLED))
                 .class("playback-toggle")
                 .name("Play all")
-                .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Play album"); }))
+                .tooltip(|cx| {
+                    Tooltip::new(cx, |cx| {
+                        Label::new(cx, "Play album");
+                    })
+                })
                 .on_press(|cx| cx.emit(AlbumUiEvent::PlayAlbum));
 
             ToggleButton::new(cx, album_shuffle_mode, |cx| {
                 Svg::new(cx, ICON_ARROWS_SHUFFLE)
             })
             .class("playlist-shuffle-toggle")
-            .tooltip(|cx| Tooltip::new(cx, |cx| { Label::new(cx, "Shuffle album"); }))
+            .tooltip(|cx| {
+                Tooltip::new(cx, |cx| {
+                    Label::new(cx, "Shuffle album");
+                })
+            })
             .on_press(|cx| cx.emit(AlbumUiEvent::ShuffleAlbum));
         })
         .class("album-header");
 
         // Track list
-        List::new(cx, album_tracks, |cx, index, item| {
+        List::new(cx, album_tracks, move |cx, index, item| {
             HStack::new(cx, |cx| {
-                Label::new(cx, format!("{}", index + 1)).class("album-track-index");
+                Label::new(cx, format!("{}", index + 1)).class("track-index");
 
                 VStack::new(cx, |cx| {
                     Label::new(cx, item.map(|track| track.name.clone()))
                         .text_wrap(false)
-                        .class("album-track-title");
+                        .class("track-title");
                     Label::new(cx, item.map(|track| track.artist.clone()))
                         .text_wrap(false)
-                        .class("album-track-artist");
+                        .class("track-artist");
                 })
                 .width(Stretch(1.0))
                 .height(Auto)
                 .gap(Pixels(2.0));
 
                 Label::new(cx, item.map(|track| format_time(track.duration_ms)))
-                    .class("album-track-duration");
+                    .class("track-duration");
+
+                // Add to Playlist menu
+                let track_id_for_menu = item.map(|track| track.id.clone());
+                let track_id_copy = track_id_for_menu.get();
+                let playlists_copy = playlist_rows.get();
+
+                Submenu::new(
+                    cx,
+                    |cx| Svg::new(cx, ICON_DOTS),
+                    move |cx| {
+                        for playlist in &playlists_copy {
+                            let pid = playlist.id.clone();
+                            let tid = track_id_copy.clone();
+                            let pname = playlist.name.clone();
+
+                            MenuButton::new(
+                                cx,
+                                move |cx| {
+                                    if !pid.is_empty() && !tid.is_empty() {
+                                        cx.emit(PlaylistsUiEvent::AddTrackToPlaylist {
+                                            track_id: tid.clone(),
+                                            playlist_id: pid.clone(),
+                                        });
+                                    }
+                                },
+                                move |cx| Label::new(cx, format!("{}", pname)),
+                            );
+                        }
+                    },
+                )
+                .pointer_events(PointerEvents::Auto)
+                .class("track-menu");
             })
-            .hoverable(false)
+            .pointer_events(PointerEvents::None)
             .class("album-track-row");
         })
         .selectable(Selectable::Single)

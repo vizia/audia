@@ -29,12 +29,13 @@ pub fn run() {
 
     let _ = Application::new(move |cx| {
         cx.add_stylesheet(include_style!("resources/stylesheets/theme.css"))
-            .expect("failed to load theme stylesheet");
+            .expect("Failed to load theme stylesheet");
 
         cx.add_translation(
             langid!("en-GB"),
             include_str!("../../resources/translations/en-GB/strings.ftl"),
-        );
+        )
+        .expect("Failed to load en-GB translation");
 
         let auth_valid = Signal::new(false);
         let playback_ready = Signal::new(false);
@@ -69,6 +70,13 @@ pub fn run() {
         let search_album_rows = Signal::new(Vec::<AlbumResult>::new());
         let search_tabs = Signal::new(vec!["Songs", "Artists", "Albums"]);
         let playlist_rows = Signal::new(Vec::<PlaylistEntry>::new());
+        let show_create_playlist_modal = Signal::new(false);
+        let create_playlist_name = Signal::new(String::new());
+        let is_creating_playlist = Signal::new(false);
+        let show_rename_playlist_modal = Signal::new(false);
+        let rename_playlist_id = Signal::new(String::new());
+        let rename_playlist_name = Signal::new(String::new());
+        let is_renaming_playlist = Signal::new(false);
         let playlist_tracks = Signal::new(Vec::<Track>::new());
         let filtered_playlist_tracks = Signal::new(Vec::<Track>::new());
         let filtered_track_indices = Signal::new(Vec::<usize>::new());
@@ -114,6 +122,18 @@ pub fn run() {
         let mut preferences_data = PreferencesData::new(cx);
         preferences_data.load(cx);
         dialogs::preferences_dialog(cx, icon, preferences_data);
+        dialogs::create_playlist_dialog(
+            cx,
+            show_create_playlist_modal,
+            create_playlist_name,
+            is_creating_playlist,
+        );
+        dialogs::rename_playlist_dialog(
+            cx,
+            show_rename_playlist_modal,
+            rename_playlist_name,
+            is_renaming_playlist,
+        );
 
         UiModel {
             status,
@@ -203,6 +223,13 @@ pub fn run() {
             playlists_state: PlaylistsState {
                 backend: backend.clone(),
                 status,
+                show_create_playlist_modal,
+                create_playlist_name,
+                is_creating_playlist,
+                show_rename_playlist_modal,
+                rename_playlist_id,
+                rename_playlist_name,
+                is_renaming_playlist,
                 playlist_rows,
                 playlist_tracks,
                 filtered_playlist_tracks,
@@ -271,7 +298,10 @@ pub fn run() {
             );
 
             Label::new(cx, selected_summary).class("status");
-            Label::new(cx, status).class("status");
+            Textbox::new(cx, status)
+                .class("status")
+                .read_only(true)
+                .on_edit(|_, _| {});
 
             HStack::new(cx, |cx| {
                 Resizable::new(
@@ -294,6 +324,7 @@ pub fn run() {
                         CenterPage::PlaylistTracks => {
                             panels::playlist_tracks_panel(
                                 cx,
+                                active_playlist_id,
                                 active_playlist_name,
                                 active_playlist_track_count,
                                 active_playlist_duration_ms,
@@ -302,6 +333,7 @@ pub fn run() {
                                 filtered_playlist_tracks,
                                 playlist_selected_index,
                                 shuffle_mode,
+                                playlist_rows,
                             );
                         }
                         CenterPage::AlbumTracks => {
@@ -316,6 +348,7 @@ pub fn run() {
                                 album_tracks,
                                 album_selected_index,
                                 album_shuffle_mode,
+                                playlist_rows,
                             );
                         }
                         CenterPage::Search => {
@@ -327,6 +360,7 @@ pub fn run() {
                                 selected_index,
                                 search_tabs,
                                 selected_search_tab,
+                                playlist_rows,
                             );
                         }
                         CenterPage::Artist => {
@@ -354,8 +388,6 @@ pub fn run() {
 
             panels::playback_controls_panel(
                 cx,
-                playback_device_options,
-                selected_playback_device_index,
                 playback_is_playing,
                 playback_volume,
                 playback_is_muted,

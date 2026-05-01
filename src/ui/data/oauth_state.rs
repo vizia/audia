@@ -6,6 +6,7 @@ use crate::{
     worker,
 };
 
+#[derive(Clone)]
 pub struct OAuthState {
     pub backend: crate::worker::SharedBackend,
     pub status: Signal<String>,
@@ -13,6 +14,19 @@ pub struct OAuthState {
     pub show_login_modal: Signal<bool>,
     pub auth_username: Signal<String>,
     pub profile_image_key: Signal<Option<String>>,
+}
+
+impl OAuthState {
+    pub fn new(backend: crate::worker::SharedBackend, status: Signal<String>) -> Self {
+        Self {
+            backend,
+            status,
+            auth_valid: Signal::new(false),
+            show_login_modal: Signal::new(false),
+            auth_username: Signal::new(String::new()),
+            profile_image_key: Signal::new(None),
+        }
+    }
 }
 
 impl Model for OAuthState {

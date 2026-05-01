@@ -5,6 +5,7 @@ use crate::{
     ui::events::{AlbumUiEvent, CenterUiEvent, PlaybackUiEvent, SearchAppEvent, SearchUiEvent},
 };
 
+#[derive(Clone)]
 pub struct AlbumState {
     pub album_tracks: Signal<Vec<Track>>,
     pub album_name: Signal<String>,
@@ -15,6 +16,22 @@ pub struct AlbumState {
     pub album_image_key: Signal<Option<String>>,
     pub album_selected_index: Signal<usize>,
     pub album_shuffle_mode: Signal<bool>,
+}
+
+impl AlbumState {
+    pub fn new() -> Self {
+        Self {
+            album_tracks: Signal::new(Vec::new()),
+            album_name: Signal::new(String::new()),
+            album_artist: Signal::new(String::new()),
+            album_release_year: Signal::new(None),
+            album_track_count: Signal::new(0),
+            album_total_duration_ms: Signal::new(0),
+            album_image_key: Signal::new(None),
+            album_selected_index: Signal::new(0),
+            album_shuffle_mode: Signal::new(false),
+        }
+    }
 }
 
 impl Model for AlbumState {

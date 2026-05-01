@@ -13,6 +13,13 @@ use crate::{
 pub struct PlaylistsState {
     pub backend: crate::worker::SharedBackend,
     pub status: Signal<String>,
+    pub show_create_playlist_modal: Signal<bool>,
+    pub create_playlist_name: Signal<String>,
+    pub is_creating_playlist: Signal<bool>,
+    pub show_rename_playlist_modal: Signal<bool>,
+    pub rename_playlist_id: Signal<String>,
+    pub rename_playlist_name: Signal<String>,
+    pub is_renaming_playlist: Signal<bool>,
     pub playlist_rows: Signal<Vec<PlaylistEntry>>,
     pub playlist_tracks: Signal<Vec<Track>>,
     pub filtered_playlist_tracks: Signal<Vec<Track>>,
@@ -29,6 +36,33 @@ pub struct PlaylistsState {
 }
 
 impl PlaylistsState {
+    pub fn new(backend: crate::worker::SharedBackend, status: Signal<String>) -> Self {
+        Self {
+            backend,
+            status,
+            show_create_playlist_modal: Signal::new(false),
+            create_playlist_name: Signal::new(String::new()),
+            is_creating_playlist: Signal::new(false),
+            show_rename_playlist_modal: Signal::new(false),
+            rename_playlist_id: Signal::new(String::new()),
+            rename_playlist_name: Signal::new(String::new()),
+            is_renaming_playlist: Signal::new(false),
+            playlist_rows: Signal::new(Vec::new()),
+            playlist_tracks: Signal::new(Vec::new()),
+            filtered_playlist_tracks: Signal::new(Vec::new()),
+            filtered_track_indices: Signal::new(Vec::new()),
+            track_filter_input: Signal::new(String::new()),
+            active_playlist_id: Signal::new(None),
+            active_playlist_name: Signal::new(String::new()),
+            active_playlist_track_count: Signal::new(0),
+            active_playlist_duration_ms: Signal::new(0),
+            active_playlist_image_key: Signal::new(None),
+            playlist_selected_index: Signal::new(0),
+            shuffle_mode: Signal::new(false),
+            current_playlist_request_id: 0,
+        }
+    }
+
     fn apply_track_filter(&mut self) {
         let query = self.track_filter_input.get();
         let tracks = self.playlist_tracks.get();
@@ -68,6 +102,43 @@ impl Model for PlaylistsState {
             PlaylistsAppEvent::Playlists(playlists) => {
                 self.playlist_rows.set(playlists.clone());
             }
+            PlaylistsAppEvent::PlaylistCreated { id, name } => {
+                self.is_creating_playlist.set(false);
+                self.show_create_playlist_modal.set(false);
+                self.create_playlist_name.set(String::new());
+                self.status.set(format!("Created playlist '{name}'."));
+                self.active_playlist_id.set(Some(id.clone()));
+                self.active_playlist_name.set(name.clone());
+            }
+            PlaylistsAppEvent::PlaylistCreateFailed(message) => {
+                self.is_creating_playlist.set(false);
+                self.status.set(message.clone());
+            }
+            PlaylistsAppEvent::PlaylistRenamed { id, name } => {
+                self.is_renaming_playlist.set(false);
+                self.show_rename_playlist_modal.set(false);
+                self.rename_playlist_name.set(String::new());
+                self.status.set(format!("Renamed playlist to '{name}'."));
+                if self.active_playlist_id.get().as_deref() == Some(id.as_str()) {
+                    self.active_playlist_name.set(name.clone());
+                }
+            }
+            PlaylistsAppEvent::PlaylistRenameFailed(message) => {
+                self.is_renaming_playlist.set(false);
+                self.status.set(message.clone());
+            }
+            PlaylistsAppEvent::PlaylistDeleted(id) => {
+                if self.active_playlist_id.get().as_deref() == Some(id.as_str()) {
+                    self.active_playlist_id.set(None);
+                    self.active_playlist_name.set(String::new());
+                    self.playlist_tracks.set(Vec::new());
+                    self.filtered_playlist_tracks.set(Vec::new());
+                }
+                self.status.set("Playlist removed.".to_string());
+            }
+            PlaylistsAppEvent::PlaylistDeleteFailed(message) => {
+                self.status.set(message.clone());
+            }
             PlaylistsAppEvent::PlaylistTracks {
                 request_id,
                 id,
@@ -101,6 +172,79 @@ impl Model for PlaylistsState {
         });
 
         event.map(|app_event, _| match app_event {
+            PlaylistsUiEvent::OpenCreatePlaylistModal => {
+                self.show_create_playlist_modal.set(true);
+                self.create_playlist_name.set(String::new());
+            }
+            PlaylistsUiEvent::CloseCreatePlaylistModal => {
+                self.show_create_playlist_modal.set(false);
+                self.create_playlist_name.set(String::new());
+                self.is_creating_playlist.set(false);
+            }
+            PlaylistsUiEvent::SetCreatePlaylistName(value) => {
+                self.create_playlist_name.set(value.clone());
+            }
+            PlaylistsUiEvent::SubmitCreatePlaylist => {
+                if self.is_creating_playlist.get() {
+                    return;
+                }
+
+                let playlist_name = self.create_playlist_name.get();
+                let trimmed_name = playlist_name.trim();
+                if trimmed_name.is_empty() {
+                    self.status
+                        .set("Please enter a playlist name before creating it.".to_string());
+                    return;
+                }
+
+                self.is_creating_playlist.set(true);
+                self.status
+                    .set(format!("Creating playlist '{}'...", trimmed_name));
+                worker::create_playlist(
+                    self.backend.clone(),
+                    trimmed_name.to_string(),
+                    cx.get_proxy(),
+                );
+            }
+            PlaylistsUiEvent::OpenRenamePlaylistModal { id, name } => {
+                self.rename_playlist_id.set(id.clone());
+                self.rename_playlist_name.set(name.clone());
+                self.show_rename_playlist_modal.set(true);
+            }
+            PlaylistsUiEvent::CloseRenamePlaylistModal => {
+                self.show_rename_playlist_modal.set(false);
+                self.rename_playlist_name.set(String::new());
+                self.is_renaming_playlist.set(false);
+            }
+            PlaylistsUiEvent::SetRenamePlaylistName(value) => {
+                self.rename_playlist_name.set(value.clone());
+            }
+            PlaylistsUiEvent::SubmitRenamePlaylist => {
+                if self.is_renaming_playlist.get() {
+                    return;
+                }
+
+                let new_name = self.rename_playlist_name.get();
+                let trimmed = new_name.trim();
+                if trimmed.is_empty() {
+                    self.status.set("Please enter a playlist name.".to_string());
+                    return;
+                }
+
+                self.is_renaming_playlist.set(true);
+                self.status
+                    .set(format!("Renaming playlist to '{trimmed}'..."));
+                worker::rename_playlist(
+                    self.backend.clone(),
+                    self.rename_playlist_id.get(),
+                    trimmed.to_string(),
+                    cx.get_proxy(),
+                );
+            }
+            PlaylistsUiEvent::DeletePlaylist(playlist_id) => {
+                self.status.set("Removing playlist...".to_string());
+                worker::delete_playlist(self.backend.clone(), playlist_id.clone(), cx.get_proxy());
+            }
             PlaylistsUiEvent::ShufflePlaylist => {
                 let current = self.shuffle_mode.get();
                 self.shuffle_mode.set(!current);
@@ -178,6 +322,35 @@ impl Model for PlaylistsState {
                 let track = tracks[source_index].clone();
 
                 cx.emit(PlaybackUiEvent::AddToQueue(vec![track]));
+            }
+            PlaylistsUiEvent::AddTrackToPlaylist {
+                track_id,
+                playlist_id,
+            } => {
+                self.status.set("Adding track to playlist...".to_string());
+                worker::add_track_to_playlist(
+                    self.backend.clone(),
+                    track_id.clone(),
+                    playlist_id.clone(),
+                    cx.get_proxy(),
+                );
+            }
+            PlaylistsUiEvent::RemoveTrackFromPlaylist {
+                track_id,
+                playlist_id,
+            } => {
+                self.status
+                    .set("Removing track from playlist...".to_string());
+                self.current_playlist_request_id =
+                    self.current_playlist_request_id.saturating_add(1);
+                worker::remove_track_from_playlist(
+                    self.backend.clone(),
+                    track_id.clone(),
+                    playlist_id.clone(),
+                    self.active_playlist_name.get(),
+                    self.current_playlist_request_id,
+                    cx.get_proxy(),
+                );
             }
         });
     }

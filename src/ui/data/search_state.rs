@@ -24,6 +24,21 @@ pub struct SearchState {
 }
 
 impl SearchState {
+    pub fn new(backend: crate::worker::SharedBackend, status: Signal<String>) -> Self {
+        Self {
+            backend,
+            selected_search_tab: Signal::new(0),
+            status,
+            search_input: Signal::new(String::new()),
+            search_result_rows: Signal::new(Vec::new()),
+            search_artist_rows: Signal::new(Vec::new()),
+            search_album_rows: Signal::new(Vec::new()),
+            current_artist_id: Signal::new(None),
+            current_artist_albums: Signal::new(Vec::new()),
+            selected_index: Signal::new(0),
+            selected_summary: Signal::new("Selected: none".to_string()),
+        }
+    }
     pub(crate) fn refresh_selected_summary(&mut self) {
         let results = self.search_result_rows.get();
         let summary = if results.is_empty() {

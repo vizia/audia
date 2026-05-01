@@ -31,7 +31,10 @@ pub use playback::{
     playback_set_volume, playback_stop, playback_transfer_device, refresh_playback_devices,
     start_playback_progress_poller,
 };
-pub use playlists::{fetch_playlist_tracks, refresh_user_playlists};
+pub use playlists::{
+    add_track_to_playlist, create_playlist, delete_playlist, fetch_playlist_tracks,
+    refresh_user_playlists, remove_track_from_playlist, rename_playlist,
+};
 pub use search::search_tracks;
 
 const IMAGE_FETCH_CONCURRENCY: usize = 8;

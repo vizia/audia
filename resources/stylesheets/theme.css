@@ -113,6 +113,13 @@
     shadow: 0px 1px 3px #0000001a;
 }
 
+.panel-header {
+    gap: 8px;
+    alignment: center;
+    height: auto;
+    width: 1s;
+}
+
 .left-panel {
     max-width: 500px;
     min-width: 50px;
@@ -308,6 +315,7 @@ button.avatar-menu-trigger:hover {
     alignment: center;
     height: auto;
     width: 1s;
+    padding-right: 12px;
 }
 
 .playlist-info {
@@ -360,18 +368,11 @@ button.avatar-menu-trigger:hover {
 }
 
 .playlist-track-row {
-    gap: 4px;
+    gap: 8px;
     alignment: center;
     height: auto;
     width: 1s;
-    padding: 4px;
-}
-
-.playlist-track-index {
-    font-size: 14px;
-    color: var(--muted-foreground);
-    size: 30px;
-    alignment: center;
+    padding: 8px;
 }
 
 .playlist-track-album-art {
@@ -380,15 +381,7 @@ button.avatar-menu-trigger:hover {
     background-size: cover;
 }
 
-.playlist-track-title {
-    font-size: 14px;
-    font-weight: bold;
-    width: 1s;
-    text-wrap: false;
-    text-overflow: ellipsis;
-}
-
-.playlist-track-artist {
+.track-artist {
     font-size: 13px;
     color: var(--muted-foreground);
     width: 1s;
@@ -396,7 +389,7 @@ button.avatar-menu-trigger:hover {
     text-overflow: ellipsis;
 }
 
-.playlist-track-duration {
+.track-duration {
     width: 44px;
     text-align: right;
     color: var(--accent-foreground);
@@ -409,6 +402,7 @@ button.avatar-menu-trigger:hover {
     font-weight: bold;
     width: 1s;
     text-wrap: false;
+    text-overflow: ellipsis;
 }
 
 /* Album */
@@ -470,33 +464,19 @@ button.avatar-menu-trigger:hover {
     padding: 4px;
 }
 
-.album-track-index {
+.track-index {
     font-size: 14px;
     color: var(--muted-foreground);
     size: 30px;
     alignment: center;
 }
 
-.album-track-title {
+.track-title {
     font-size: 14px;
     font-weight: bold;
     width: 1s;
     text-wrap: false;
     text-overflow: ellipsis;
-}
-
-.album-track-artist {
-    font-size: 13px;
-    color: var(--muted-foreground);
-    width: 1s;
-    text-wrap: false;
-    text-overflow: ellipsis;
-}
-
-.album-track-duration {
-    width: 44px;
-    text-align: right;
-    color: var(--accent-foreground);
 }
 
 /* Search */
@@ -576,28 +556,6 @@ button.avatar-menu-trigger:hover {
     padding-top: 12px;
 }
 
-.search-result-title {
-    font-size: 14px;
-    font-weight: bold;
-    width: 1s;
-    text-wrap: false;
-    text-overflow: ellipsis;
-}
-
-.search-result-artist {
-    font-size: 13px;
-    color: var(--muted-foreground);
-    width: 1s;
-    text-wrap: false;
-    text-overflow: ellipsis;
-}
-
-.search-result-duration {
-    width: 44px;
-    text-align: right;
-    color: var(--accent-foreground);
-}
-
 .search-result-fallback {
     width: 48px;
     height: 48px;
@@ -631,5 +589,12 @@ button.avatar-menu-trigger:hover {
 
 .queue-controls {
     gap: 8px;
+    alignment: center;
+}
+
+.track-menu {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
     alignment: center;
 }

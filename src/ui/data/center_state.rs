@@ -2,12 +2,25 @@ use vizia::prelude::*;
 
 use crate::ui::{events::CenterUiEvent, model_data::CenterPage};
 
+#[derive(Clone)]
 pub struct CenterState {
     pub current_page: Signal<CenterPage>,
     pub page_history: Signal<Vec<CenterPage>>,
     pub page_history_index: Signal<usize>,
     pub can_go_back: Signal<bool>,
     pub can_go_forward: Signal<bool>,
+}
+
+impl CenterState {
+    pub fn new() -> Self {
+        Self {
+            current_page: Signal::new(CenterPage::Search),
+            page_history: Signal::new(vec![CenterPage::Search]),
+            page_history_index: Signal::new(0),
+            can_go_back: Signal::new(false),
+            can_go_forward: Signal::new(false),
+        }
+    }
 }
 
 impl CenterState {

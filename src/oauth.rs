@@ -20,7 +20,9 @@ const SCOPES: &str = concat!(
     "streaming%20",
     "user-read-playback-state%20",
     "playlist-read-private%20",
-    "playlist-read-collaborative"
+    "playlist-read-collaborative%20",
+    "playlist-modify-private%20",
+    "playlist-modify-public"
 );
 
 pub fn generate_state() -> String {
@@ -49,7 +51,8 @@ pub fn auth_url(client_id: &str, state: &str, code_challenge: &str) -> String {
          &scope={SCOPES}\
          &state={state}\
          &code_challenge_method=S256\
-         &code_challenge={code_challenge}"
+         &code_challenge={code_challenge}\
+         &show_dialog=true"
     )
 }
 
