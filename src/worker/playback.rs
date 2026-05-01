@@ -1,4 +1,4 @@
-use std::{sync::Arc, thread, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use vizia::prelude::{ContextProxy, ImageRetentionPolicy};
 
@@ -8,14 +8,17 @@ use crate::ui::events::{PlaybackAppEvent, PlaybackProgressSource, SystemAppEvent
 use super::{SharedBackend, fetch_image_bytes, with_spotify_auth_retry};
 
 pub fn start_playback_progress_poller(backend: SharedBackend, proxy: ContextProxy) {
-    proxy.spawn(move |proxy| {
-        let poll_interval = Duration::from_millis(500);
+    let runtime = {
+        let state = backend.lock().unwrap();
+        state.runtime.clone()
+    };
+
+    runtime.spawn(async move {
+        let mut proxy = proxy;
+        let mut poll_interval = tokio::time::interval(Duration::from_millis(500));
 
         loop {
-            let runtime = {
-                let state = backend.lock().unwrap();
-                state.runtime.clone()
-            };
+            poll_interval.tick().await;
 
             let local_track_ended = {
                 let state = backend.lock().unwrap();
@@ -42,13 +45,10 @@ pub fn start_playback_progress_poller(backend: SharedBackend, proxy: ContextProx
             }
 
             // Use with_spotify_auth_retry to ensure token is fresh before polling
-            let remote_progress = {
-                let backend_clone = Arc::clone(&backend);
-                runtime.block_on(with_spotify_auth_retry(
-                    &backend_clone,
-                    |spotify| async move { spotify.playback_progress().await },
-                ))
-            };
+            let remote_progress = with_spotify_auth_retry(&backend, |spotify| async move {
+                spotify.playback_progress().await
+            })
+            .await;
 
             if let Ok(Some((position_ms, duration_ms, is_playing))) = remote_progress {
                 let _ = proxy.emit(PlaybackAppEvent::Progress {
@@ -58,8 +58,6 @@ pub fn start_playback_progress_poller(backend: SharedBackend, proxy: ContextProx
                     is_playing,
                 });
             }
-
-            thread::sleep(poll_interval);
         }
     });
 }

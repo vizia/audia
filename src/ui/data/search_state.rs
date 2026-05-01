@@ -9,6 +9,7 @@ use crate::{
     worker,
 };
 
+#[derive(Clone)]
 pub struct SearchState {
     pub backend: crate::worker::SharedBackend,
     pub selected_search_tab: Signal<usize>,
@@ -21,6 +22,7 @@ pub struct SearchState {
     pub current_artist_albums: Signal<Vec<AlbumResult>>,
     pub selected_index: Signal<usize>,
     pub selected_summary: Signal<String>,
+    pub search_tabs: Signal<Vec<&'static str>>,
 }
 
 impl SearchState {
@@ -37,6 +39,7 @@ impl SearchState {
             current_artist_albums: Signal::new(Vec::new()),
             selected_index: Signal::new(0),
             selected_summary: Signal::new("Selected: none".to_string()),
+            search_tabs: Signal::new(vec!["Songs", "Artists", "Albums"]),
         }
     }
     pub(crate) fn refresh_selected_summary(&mut self) {

@@ -7,6 +7,6 @@ mod worker;
 
 mod ui;
 
-fn main() {
-    ui::run();
+fn main() -> Result<(), vizia::ApplicationError> {
+    ui::run()
 }

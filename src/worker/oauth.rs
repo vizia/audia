@@ -7,11 +7,13 @@ use crate::ui::events::{OAuthAppEvent, SystemAppEvent};
 use super::{SharedBackend, apply_token_response};
 
 pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: ContextProxy) {
-    proxy.spawn(move |proxy| {
+    std::thread::spawn(move || {
         let runtime = {
             let state = backend.lock().unwrap();
             state.runtime.clone()
         };
+
+        let mut proxy = proxy;
 
         {
             let mut state = backend.lock().unwrap();
@@ -60,10 +62,11 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: Conte
         ));
 
         let state_token_clone = state_token.clone();
-        let code_result = std::thread::spawn(move || oauth_api::wait_for_callback(&state_token_clone))
-            .join()
-            .map_err(|_| "OAuth callback thread panicked".to_string())
-            .and_then(|result| result);
+        let code_result =
+            std::thread::spawn(move || oauth_api::wait_for_callback(&state_token_clone))
+                .join()
+                .map_err(|_| "OAuth callback thread panicked".to_string())
+                .and_then(|result| result);
 
         let code = match code_result {
             Ok(code) => code,
@@ -80,36 +83,40 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: Conte
             "OAuth callback received. Exchanging code for tokens...".to_string(),
         ));
 
-        match runtime.block_on(oauth_api::exchange_code(&client_id, &code, &code_verifier)) {
-            Ok(tokens) => {
-                apply_token_response(&backend, &tokens, &client_id, proxy, &runtime);
-                backend.lock().unwrap().oauth_in_progress = false;
+        runtime.spawn(async move {
+            match oauth_api::exchange_code(&client_id, &code, &code_verifier).await {
+                Ok(tokens) => {
+                    apply_token_response(&backend, &tokens, &client_id, &mut proxy).await;
+                    backend.lock().unwrap().oauth_in_progress = false;
+                }
+                Err(err) => {
+                    backend.lock().unwrap().oauth_in_progress = false;
+                    let _ = proxy.emit(SystemAppEvent::Error(format!(
+                        "Token exchange failed: {err}"
+                    )));
+                }
             }
-            Err(err) => {
-                backend.lock().unwrap().oauth_in_progress = false;
-                let _ = proxy.emit(SystemAppEvent::Error(format!("Token exchange failed: {err}")));
-            }
-        }
+        });
     });
 }
 
 pub fn refresh_access_token(backend: SharedBackend, proxy: ContextProxy) {
-    proxy.spawn(move |proxy| {
-        let runtime = {
-            let state = backend.lock().unwrap();
-            state.runtime.clone()
-        };
+    let runtime = {
+        let state = backend.lock().unwrap();
+        state.runtime.clone()
+    };
 
+    runtime.spawn(async move {
+        let mut proxy = proxy;
         let (cid, rt) = {
             let state = backend.lock().unwrap();
             (state.client_id.clone(), state.refresh_token.clone())
         };
 
         match (cid, rt) {
-            (Some(cid), Some(rt)) => match runtime.block_on(oauth_api::refresh_access_token(&cid, &rt))
-            {
+            (Some(cid), Some(rt)) => match oauth_api::refresh_access_token(&cid, &rt).await {
                 Ok(tokens) => {
-                    apply_token_response(&backend, &tokens, &cid, proxy, runtime.as_ref())
+                    apply_token_response(&backend, &tokens, &cid, &mut proxy).await;
                 }
                 Err(err) => {
                     let _ = proxy.emit(SystemAppEvent::Error(format!(

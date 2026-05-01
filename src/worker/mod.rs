@@ -8,7 +8,7 @@ use vizia::prelude::{ContextProxy, ImageRetentionPolicy};
 
 use crate::oauth as oauth_api;
 use crate::playback::PlaybackService;
-use crate::spotify::SpotifyService;
+use crate::spotify::{SpotifyProfile, SpotifyService};
 use crate::storage::TokenStore;
 use crate::ui::events::{OAuthAppEvent, PlaybackAppEvent};
 
@@ -170,12 +170,9 @@ async fn force_refresh_access_token_async(backend: &SharedBackend) -> Result<(),
             state.refresh_token = Some(rt);
         }
         state.token_expires_at = Some(expires_at);
-
-        let runtime = Arc::clone(&state.runtime);
-        let _ = state
-            .playback
-            .bootstrap_from_access_token(runtime.as_ref(), &tokens.access_token);
     }
+
+    let _ = bootstrap_playback_from_token(backend, &tokens.access_token).await;
 
     let refresh_token = lock_backend(backend).refresh_token.clone();
     let _ = TokenStore {
@@ -217,12 +214,27 @@ async fn ensure_fresh_access_token_async(backend: &SharedBackend) -> Result<(), 
     force_refresh_access_token_async(backend).await
 }
 
-fn apply_token_response(
+async fn bootstrap_playback_from_token(
+    backend: &SharedBackend,
+    access_token: &str,
+) -> Result<(), String> {
+    let mut playback = {
+        let mut state = lock_backend(backend);
+        std::mem::take(&mut state.playback)
+    };
+
+    let result = playback.bootstrap_from_access_token(access_token).await;
+
+    let mut state = lock_backend(backend);
+    state.playback = playback;
+    result
+}
+
+async fn apply_token_response(
     backend: &SharedBackend,
     tokens: &oauth_api::TokenResponse,
     client_id: &str,
     proxy: &mut ContextProxy,
-    runtime: &tokio::runtime::Runtime,
 ) {
     let expires_at = BackendState::now_secs() + tokens.expires_in;
     let new_refresh = tokens.refresh_token.clone();
@@ -235,14 +247,13 @@ fn apply_token_response(
         }
         state.token_expires_at = Some(expires_at);
         state.client_id = Some(client_id.to_string());
+    }
 
-        if state
-            .playback
-            .bootstrap_from_access_token(runtime, &tokens.access_token)
-            .is_ok()
-        {
-            let _ = proxy.emit(PlaybackAppEvent::SessionReady);
-        }
+    if bootstrap_playback_from_token(backend, &tokens.access_token)
+        .await
+        .is_ok()
+    {
+        let _ = proxy.emit(PlaybackAppEvent::SessionReady);
     }
 
     let refresh_token = backend.lock().unwrap().refresh_token.clone();
@@ -253,18 +264,12 @@ fn apply_token_response(
     }
     .save();
 
-    emit_login_profile_event(backend, runtime, proxy);
+    let spotify = { lock_backend(backend).spotify.clone() };
+    let profile = spotify.fetch_profile().await.ok();
+    emit_login_profile_event(profile, proxy);
 }
 
-fn emit_login_profile_event(
-    backend: &SharedBackend,
-    runtime: &tokio::runtime::Runtime,
-    proxy: &mut ContextProxy,
-) {
-    let profile = runtime
-        .block_on(backend.lock().unwrap().spotify.fetch_profile())
-        .ok();
-
+fn emit_login_profile_event(profile: Option<SpotifyProfile>, proxy: &mut ContextProxy) {
     let username = profile
         .as_ref()
         .and_then(|profile| profile.display_name.clone())

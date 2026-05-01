@@ -10,6 +10,7 @@ use crate::{
 };
 use rand::seq::SliceRandom;
 
+#[derive(Clone)]
 pub struct PlaybackState {
     pub backend: SharedBackend,
     pub status: Signal<String>,

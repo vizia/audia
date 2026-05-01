@@ -10,6 +10,7 @@ use crate::{
     worker,
 };
 
+#[derive(Clone)]
 pub struct PlaylistsState {
     pub backend: crate::worker::SharedBackend,
     pub status: Signal<String>,
@@ -33,6 +34,7 @@ pub struct PlaylistsState {
     pub playlist_selected_index: Signal<usize>,
     pub shuffle_mode: Signal<bool>,
     pub current_playlist_request_id: u64,
+    pub playlist_track_filter_input: Signal<String>,
 }
 
 impl PlaylistsState {
@@ -60,6 +62,7 @@ impl PlaylistsState {
             playlist_selected_index: Signal::new(0),
             shuffle_mode: Signal::new(false),
             current_playlist_request_id: 0,
+            playlist_track_filter_input: Signal::new(String::new()),
         }
     }
 

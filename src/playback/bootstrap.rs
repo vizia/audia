@@ -9,28 +9,21 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
-use tokio::runtime::Runtime;
 
 use super::PlaybackService;
 
 impl PlaybackService {
-    pub fn bootstrap_from_access_token(
-        &mut self,
-        runtime: &Runtime,
-        access_token: &str,
-    ) -> Result<(), String> {
+    pub async fn bootstrap_from_access_token(&mut self, access_token: &str) -> Result<(), String> {
         if access_token.trim().is_empty() {
             return Err("Access token is required for playback bootstrap".to_string());
         }
 
         let credentials = Credentials::with_access_token(access_token.to_string());
-        let session = {
-            let _guard = runtime.enter();
-            Session::new(SessionConfig::default(), None)
-        };
+        let session = Session::new(SessionConfig::default(), None);
 
-        runtime
-            .block_on(session.connect(credentials, false))
+        session
+            .connect(credentials, false)
+            .await
             .map_err(|err| format!("Failed to connect librespot session: {err}"))?;
 
         let sink_builder = audio_backend::find(Some("rodio".to_string()))
@@ -50,15 +43,12 @@ impl PlaybackService {
             ..Default::default()
         };
 
-        let player = {
-            let _guard = runtime.enter();
-            Player::new(
-                player_config,
-                session.clone(),
-                mixer.get_soft_volume(),
-                move || sink_builder(None, AudioFormat::default()),
-            )
-        };
+        let player = Player::new(
+            player_config,
+            session.clone(),
+            mixer.get_soft_volume(),
+            move || sink_builder(None, AudioFormat::default()),
+        );
 
         let position = Arc::clone(&self.progress_position_ms);
         let duration = Arc::clone(&self.progress_duration_ms);

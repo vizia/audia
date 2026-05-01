@@ -18,6 +18,7 @@ pub(crate) enum CenterPage {
     Artist,
 }
 
+#[derive(Clone)]
 pub struct UiModel {
     pub(crate) status: Signal<String>,
     pub(crate) oauth_state: OAuthState,
@@ -32,7 +33,11 @@ pub struct UiModel {
 }
 
 impl UiModel {
-    pub fn new(cx: &mut Context, backend: crate::worker::SharedBackend) -> Self {
+    pub fn new(
+        cx: &mut Context,
+        backend: crate::worker::SharedBackend,
+        mut panel_state: PanelState,
+    ) -> Self {
         let status = Signal::new("Initializing...".to_string());
 
         let artwork_fade_animation = cx.add_animation(
@@ -44,14 +49,13 @@ impl UiModel {
         let mut preferences_data = PreferencesData::new(cx);
         preferences_data.load(cx);
 
-        let mut panel_state = PanelState::new();
         panel_state.load();
 
         Self {
             status: status.clone(),
             oauth_state: OAuthState::new(backend.clone(), status.clone()),
             preferences_data: preferences_data,
-            panel_state: panel_state,
+            panel_state,
             center_state: CenterState::new(),
             playback_state: PlaybackState::new(
                 backend.clone(),

@@ -6,17 +6,18 @@ use crate::oauth as oauth_api;
 use crate::storage::{ClientCredentialStore, TokenStore};
 use crate::ui::events::{PlaybackAppEvent, SystemAppEvent};
 
-use super::{BackendState, SharedBackend, apply_token_response, emit_login_profile_event};
+use super::{BackendState, SharedBackend, apply_token_response, bootstrap_playback_from_token, emit_login_profile_event};
 
 pub fn init_backend(proxy: ContextProxy) -> SharedBackend {
     let backend: SharedBackend = Arc::new(Mutex::new(BackendState::default()));
     let backend_clone = Arc::clone(&backend);
+    let runtime = {
+        let state = backend_clone.lock().unwrap();
+        state.runtime.clone()
+    };
 
-    proxy.spawn(move |proxy| {
-        let runtime = {
-            let state = backend_clone.lock().unwrap();
-            state.runtime.clone()
-        };
+    runtime.spawn(async move {
+        let mut proxy = proxy;
 
         if let Ok(Some(token)) = TokenStore::load() {
             {
@@ -42,40 +43,35 @@ pub fn init_backend(proxy: ContextProxy) -> SharedBackend {
 
             if needs_refresh {
                 if let (Some(cid), Some(rt)) = (cid, rt) {
-                    match runtime.block_on(oauth_api::refresh_access_token(&cid, &rt)) {
+                    match oauth_api::refresh_access_token(&cid, &rt).await {
                         Ok(tokens) => {
-                            apply_token_response(
-                                &backend_clone,
-                                &tokens,
-                                &cid,
-                                proxy,
-                                runtime.as_ref(),
-                            );
+                            apply_token_response(&backend_clone, &tokens, &cid, &mut proxy).await;
                             let _ = proxy.emit(SystemAppEvent::Ready);
-                            return;
                         }
                         Err(err) => {
                             let _ = proxy.emit(SystemAppEvent::Error(format!(
                                 "Silent token refresh failed: {err}"
                             )));
+                            let _ = proxy.emit(SystemAppEvent::Ready);
                         }
                     }
+                    return;
                 }
             } else {
-                let valid = {
+                let spotify = {
                     let state = backend_clone.lock().unwrap();
-                    runtime
-                        .block_on(state.spotify.validate_token())
-                        .unwrap_or(false)
+                    state.spotify.clone()
                 };
+                let access_token = token.access_token.clone();
+
+                let valid = spotify.validate_token().await.unwrap_or(false);
 
                 if valid {
-                    emit_login_profile_event(&backend_clone, runtime.as_ref(), proxy);
+                    let profile = spotify.fetch_profile().await.ok();
+                    emit_login_profile_event(profile, &mut proxy);
 
-                    let mut state = backend_clone.lock().unwrap();
-                    if state
-                        .playback
-                        .bootstrap_from_access_token(runtime.as_ref(), &token.access_token)
+                    if bootstrap_playback_from_token(&backend_clone, &access_token)
+                        .await
                         .is_ok()
                     {
                         let _ = proxy.emit(PlaybackAppEvent::SessionReady);
@@ -85,6 +81,9 @@ pub fn init_backend(proxy: ContextProxy) -> SharedBackend {
                         "Saved token is invalid. Please log in again.".to_string(),
                     ));
                 }
+
+                let _ = proxy.emit(SystemAppEvent::Ready);
+                return;
             }
         }
 
