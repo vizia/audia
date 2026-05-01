@@ -10,7 +10,7 @@ use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 
-use super::PlaybackService;
+use super::{DEFAULT_LOCAL_VOLUME_PERCENT, PlaybackService};
 
 impl PlaybackService {
     pub async fn bootstrap_from_access_token(&mut self, access_token: &str) -> Result<(), String> {
@@ -36,7 +36,9 @@ impl PlaybackService {
 
         let mixer = mixer_builder(MixerConfig::default())
             .map_err(|err| format!("Failed to initialize mixer: {err}"))?;
-        mixer.set_volume(Self::percent_to_librespot_volume(80));
+        mixer.set_volume(Self::percent_to_librespot_volume(
+            DEFAULT_LOCAL_VOLUME_PERCENT,
+        ));
 
         let player_config = PlayerConfig {
             position_update_interval: Some(Duration::from_millis(500)),

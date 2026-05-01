@@ -4,7 +4,7 @@ use crate::oauth as oauth_api;
 use crate::storage::{ClientCredentialStore, clear_persisted_login};
 use crate::ui::events::{OAuthAppEvent, SystemAppEvent};
 
-use super::{SharedBackend, apply_token_response};
+use super::{SharedBackend, apply_token_response, shared_playback};
 
 pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: ContextProxy) {
     std::thread::spawn(move || {
@@ -145,10 +145,17 @@ pub fn reset_login(backend: SharedBackend, proxy: ContextProxy) {
         {
             let mut state = backend.lock().unwrap();
             state.spotify.clear_access_token();
-            state.playback.reset();
             state.refresh_token = None;
             state.client_id = None;
             state.token_expires_at = None;
+        }
+
+        {
+            let playback = shared_playback(&backend);
+            let mut state = playback
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            state.reset();
         }
 
         let _ = proxy.emit(OAuthAppEvent::LoggedOut);

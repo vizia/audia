@@ -8,6 +8,19 @@ mod bootstrap;
 mod control;
 mod progress;
 
+pub const DEFAULT_LOCAL_VOLUME_PERCENT: u8 = 80;
+
+#[derive(Clone)]
+pub struct LocalPlaybackHandle {
+    pub(super) mixer: Option<Arc<dyn Mixer>>,
+    pub(super) player: Option<Arc<Player>>,
+    pub(super) progress_position_ms: Arc<AtomicU32>,
+    pub(super) progress_duration_ms: Arc<AtomicU32>,
+    pub(super) progress_is_playing: Arc<AtomicBool>,
+    pub(super) progress_track_finished: Arc<AtomicBool>,
+    pub(super) loading_track: Arc<AtomicBool>,
+}
+
 pub struct PlaybackService {
     pub(super) session_ready: bool,
     pub(super) session: Option<Session>,
@@ -40,5 +53,17 @@ impl PlaybackService {
     pub(super) fn percent_to_librespot_volume(percent: u8) -> u16 {
         let clamped = percent.min(100) as u32;
         ((clamped * u16::MAX as u32) / 100) as u16
+    }
+
+    pub fn local_handle(&self) -> LocalPlaybackHandle {
+        LocalPlaybackHandle {
+            mixer: self.mixer.clone(),
+            player: self.player.clone(),
+            progress_position_ms: Arc::clone(&self.progress_position_ms),
+            progress_duration_ms: Arc::clone(&self.progress_duration_ms),
+            progress_is_playing: Arc::clone(&self.progress_is_playing),
+            progress_track_finished: Arc::clone(&self.progress_track_finished),
+            loading_track: Arc::clone(&self.loading_track),
+        }
     }
 }

@@ -83,7 +83,7 @@ async fn load_images_parallel(
 pub struct BackendState {
     pub runtime: Arc<Runtime>,
     pub spotify: SpotifyService,
-    pub playback: PlaybackService,
+    pub playback: SharedPlayback,
     pub oauth_in_progress: bool,
     pub refresh_token: Option<String>,
     pub client_id: Option<String>,
@@ -96,7 +96,7 @@ impl Default for BackendState {
         Self {
             runtime: Arc::new(runtime),
             spotify: SpotifyService::default(),
-            playback: PlaybackService::default(),
+            playback: Arc::new(Mutex::new(PlaybackService::default())),
             oauth_in_progress: false,
             refresh_token: None,
             client_id: None,
@@ -126,11 +126,22 @@ impl BackendState {
 }
 
 pub type SharedBackend = Arc<Mutex<BackendState>>;
+pub type SharedPlayback = Arc<Mutex<PlaybackService>>;
 
 fn lock_backend(backend: &SharedBackend) -> MutexGuard<'_, BackendState> {
     backend
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn lock_playback(playback: &SharedPlayback) -> MutexGuard<'_, PlaybackService> {
+    playback
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+pub fn shared_playback(backend: &SharedBackend) -> SharedPlayback {
+    lock_backend(backend).playback.clone()
 }
 
 fn is_auth_error(err: &str) -> bool {
@@ -218,15 +229,16 @@ async fn bootstrap_playback_from_token(
     backend: &SharedBackend,
     access_token: &str,
 ) -> Result<(), String> {
+    let shared_playback = shared_playback(backend);
     let mut playback = {
-        let mut state = lock_backend(backend);
-        std::mem::take(&mut state.playback)
+        let mut state = lock_playback(&shared_playback);
+        std::mem::take(&mut *state)
     };
 
     let result = playback.bootstrap_from_access_token(access_token).await;
 
-    let mut state = lock_backend(backend);
-    state.playback = playback;
+    let mut state = lock_playback(&shared_playback);
+    *state = playback;
     result
 }
 

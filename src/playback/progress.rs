@@ -1,8 +1,8 @@
 use std::sync::atomic::Ordering;
 
-use super::PlaybackService;
+use super::LocalPlaybackHandle;
 
-impl PlaybackService {
+impl LocalPlaybackHandle {
     pub fn playback_progress(&self) -> Option<(u32, u32, bool)> {
         Some((
             self.progress_position_ms.load(Ordering::Relaxed),
@@ -30,7 +30,9 @@ impl PlaybackService {
     pub fn consume_track_finished(&self) -> bool {
         self.progress_track_finished.swap(false, Ordering::Relaxed)
     }
+}
 
+impl super::PlaybackService {
     pub fn reset(&mut self) {
         self.session_ready = false;
         self.mixer = None;

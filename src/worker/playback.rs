@@ -5,7 +5,7 @@ use vizia::prelude::{ContextProxy, ImageRetentionPolicy};
 use crate::messages::Track;
 use crate::ui::events::{PlaybackAppEvent, PlaybackProgressSource, SystemAppEvent};
 
-use super::{SharedBackend, fetch_image_bytes, with_spotify_auth_retry};
+use super::{SharedBackend, fetch_image_bytes, shared_playback, with_spotify_auth_retry};
 
 pub fn start_playback_progress_poller(backend: SharedBackend, proxy: ContextProxy) {
     let runtime = {
@@ -20,20 +20,22 @@ pub fn start_playback_progress_poller(backend: SharedBackend, proxy: ContextProx
         loop {
             poll_interval.tick().await;
 
-            let local_track_ended = {
-                let state = backend.lock().unwrap();
-                state.playback.consume_track_finished()
-                    || state.playback.mark_track_finished_if_stalled()
+            let playback = {
+                let playback = shared_playback(&backend);
+                let state = playback
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                state.local_handle()
             };
+
+            let local_track_ended =
+                playback.consume_track_finished() || playback.mark_track_finished_if_stalled();
 
             if local_track_ended {
                 let _ = proxy.emit(PlaybackAppEvent::LocalTrackEnded);
             }
 
-            let local_progress = {
-                let state = backend.lock().unwrap();
-                state.playback.playback_progress()
-            };
+            let local_progress = playback.playback_progress();
 
             if let Some((position_ms, duration_ms, is_playing)) = local_progress {
                 let _ = proxy.emit(PlaybackAppEvent::Progress {
@@ -119,10 +121,14 @@ pub fn refresh_playback_devices(backend: SharedBackend, mut proxy: ContextProxy)
 
 pub fn playback_play_local_track(backend: SharedBackend, track: Track, proxy: ContextProxy) {
     proxy.spawn(move |proxy| {
-        let result = {
-            let mut state = backend.lock().unwrap();
-            state.playback.play_track(&track)
+        let playback = {
+            let playback = shared_playback(&backend);
+            let state = playback
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            state.local_handle()
         };
+        let result = playback.play_track(&track);
 
         match result {
             Ok(()) => {
@@ -139,10 +145,14 @@ pub fn playback_play_local_track(backend: SharedBackend, track: Track, proxy: Co
 
 pub fn playback_pause_local(backend: SharedBackend, proxy: ContextProxy) {
     proxy.spawn(move |proxy| {
-        let result = {
-            let state = backend.lock().unwrap();
-            state.playback.pause()
+        let playback = {
+            let playback = shared_playback(&backend);
+            let state = playback
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            state.local_handle()
         };
+        let result = playback.pause();
 
         match result {
             Ok(()) => {
@@ -159,10 +169,14 @@ pub fn playback_pause_local(backend: SharedBackend, proxy: ContextProxy) {
 
 pub fn playback_resume_local(backend: SharedBackend, proxy: ContextProxy) {
     proxy.spawn(move |proxy| {
-        let result = {
-            let state = backend.lock().unwrap();
-            state.playback.resume()
+        let playback = {
+            let playback = shared_playback(&backend);
+            let state = playback
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            state.local_handle()
         };
+        let result = playback.resume();
 
         match result {
             Ok(()) => {
@@ -212,10 +226,14 @@ pub fn playback_play_selected_track(
 }
 
 pub fn playback_stop(backend: SharedBackend, _proxy: ContextProxy) {
-    {
-        let state = backend.lock().unwrap();
-        let _ = state.playback.stop();
-    }
+    let playback = {
+        let playback = shared_playback(&backend);
+        let state = playback
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.local_handle()
+    };
+    let _ = playback.stop();
 }
 
 pub fn playback_pause(backend: SharedBackend, mut proxy: ContextProxy) {
@@ -274,10 +292,14 @@ pub fn playback_set_volume(backend: SharedBackend, volume_percent: u8, mut proxy
 
 pub fn playback_seek_local(backend: SharedBackend, position_ms: u32, proxy: ContextProxy) {
     proxy.spawn(move |proxy| {
-        let result = {
-            let state = backend.lock().unwrap();
-            state.playback.seek_to(position_ms)
+        let playback = {
+            let playback = shared_playback(&backend);
+            let state = playback
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            state.local_handle()
         };
+        let result = playback.seek_to(position_ms);
 
         if let Err(err) = result {
             let _ = proxy.emit(SystemAppEvent::Error(err));

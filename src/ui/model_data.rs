@@ -2,6 +2,7 @@ use crate::ui::data::{
     AlbumState, ArtistState, CenterState, OAuthState, PanelState, PlaybackState, PlaylistsState,
     PreferencesData, SearchState,
 };
+use crate::worker;
 use vizia::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,6 +52,8 @@ impl UiModel {
 
         panel_state.load();
 
+        let playback = worker::shared_playback(&backend);
+
         Self {
             status: status.clone(),
             oauth_state: OAuthState::new(backend.clone(), status.clone()),
@@ -59,6 +62,7 @@ impl UiModel {
             center_state: CenterState::new(),
             playback_state: PlaybackState::new(
                 backend.clone(),
+                playback,
                 status.clone(),
                 artwork_fade_animation,
             ),
