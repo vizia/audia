@@ -3,6 +3,7 @@ use vizia::prelude::*;
 use crate::{
     messages::{AlbumResult, PlaybackDevice, Track},
     playback::DEFAULT_LOCAL_VOLUME_PERCENT,
+    storage::LocalPlaybackSettings,
     ui::{
         events::{CenterUiEvent, PlaybackAppEvent, PlaybackProgressSource, PlaybackUiEvent},
         model_data::{CenterPage, PlaybackTarget},
@@ -50,12 +51,22 @@ pub struct PlaybackState {
 }
 
 impl PlaybackState {
+    fn persisted_local_volume_percent() -> u8 {
+        LocalPlaybackSettings::load()
+            .ok()
+            .flatten()
+            .map(|settings| settings.local_volume_percent.min(100))
+            .unwrap_or(DEFAULT_LOCAL_VOLUME_PERCENT)
+    }
+
     pub fn new(
         backend: SharedBackend,
         playback: SharedPlayback,
         status: Signal<String>,
         artwork_fade_animation: Animation,
     ) -> Self {
+        let initial_local_volume = Self::persisted_local_volume_percent() as f32;
+
         Self {
             backend,
             playback,
@@ -69,9 +80,9 @@ impl PlaybackState {
             playback_scrub_percent: Signal::new(0.0),
             queue_current_index: Signal::new(None),
             selected_playback_target: Signal::new(None),
-            playback_volume: Signal::new(DEFAULT_LOCAL_VOLUME_PERCENT as f32),
+            playback_volume: Signal::new(initial_local_volume),
             playback_is_muted: Signal::new(false),
-            pre_mute_volume: DEFAULT_LOCAL_VOLUME_PERCENT as f32,
+            pre_mute_volume: initial_local_volume,
             recently_played: Signal::new(Vec::new()),
 
             playback_duration_ms: Signal::new(0),
@@ -805,6 +816,11 @@ impl Model for PlaybackState {
                         if let Err(err) = result {
                             self.status
                                 .set(format!("Failed to set local volume: {err}"));
+                        } else {
+                            let _ = LocalPlaybackSettings {
+                                local_volume_percent: target,
+                            }
+                            .save();
                         }
                     }
                     None => {
@@ -864,10 +880,10 @@ impl Model for PlaybackState {
 
         event.map(|playback_event, _: &mut _| match playback_event {
             PlaybackAppEvent::SessionReady => {
+                let persisted_local_volume = Self::persisted_local_volume_percent() as f32;
                 self.playback_ready.set(true);
-                self.playback_volume
-                    .set_if_changed(DEFAULT_LOCAL_VOLUME_PERCENT as f32);
-                self.pre_mute_volume = DEFAULT_LOCAL_VOLUME_PERCENT as f32;
+                self.playback_volume.set_if_changed(persisted_local_volume);
+                self.pre_mute_volume = persisted_local_volume;
                 self.playback_is_muted.set_if_changed(false);
                 self.status
                     .set("Playback session is ready (OAuth token-based).".to_string());

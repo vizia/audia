@@ -20,6 +20,11 @@ pub struct ClientCredentialStore {
     pub client_id: String,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct LocalPlaybackSettings {
+    pub local_volume_percent: u8,
+}
+
 impl TokenStore {
     pub fn load() -> io::Result<Option<Self>> {
         let path = token_file_path()?;
@@ -45,7 +50,6 @@ impl TokenStore {
     }
 }
 
-
 fn token_file_path() -> io::Result<PathBuf> {
     let base = dirs::config_dir()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Config directory unavailable"))?;
@@ -56,6 +60,12 @@ fn client_credential_file_path() -> io::Result<PathBuf> {
     let base = dirs::config_dir()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Config directory unavailable"))?;
     Ok(base.join("audia").join("client_credentials.json"))
+}
+
+fn local_playback_settings_file_path() -> io::Result<PathBuf> {
+    let base = dirs::config_dir()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Config directory unavailable"))?;
+    Ok(base.join("audia").join("local_playback.json"))
 }
 
 impl ClientCredentialStore {
@@ -72,6 +82,29 @@ impl ClientCredentialStore {
 
     pub fn save(&self) -> io::Result<()> {
         let path = client_credential_file_path()?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let data = serde_json::to_string_pretty(self)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+        fs::write(path, data)
+    }
+}
+
+impl LocalPlaybackSettings {
+    pub fn load() -> io::Result<Option<Self>> {
+        let path = local_playback_settings_file_path()?;
+        if !path.exists() {
+            return Ok(None);
+        }
+        let data = fs::read_to_string(path)?;
+        serde_json::from_str::<LocalPlaybackSettings>(&data)
+            .map(Some)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+    }
+
+    pub fn save(&self) -> io::Result<()> {
+        let path = local_playback_settings_file_path()?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }

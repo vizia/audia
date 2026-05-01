@@ -11,6 +11,7 @@ use std::thread;
 use std::time::Duration;
 
 use super::{DEFAULT_LOCAL_VOLUME_PERCENT, PlaybackService};
+use crate::storage::LocalPlaybackSettings;
 
 impl PlaybackService {
     pub async fn bootstrap_from_access_token(&mut self, access_token: &str) -> Result<(), String> {
@@ -34,11 +35,15 @@ impl PlaybackService {
             .or_else(|| mixer::find(None))
             .ok_or_else(|| "No librespot mixer backend is available".to_string())?;
 
+        let initial_volume_percent = LocalPlaybackSettings::load()
+            .ok()
+            .flatten()
+            .map(|settings| settings.local_volume_percent.min(100))
+            .unwrap_or(DEFAULT_LOCAL_VOLUME_PERCENT);
+
         let mixer = mixer_builder(MixerConfig::default())
             .map_err(|err| format!("Failed to initialize mixer: {err}"))?;
-        mixer.set_volume(Self::percent_to_librespot_volume(
-            DEFAULT_LOCAL_VOLUME_PERCENT,
-        ));
+        mixer.set_volume(Self::percent_to_librespot_volume(initial_volume_percent));
 
         let player_config = PlayerConfig {
             position_update_interval: Some(Duration::from_millis(500)),
