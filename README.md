@@ -6,16 +6,7 @@ A Spotify premium account is required.
 
 > WARNING: This project is still in early development. Expect lots of bugs.
 
-![](Screenshot.png)
-
-## Features
-
-- [x] Spotify OAuth login
-- [x] User profile retrieval (display name + avatar)
-- [x] Spotify search (tracks, artists, and albums)
-- [x] Playlists panel
-- [x] Queue panel
-- [x] Local playback
+![](Screenshot2.png)
 
 
 ## Building
