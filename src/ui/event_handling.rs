@@ -13,6 +13,7 @@ impl Model for UiModel {
         self.album_state.event(cx, event);
         self.artist_state.event(cx, event);
         self.playlists_state.event(cx, event);
+
         event.map(|system_event: &SystemAppEvent, _| match system_event {
             SystemAppEvent::Ready => {
                 if !self.oauth_state.auth_valid.get() {

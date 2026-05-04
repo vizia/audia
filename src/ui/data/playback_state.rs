@@ -3,7 +3,7 @@ use vizia::prelude::*;
 use crate::{
     messages::{Album, Track},
     playback::DEFAULT_LOCAL_VOLUME_PERCENT,
-    storage::LocalPlaybackSettings,
+    storage::{LocalPlaybackSettings, QueueSnapshot},
     ui::{
         events::{CenterUiEvent, PlaybackAppEvent, PlaybackUiEvent},
         model_data::CenterPage,
@@ -40,6 +40,10 @@ pub struct PlaybackState {
     pub last_scrub_user_input_at: Option<std::time::Instant>,
     pub last_local_track_end_handled_at: Option<std::time::Instant>,
     pub artwork_fade_animation: Animation,
+    
+    // Preferences
+    pub autoplay_on_queue_add: Signal<bool>,
+    pub restore_queue_on_startup: Signal<bool>,
 }
 
 impl PlaybackState {
@@ -86,6 +90,9 @@ impl PlaybackState {
             last_scrub_user_input_at: None,
             last_local_track_end_handled_at: None,
             artwork_fade_animation,
+            
+            autoplay_on_queue_add: Signal::new(true),
+            restore_queue_on_startup: Signal::new(false),
         }
     }
 
@@ -121,6 +128,28 @@ impl PlaybackState {
 
         self.queue_current_index.get().is_none() || self.local_track_near_end()
     }
+
+    fn save_queue(&self) {
+        let queue_tracks = self.queue_tracks.get();
+        let recently_played = self.recently_played.get();
+        let snapshot = QueueSnapshot {
+            queue_tracks,
+            recently_played,
+        };
+        let _ = snapshot.save();
+    }
+
+    pub fn restore_queue(&mut self) {
+        if self.restore_queue_on_startup.get() {
+            if let Ok(Some(snapshot)) = QueueSnapshot::load() {
+                if !snapshot.queue_tracks.is_empty() {
+                    self.queue_tracks.set(snapshot.queue_tracks);
+                    self.recently_played.set(snapshot.recently_played);
+                    self.status.set("Queue restored from last session.".to_string());
+                }
+            }
+        }
+    }
 }
 
 impl Model for PlaybackState {
@@ -137,6 +166,7 @@ impl Model for PlaybackState {
                 self.playback_track_image_key.set(None);
                 self.playback_track_image_url.set(None);
                 self.playback_overlay_image_key.set(None);
+                self.save_queue();
                 cx.emit(PlaybackUiEvent::Stop);
             }
             PlaybackUiEvent::ClearRecentlyPlayed => {
@@ -167,11 +197,13 @@ impl Model for PlaybackState {
                 self.status.set("Queue shuffled.".to_string());
             }
             PlaybackUiEvent::AddToQueue(tracks) => {
+                let was_empty = self.queue_tracks.with(|queue| queue.is_empty());
                 self.queue_tracks
                     .update(|queue| queue.extend(tracks.clone()));
-                if self.queue_current_index.get().is_none() {
+                if was_empty && self.autoplay_on_queue_add.get() {
                     cx.emit(PlaybackUiEvent::Play);
                 }
+                self.save_queue();
                 self.status
                     .set(format!("Added {} tracks to the queue.", tracks.len()));
             }
@@ -251,6 +283,7 @@ impl Model for PlaybackState {
                 self.playback_track_image_url
                     .set(selected_track.album_image_url.clone());
                 self.set_current_track_artwork(cx, &selected_track);
+                self.save_queue();
 
                 self.status
                     .set("Playing selected queue song on local device...".to_string());
@@ -379,10 +412,12 @@ impl Model for PlaybackState {
                 let queue_length = self.queue_tracks.with(|queue| queue.len());
                 if queue_length > 0 {
                     self.queue_current_index.set(Some(0));
+                    self.save_queue();
                     cx.emit(PlaybackUiEvent::Play);
                 } else {
                     self.queue_current_index.set(None);
                     self.playback_is_playing.set_if_changed(false);
+                    self.save_queue();
                     self.status.set("Reached end of queue.".to_string());
                 }
                 return;
@@ -473,10 +508,12 @@ impl Model for PlaybackState {
                 let queue_length = self.queue_tracks.with(|queue| queue.len());
                 if queue_length > 0 {
                     self.queue_current_index.set(Some(0));
+                    self.save_queue();
                     cx.emit(PlaybackUiEvent::Play);
                 } else {
                     self.queue_current_index.set(None);
                     self.playback_is_playing.set_if_changed(false);
+                    self.save_queue();
                     self.status.set("Reached end of queue.".to_string());
                 }
             }
@@ -484,7 +521,7 @@ impl Model for PlaybackState {
             PlaybackAppEvent::Progress {
                 position_ms,
                 duration_ms,
-                is_playing,
+                is_playing: _,
             } => {
                 // if self.playback_is_playing.get() != *is_playing {
                 //     self.playback_is_playing.set_if_changed(*is_playing);

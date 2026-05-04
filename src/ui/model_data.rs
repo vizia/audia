@@ -48,18 +48,27 @@ impl UiModel {
 
         let playback = worker::shared_playback(&backend);
 
+        let mut playback_state = PlaybackState::new(
+            backend.clone(),
+            playback,
+            status.clone(),
+            artwork_fade_animation,
+        );
+
+        // Share the same preference signals with playback state so UI and behavior stay in lockstep.
+        playback_state.autoplay_on_queue_add = preferences_data.autoplay_on_queue_add;
+        playback_state.restore_queue_on_startup = preferences_data.restore_queue_on_startup;
+        
+        // Restore queue if enabled
+        playback_state.restore_queue();
+
         Self {
             status: status.clone(),
             oauth_state: OAuthState::new(backend.clone(), status.clone()),
             preferences_data: preferences_data,
             panel_state,
             center_state: CenterState::new(),
-            playback_state: PlaybackState::new(
-                backend.clone(),
-                playback,
-                status.clone(),
-                artwork_fade_animation,
-            ),
+            playback_state,
             search_state: SearchState::new(backend.clone(), status.clone()),
             album_state: AlbumState::new(),
             artist_state: ArtistState::new(backend.clone(), status.clone()),

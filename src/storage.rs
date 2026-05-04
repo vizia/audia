@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::messages::Track;
+
 const DEFAULT_SPOTIFY_CLIENT_ID: &str = "1db90c8f99ab424cb22c69af1ca9c242";
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -105,6 +107,41 @@ impl LocalPlaybackSettings {
 
     pub fn save(&self) -> io::Result<()> {
         let path = local_playback_settings_file_path()?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let data = serde_json::to_string_pretty(self)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+        fs::write(path, data)
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct QueueSnapshot {
+    pub queue_tracks: Vec<Track>,
+    pub recently_played: Vec<Track>,
+}
+
+fn queue_snapshot_file_path() -> io::Result<PathBuf> {
+    let base = dirs::config_dir()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Config directory unavailable"))?;
+    Ok(base.join("audia").join("queue.json"))
+}
+
+impl QueueSnapshot {
+    pub fn load() -> io::Result<Option<Self>> {
+        let path = queue_snapshot_file_path()?;
+        if !path.exists() {
+            return Ok(None);
+        }
+        let data = fs::read_to_string(path)?;
+        serde_json::from_str::<QueueSnapshot>(&data)
+            .map(Some)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+    }
+
+    pub fn save(&self) -> io::Result<()> {
+        let path = queue_snapshot_file_path()?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }

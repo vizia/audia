@@ -5,7 +5,7 @@ use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use ron::de::from_reader;
 use serde::{Deserialize, Serialize};
 use vizia::{
-    icons::{ICON_PALETTE, ICON_SETTINGS},
+    icons::{ICON_PALETTE, ICON_PLAYER_PLAY, ICON_SETTINGS},
     prelude::*,
 };
 
@@ -21,6 +21,10 @@ struct PreferencesSnapshot {
     follow_system_theme: bool,
     #[serde(default)]
     plugins_path: PathBuf,
+    #[serde(default)]
+    autoplay_on_queue_add: bool,
+    #[serde(default)]
+    restore_queue_on_startup: bool,
 }
 
 /// Data model for the Preferences Dialog (reactive signals)
@@ -43,6 +47,10 @@ pub struct PreferencesData {
     pub selected_theme: Signal<Option<usize>>,
     pub follow_system_theme: Signal<bool>,
 
+    // Playback Page
+    pub autoplay_on_queue_add: Signal<bool>,
+    pub restore_queue_on_startup: Signal<bool>,
+
     // Plugins Page
     pub plugins_path: Signal<PathBuf>,
 }
@@ -54,7 +62,12 @@ impl PreferencesData {
             show: Signal::new(false),
             selected_page: Signal::new(PreferencesPage::General),
             search_string: Signal::new(String::new()),
-            preferences: Signal::new(vec![Preference::Language, Preference::Theme]),
+            preferences: Signal::new(vec![
+                Preference::Language,
+                Preference::Theme,
+                Preference::AutoplayOnQueueAdd,
+                Preference::RestoreQueueOnStartup,
+            ]),
             filtered_preferences: Signal::new(vec![]),
 
             // General Page
@@ -72,11 +85,13 @@ impl PreferencesData {
             selected_theme: Signal::new(Some(1)),
             follow_system_theme: Signal::new(false),
 
+            // Playback Page
+            autoplay_on_queue_add: Signal::new(true),
+            restore_queue_on_startup: Signal::new(false),
+
             // Plugins Page
             plugins_path: Signal::new(PathBuf::new()),
         };
-        data.build(cx);
-
         data
     }
 
@@ -124,6 +139,8 @@ impl PreferencesData {
             selected_theme: self.selected_theme.get_untracked(),
             follow_system_theme: self.follow_system_theme.get_untracked(),
             plugins_path: self.plugins_path.get_untracked(),
+            autoplay_on_queue_add: self.autoplay_on_queue_add.get_untracked(),
+            restore_queue_on_startup: self.restore_queue_on_startup.get_untracked(),
         };
         if let Ok(data) = ron::ser::to_string_pretty(&snapshot, ron::ser::PrettyConfig::default()) {
             let _ = std::fs::write(path, data);
@@ -152,6 +169,9 @@ impl PreferencesData {
                 ));
                 self.follow_system_theme.set(saved.follow_system_theme);
                 self.plugins_path.set(saved.plugins_path);
+                self.autoplay_on_queue_add.set(saved.autoplay_on_queue_add);
+                self.restore_queue_on_startup
+                    .set(saved.restore_queue_on_startup);
             }
         }
     }
@@ -163,6 +183,7 @@ pub enum PreferencesPage {
     #[default]
     General,
     Appearance,
+    Playback,
 }
 
 impl_res_simple!(PreferencesPage);
@@ -172,6 +193,7 @@ impl PreferencesPage {
         match self {
             PreferencesPage::General => Localized::new("general"),
             PreferencesPage::Appearance => Localized::new("appearance"),
+            PreferencesPage::Playback => Localized::new("playback"),
         }
     }
 
@@ -179,6 +201,7 @@ impl PreferencesPage {
         match self {
             PreferencesPage::General => ICON_SETTINGS,
             PreferencesPage::Appearance => ICON_PALETTE,
+            PreferencesPage::Playback => ICON_PLAYER_PLAY,
         }
     }
 }
@@ -188,6 +211,8 @@ impl PreferencesPage {
 pub enum Preference {
     Language,
     Theme,
+    AutoplayOnQueueAdd,
+    RestoreQueueOnStartup,
 }
 
 impl Preference {
@@ -195,6 +220,8 @@ impl Preference {
         match self {
             Preference::Language => Localized::new("language"),
             Preference::Theme => Localized::new("theme"),
+            Preference::AutoplayOnQueueAdd => Localized::new("autoplay_on_queue_add"),
+            Preference::RestoreQueueOnStartup => Localized::new("restore_queue_on_startup"),
         }
     }
 
@@ -202,6 +229,8 @@ impl Preference {
         match self {
             Preference::Language => Localized::new("language_tags"),
             Preference::Theme => Localized::new("theme_tags"),
+            Preference::AutoplayOnQueueAdd => Localized::new("autoplay_on_queue_add_tags"),
+            Preference::RestoreQueueOnStartup => Localized::new("restore_queue_on_startup_tags"),
         }
     }
 }
@@ -215,6 +244,8 @@ pub enum PreferencesEvent {
     SetSelectedLanguage(usize),
     SetSelectedTheme(usize),
     ToggleUseSystemTheme,
+    ToggleAutoplayOnQueueAdd,
+    ToggleRestoreQueueOnStartup,
 }
 
 impl Model for PreferencesData {
@@ -261,6 +292,14 @@ impl Model for PreferencesData {
             }
             PreferencesEvent::ToggleUseSystemTheme => {
                 self.follow_system_theme.update(|v| *v = !*v);
+                self.save();
+            }
+            PreferencesEvent::ToggleAutoplayOnQueueAdd => {
+                self.autoplay_on_queue_add.update(|v| *v = !*v);
+                self.save();
+            }
+            PreferencesEvent::ToggleRestoreQueueOnStartup => {
+                self.restore_queue_on_startup.update(|v| *v = !*v);
                 self.save();
             }
         });

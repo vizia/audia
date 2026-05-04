@@ -1,6 +1,6 @@
 use image::DynamicImage;
 use vizia::{
-    icons::{ICON_BRUSH, ICON_GLOBE},
+    icons::{ICON_BRUSH, ICON_GLOBE, ICON_PLAYER_PLAY},
     prelude::*,
 };
 
@@ -34,6 +34,7 @@ fn nav_bar(cx: &mut Context, selected_page: Signal<PreferencesPage>) -> Handle<'
     VStack::new(cx, |cx| {
         page_tab(cx, PreferencesPage::General, selected_page);
         page_tab(cx, PreferencesPage::Appearance, selected_page);
+        page_tab(cx, PreferencesPage::Playback, selected_page);
     })
     .gap(Pixels(8.0))
 }
@@ -55,7 +56,7 @@ fn settings_card_theme(cx: &mut Context, data: PreferencesData) {
             Element::new(cx).class("icon");
             Label::new(cx, "Follow System Theme");
             Spacer::new(cx);
-            Checkbox::new(cx, data.follow_system_theme)
+            Switch::new(cx, data.follow_system_theme)
                 .on_toggle(|cx| cx.emit(PreferencesEvent::ToggleUseSystemTheme));
         })
         .height(Auto)
@@ -73,6 +74,28 @@ fn settings_card_language(cx: &mut Context, data: PreferencesData, preference: P
         Select::new(cx, data.language, data.selected_language, true)
             .on_select(|cx, index| cx.emit(PreferencesEvent::SetSelectedLanguage(index)))
             .width(Pixels(150.0));
+    })
+    .class("settings-card");
+}
+
+fn settings_card_autoplay(cx: &mut Context, data: PreferencesData) {
+    HStack::new(cx, |cx| {
+        Svg::new(cx, ICON_PLAYER_PLAY).class("icon");
+        Label::new(cx, "Auto-play on Queue Add");
+        Spacer::new(cx);
+        Switch::new(cx, data.autoplay_on_queue_add)
+            .on_toggle(|cx| cx.emit(PreferencesEvent::ToggleAutoplayOnQueueAdd));
+    })
+    .class("settings-card");
+}
+
+fn settings_card_restore_queue(cx: &mut Context, data: PreferencesData) {
+    HStack::new(cx, |cx| {
+        Svg::new(cx, ICON_PLAYER_PLAY).class("icon");
+        Label::new(cx, "Restore Queue on Startup");
+        Spacer::new(cx);
+        Switch::new(cx, data.restore_queue_on_startup)
+            .on_toggle(|cx| cx.emit(PreferencesEvent::ToggleRestoreQueueOnStartup));
     })
     .class("settings-card");
 }
@@ -132,6 +155,12 @@ pub fn preferences_dialog(cx: &mut Context, icon: DynamicImage, data: Preference
                                             settings_card_theme(cx, data);
                                         });
                                     }
+                                    PreferencesPage::Playback => {
+                                        settings_page(cx, selected_page, move |cx| {
+                                            settings_card_autoplay(cx, data);
+                                            settings_card_restore_queue(cx, data);
+                                        });
+                                    }
                                 }
                             });
                         } else {
@@ -160,6 +189,12 @@ pub fn preferences_dialog(cx: &mut Context, icon: DynamicImage, data: Preference
                                                     }
                                                     Preference::Theme => {
                                                         settings_card_theme(cx, data);
+                                                    }
+                                                    Preference::AutoplayOnQueueAdd => {
+                                                        settings_card_autoplay(cx, data);
+                                                    }
+                                                    Preference::RestoreQueueOnStartup => {
+                                                        settings_card_restore_queue(cx, data);
                                                     }
                                                 }
                                             }
