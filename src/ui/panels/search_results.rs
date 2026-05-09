@@ -21,7 +21,7 @@ pub fn search_results_panel(
     }
 
     VStack::new(cx, move |cx| {
-        Label::new(cx, "Search Results").class("panel-title");
+        Label::new(cx, Localized::new("search_results")).class("panel-title");
 
         TabView::new(cx, search_tabs, move |_, index, item| match index {
             0 => TabPair::new(

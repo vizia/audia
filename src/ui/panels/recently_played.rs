@@ -9,7 +9,7 @@ use vizia::prelude::*;
 pub fn recently_played_panel(cx: &mut Context, recently_played: Signal<Vec<Track>>) {
     VStack::new(cx, |cx| {
         HStack::new(cx, |cx| {
-            Label::new(cx, "Recently Played")
+            Label::new(cx, Localized::new("recently_played"))
                 .class("panel-title")
                 .width(Stretch(1.0));
 
@@ -17,7 +17,7 @@ pub fn recently_played_panel(cx: &mut Context, recently_played: Signal<Vec<Track
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Show queue");
+                        Label::new(cx, Localized::new("show_queue"));
                     })
                 })
                 .on_press(|cx| cx.emit(RightPanelUiEvent::NavigateTo(RightPanelPage::Queue)));
@@ -26,7 +26,7 @@ pub fn recently_played_panel(cx: &mut Context, recently_played: Signal<Vec<Track
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Clear recently played");
+                        Label::new(cx, Localized::new("clear_recently_played"));
                     })
                 })
                 .on_press(|cx| cx.emit(PlaybackUiEvent::ClearRecentlyPlayed));
@@ -38,7 +38,7 @@ pub fn recently_played_panel(cx: &mut Context, recently_played: Signal<Vec<Track
 
         Binding::new(cx, recently_played.map(|list| list.is_empty()), move |cx| {
             if recently_played.map(|list| list.is_empty()).get() {
-                Label::new(cx, "No recently played tracks yet.")
+                Label::new(cx, Localized::new("no_recently_played"))
                     .class("search-result-artist")
                     .width(Stretch(1.0));
             } else {

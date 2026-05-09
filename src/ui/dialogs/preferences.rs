@@ -43,7 +43,7 @@ fn settings_card_theme(cx: &mut Context, data: PreferencesData) {
     VStack::new(cx, |cx| {
         HStack::new(cx, |cx| {
             Svg::new(cx, ICON_BRUSH).class("icon");
-            Label::new(cx, "Current Theme");
+            Label::new(cx, Localized::new("current_theme"));
             Spacer::new(cx);
             Select::new(cx, data.theme, data.selected_theme, true)
                 .on_select(|cx, index| cx.emit(PreferencesEvent::SetSelectedTheme(index)))
@@ -54,7 +54,7 @@ fn settings_card_theme(cx: &mut Context, data: PreferencesData) {
 
         HStack::new(cx, |cx| {
             Element::new(cx).class("icon");
-            Label::new(cx, "Follow System Theme");
+            Label::new(cx, Localized::new("follow_system_theme"));
             Spacer::new(cx);
             Switch::new(cx, data.follow_system_theme)
                 .on_toggle(|cx| cx.emit(PreferencesEvent::ToggleUseSystemTheme));
@@ -81,7 +81,7 @@ fn settings_card_language(cx: &mut Context, data: PreferencesData, preference: P
 fn settings_card_autoplay(cx: &mut Context, data: PreferencesData) {
     HStack::new(cx, |cx| {
         Svg::new(cx, ICON_PLAYER_PLAY).class("icon");
-        Label::new(cx, "Auto-play on Queue Add");
+        Label::new(cx, Localized::new("autoplay_on_queue_add"));
         Spacer::new(cx);
         Switch::new(cx, data.autoplay_on_queue_add)
             .on_toggle(|cx| cx.emit(PreferencesEvent::ToggleAutoplayOnQueueAdd));
@@ -92,7 +92,7 @@ fn settings_card_autoplay(cx: &mut Context, data: PreferencesData) {
 fn settings_card_restore_queue(cx: &mut Context, data: PreferencesData) {
     HStack::new(cx, |cx| {
         Svg::new(cx, ICON_PLAYER_PLAY).class("icon");
-        Label::new(cx, "Restore Queue on Startup");
+        Label::new(cx, Localized::new("restore_queue_on_startup"));
         Spacer::new(cx);
         Switch::new(cx, data.restore_queue_on_startup)
             .on_toggle(|cx| cx.emit(PreferencesEvent::ToggleRestoreQueueOnStartup));
@@ -128,7 +128,7 @@ pub fn preferences_dialog(cx: &mut Context, icon: DynamicImage, data: Preference
                     VStack::new(cx, move |cx| {
                         Textbox::new(cx, data.search_string)
                             .on_edit(|cx, text| cx.emit(PreferencesEvent::SetSearch(text)))
-                            .placeholder("Search")
+                            .placeholder(Localized::new("search"))
                             .width(Stretch(1.0));
                         nav_bar(cx, data.selected_page)
                             .disabled(data.search_string.map(|s| !s.is_empty()));
@@ -151,7 +151,7 @@ pub fn preferences_dialog(cx: &mut Context, icon: DynamicImage, data: Preference
                                     }
                                     PreferencesPage::Appearance => {
                                         settings_page(cx, selected_page, move |cx| {
-                                            Label::new(cx, "Theming");
+                                            Label::new(cx, Localized::new("theming"));
                                             settings_card_theme(cx, data);
                                         });
                                     }
@@ -169,7 +169,7 @@ pub fn preferences_dialog(cx: &mut Context, icon: DynamicImage, data: Preference
                                 VStack::new(cx, move |cx| {
                                     ScrollView::new(cx, move |cx| {
                                         VStack::new(cx, move |cx| {
-                                            Label::new(cx, "No results found").display(
+                                            Label::new(cx, Localized::new("no_results_found")).display(
                                                 data.filtered_preferences.map(|fp| {
                                                     if fp.is_empty() {
                                                         Display::Flex

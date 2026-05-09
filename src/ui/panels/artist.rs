@@ -22,13 +22,13 @@ pub fn artist_panel(
                 Label::new(cx, artist_name)
                     .text_wrap(false)
                     .class("album-title");
-                Label::new(cx, "Artist").class("album-meta");
+                Label::new(cx, Localized::new("artist")).class("album-meta");
             })
             .class("album-info");
         })
         .class("album-info-row");
 
-        Label::new(cx, "Albums").class("panel-title");
+        Label::new(cx, Localized::new("albums")).class("panel-title");
 
         List::new(cx, artist_albums, |cx, _index, item| {
             HStack::new(cx, |cx| {

@@ -11,13 +11,13 @@ pub fn rename_playlist_dialog(
         if show_rename_playlist_modal.get() {
             Window::popup(cx, true, move |cx| {
                 VStack::new(cx, |cx| {
-                    Label::new(cx, "Rename playlist")
+                    Label::new(cx, Localized::new("rename_playlist"))
                         .class("login-title")
                         .width(Stretch(1.0))
                         .alignment(Alignment::Center);
 
                     Textbox::new(cx, rename_playlist_name)
-                        .placeholder("New playlist name")
+                        .placeholder(Localized::new("new_playlist_name_placeholder"))
                         .on_edit(|cx, value| {
                             cx.emit(PlaylistsUiEvent::SetRenamePlaylistName(value))
                         })
@@ -29,12 +29,12 @@ pub fn rename_playlist_dialog(
                         .width(Stretch(1.0));
 
                     HStack::new(cx, |cx| {
-                        Button::new(cx, |cx| Label::new(cx, "Rename"))
+                        Button::new(cx, |cx| Label::new(cx, Localized::new("rename")))
                             .on_press(|cx| cx.emit(PlaylistsUiEvent::SubmitRenamePlaylist))
                             .disabled(is_renaming_playlist)
                             .width(Pixels(120.0));
 
-                        Button::new(cx, |cx| Label::new(cx, "Cancel"))
+                        Button::new(cx, |cx| Label::new(cx, Localized::new("cancel")))
                             .variant(ButtonVariant::Secondary)
                             .on_press(|cx| cx.emit(PlaylistsUiEvent::CloseRenamePlaylistModal))
                             .disabled(is_renaming_playlist)

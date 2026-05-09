@@ -86,7 +86,7 @@ pub fn album_tracks_panel(
                 .name("Play all")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Play album");
+                        Label::new(cx, Localized::new("play_album"));
                     })
                 })
                 .on_press(|cx| cx.emit(AlbumUiEvent::PlayAlbum));
@@ -97,7 +97,7 @@ pub fn album_tracks_panel(
             .class("playlist-shuffle-toggle")
             .tooltip(|cx| {
                 Tooltip::new(cx, |cx| {
-                    Label::new(cx, "Shuffle album");
+                    Label::new(cx, Localized::new("shuffle_album"));
                 })
             })
             .on_press(|cx| cx.emit(AlbumUiEvent::ShuffleAlbum));

@@ -18,7 +18,7 @@ pub fn header_panel(
                 .disabled(can_go_back.map(|enabled| !*enabled))
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Back");
+                        Label::new(cx, Localized::new("back"));
                     })
                 })
                 .on_press(|cx| cx.emit(CenterUiEvent::NavigateBack));
@@ -28,7 +28,7 @@ pub fn header_panel(
                 .disabled(can_go_forward.map(|enabled| !*enabled))
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Forward");
+                        Label::new(cx, Localized::new("forward"));
                     })
                 })
                 .on_press(|cx| cx.emit(CenterUiEvent::NavigateForward));
@@ -53,7 +53,7 @@ pub fn header_panel(
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Open preferences");
+                        Label::new(cx, Localized::new("open_preferences"));
                     })
                 })
                 .on_press(|cx| cx.emit(PreferencesEvent::Show));
@@ -83,31 +83,31 @@ pub fn header_panel(
                     MenuButton::new(
                         cx,
                         |cx| cx.emit(OAuthUiEvent::OpenLoginModal),
-                        |cx| Label::new(cx, "Open Login"),
+                        |cx| Label::new(cx, Localized::new("open_login")),
                     )
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
-                            Label::new(cx, "Open login dialog");
+                            Label::new(cx, Localized::new("open_login_dialog"));
                         })
                     });
                     MenuButton::new(
                         cx,
                         |cx| cx.emit(OAuthUiEvent::RefreshToken),
-                        |cx| Label::new(cx, "Refresh Token"),
+                        |cx| Label::new(cx, Localized::new("refresh_token")),
                     )
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
-                            Label::new(cx, "Refresh OAuth token");
+                            Label::new(cx, Localized::new("refresh_oauth_token"));
                         })
                     });
                     MenuButton::new(
                         cx,
                         |cx| cx.emit(OAuthUiEvent::ResetLogin),
-                        |cx| Label::new(cx, "Reset Login"),
+                        |cx| Label::new(cx, Localized::new("reset_login")),
                     )
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
-                            Label::new(cx, "Reset login state");
+                            Label::new(cx, Localized::new("reset_login_state"));
                         })
                     });
                 },

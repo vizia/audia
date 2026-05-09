@@ -13,7 +13,7 @@ pub fn queue_panel(
 ) {
     VStack::new(cx, |cx| {
         HStack::new(cx, |cx| {
-            Label::new(cx, "Queue")
+            Label::new(cx, Localized::new("queue"))
                 .class("panel-title")
                 .width(Stretch(1.0));
 
@@ -21,7 +21,7 @@ pub fn queue_panel(
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Shuffle queue");
+                        Label::new(cx, Localized::new("shuffle_queue"));
                     })
                 })
                 .on_press(|cx| cx.emit(PlaybackUiEvent::ShuffleQueue));
@@ -30,7 +30,7 @@ pub fn queue_panel(
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Show recently played");
+                        Label::new(cx, Localized::new("show_recently_played"));
                     })
                 })
                 .on_press(|cx| {
@@ -43,7 +43,7 @@ pub fn queue_panel(
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Clear queue");
+                        Label::new(cx, Localized::new("clear_queue"));
                     })
                 })
                 .on_press(|cx| cx.emit(PlaybackUiEvent::ClearQueue));

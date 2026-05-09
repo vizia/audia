@@ -11,14 +11,16 @@ pub fn create_playlist_dialog(
         if show_create_playlist_modal.get() {
             Window::popup(cx, true, move |cx| {
                 VStack::new(cx, |cx| {
-                    Label::new(cx, "Create playlist")
+                    Label::new(cx, Localized::new("create_playlist"))
                         .class("login-title")
                         .width(Stretch(1.0))
                         .alignment(Alignment::Center);
 
                     Textbox::new(cx, create_playlist_name)
-                        .placeholder("Playlist name")
-                        .on_edit(|cx, value| cx.emit(PlaylistsUiEvent::SetCreatePlaylistName(value)))
+                        .placeholder(Localized::new("playlist_name_placeholder"))
+                        .on_edit(|cx, value| {
+                            cx.emit(PlaylistsUiEvent::SetCreatePlaylistName(value))
+                        })
                         .on_submit(|cx, _value, enter_key| {
                             if enter_key {
                                 cx.emit(PlaylistsUiEvent::SubmitCreatePlaylist);
@@ -27,12 +29,12 @@ pub fn create_playlist_dialog(
                         .width(Stretch(1.0));
 
                     HStack::new(cx, |cx| {
-                        Button::new(cx, |cx| Label::new(cx, "Create"))
+                        Button::new(cx, |cx| Label::new(cx, Localized::new("create")))
                             .on_press(|cx| cx.emit(PlaylistsUiEvent::SubmitCreatePlaylist))
                             .disabled(is_creating_playlist)
                             .width(Pixels(120.0));
 
-                        Button::new(cx, |cx| Label::new(cx, "Cancel"))
+                        Button::new(cx, |cx| Label::new(cx, Localized::new("cancel")))
                             .variant(ButtonVariant::Secondary)
                             .on_press(|cx| cx.emit(PlaylistsUiEvent::CloseCreatePlaylistModal))
                             .disabled(is_creating_playlist)

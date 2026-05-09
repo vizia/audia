@@ -80,7 +80,7 @@ pub fn playlist_tracks_panel(
                 .class("playback-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Play playlist");
+                        Label::new(cx, Localized::new("play_playlist"));
                     })
                 })
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::PlayPlaylist));
@@ -88,12 +88,12 @@ pub fn playlist_tracks_panel(
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Shuffle playlist");
+                        Label::new(cx, Localized::new("shuffle_playlist"));
                     })
                 })
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::ShufflePlaylist));
             Textbox::new(cx, track_filter_input)
-                .placeholder("Search...")
+                .placeholder(Localized::new("search"))
                 .on_edit(|cx, value| cx.emit(PlaylistsUiEvent::SetTrackFilter(value)))
                 .width(Stretch(1.0));
         })
@@ -170,7 +170,7 @@ pub fn playlist_tracks_panel(
                                     });
                                 }
                             },
-                            |cx| Label::new(cx, "Remove from playlist"),
+                            |cx| Label::new(cx, Localized::new("remove_from_playlist")),
                         );
 
                         for playlist in &playlists_copy {

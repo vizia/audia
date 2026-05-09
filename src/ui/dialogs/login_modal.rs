@@ -12,27 +12,21 @@ pub fn login_modal(
             Window::popup(cx, true, move |cx| {
                 VStack::new(cx, |cx| {
                     VStack::new(cx, |cx| {
-                        Label::new(cx, "Login to Spotify")
+                        Label::new(cx, Localized::new("login_to_spotify"))
                             .class("login-title")
                             .width(Stretch(1.0))
                             .alignment(Alignment::Center);
 
-                        Label::new(
-                            cx,
-                            "Click Login with Spotify to continue. After approval in the browser, this window will close automatically.",
-                        )
-                        .alignment(Alignment::Center)
-                        .width(Stretch(1.0));
+                        Label::new(cx, Localized::new("login_description"))
+                            .alignment(Alignment::Center)
+                            .width(Stretch(1.0));
 
-                        Label::new(
-                            cx,
-                            "A Spotify premium account is required.",
-                        )
-                        .alignment(Alignment::Center)
-                        .width(Stretch(1.0));
+                        Label::new(cx, Localized::new("spotify_premium_required"))
+                            .alignment(Alignment::Center)
+                            .width(Stretch(1.0));
 
                         Textbox::new(cx, login_client_id_input)
-                            .placeholder("Spotify Client ID")
+                            .placeholder(Localized::new("spotify_client_id_placeholder"))
                             .on_edit(|cx, value| cx.emit(OAuthUiEvent::SetLoginClientId(value)))
                             .on_submit(|cx, _value, enter_key| {
                                 if enter_key {
@@ -40,14 +34,19 @@ pub fn login_modal(
                                 }
                             })
                             .width(Stretch(1.0));
-                    }).padding_top(Pixels(12.0)).alignment(Alignment::TopCenter).gap(Pixels(8.0));
+                    })
+                    .padding_top(Pixels(12.0))
+                    .alignment(Alignment::TopCenter)
+                    .gap(Pixels(8.0));
 
                     HStack::new(cx, |cx| {
-                        Button::new(cx, |cx| Label::new(cx, "Login with Spotify"))
-                            .on_press(|cx| cx.emit(OAuthUiEvent::StartOAuthLogin))
-                            .width(Pixels(170.0));
+                        Button::new(cx, |cx| {
+                            Label::new(cx, Localized::new("login_with_spotify"))
+                        })
+                        .on_press(|cx| cx.emit(OAuthUiEvent::StartOAuthLogin))
+                        .width(Pixels(170.0));
 
-                        Button::new(cx, |cx| Label::new(cx, "Close"))
+                        Button::new(cx, |cx| Label::new(cx, Localized::new("close")))
                             .variant(ButtonVariant::Secondary)
                             .on_press(|cx| cx.emit(OAuthUiEvent::CloseLoginModal))
                             .width(Pixels(120.0));

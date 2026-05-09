@@ -49,7 +49,7 @@ pub fn playback_controls_panel(
                     .class("playback-album-button")
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
-                            Label::new(cx, "Open album");
+                            Label::new(cx, Localized::new("open_album"));
                         })
                     })
                     .on_press(move |cx| {
@@ -93,7 +93,7 @@ pub fn playback_controls_panel(
                     .name("Skip Back")
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
-                            Label::new(cx, "Previous track");
+                            Label::new(cx, Localized::new("previous_track"));
                         })
                     })
                     .on_press(|cx| cx.emit(PlaybackUiEvent::Previous));
@@ -107,7 +107,7 @@ pub fn playback_controls_panel(
                 .class("playback-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Play or pause");
+                        Label::new(cx, Localized::new("play_or_pause"));
                     })
                 })
                 .on_toggle(|cx| cx.emit(PlaybackUiEvent::Toggle));
@@ -117,7 +117,7 @@ pub fn playback_controls_panel(
                     .name("Skip Forward")
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
-                            Label::new(cx, "Next track");
+                            Label::new(cx, Localized::new("next_track"));
                         })
                     })
                     .on_press(|cx| cx.emit(PlaybackUiEvent::Next));
@@ -163,7 +163,7 @@ pub fn playback_controls_panel(
                 .class("playback-volume-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Mute or unmute");
+                        Label::new(cx, Localized::new("mute_or_unmute"));
                     })
                 })
                 .on_toggle(|cx| cx.emit(PlaybackUiEvent::ToggleMute));

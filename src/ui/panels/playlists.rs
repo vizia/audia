@@ -6,13 +6,13 @@ use vizia::prelude::*;
 pub fn playlists_panel(cx: &mut Context, playlist_rows: Signal<Vec<PlaylistEntry>>) {
     VStack::new(cx, |cx| {
         HStack::new(cx, |cx| {
-            Label::new(cx, "Playlists").class("panel-title");
+            Label::new(cx, Localized::new("playlists")).class("panel-title");
             Spacer::new(cx);
             Button::new(cx, |cx| Svg::new(cx, ICON_PLUS))
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
                     Tooltip::new(cx, |cx| {
-                        Label::new(cx, "Create a new playlist");
+                        Label::new(cx, Localized::new("create_new_playlist"));
                     })
                 })
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::OpenCreatePlaylistModal));
@@ -56,7 +56,7 @@ pub fn playlists_panel(cx: &mut Context, playlist_rows: Signal<Vec<PlaylistEntry
                                     name: name_for_rename.clone(),
                                 })
                             },
-                            |cx| Label::new(cx, "Rename"),
+                            |cx| Label::new(cx, Localized::new("rename")),
                         );
 
                         let id_for_delete = playlist_id.get();
@@ -65,7 +65,7 @@ pub fn playlists_panel(cx: &mut Context, playlist_rows: Signal<Vec<PlaylistEntry
                             move |cx| {
                                 cx.emit(PlaylistsUiEvent::DeletePlaylist(id_for_delete.clone()))
                             },
-                            |cx| Label::new(cx, "Delete"),
+                            |cx| Label::new(cx, Localized::new("delete")),
                         );
                     },
                 )
