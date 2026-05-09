@@ -42,7 +42,11 @@ pub fn run() -> Result<(), ApplicationError> {
         worker::start_playback_progress_poller(backend.clone(), cx.get_proxy());
 
         // Dialogs
-        dialogs::login_modal(cx, app_state.oauth_state.show_login_modal);
+        dialogs::login_modal(
+            cx,
+            app_state.oauth_state.show_login_modal,
+            app_state.oauth_state.login_client_id_input,
+        );
 
         dialogs::preferences_dialog(cx, icon, app_state.preferences_data);
 
@@ -147,7 +151,6 @@ pub fn run() -> Result<(), ApplicationError> {
                                 app_state.playlists_state.active_playlist_image_key,
                                 app_state.playlists_state.playlist_track_filter_input,
                                 app_state.playlists_state.filtered_playlist_tracks,
-                                app_state.playlists_state.playlist_selected_index,
                                 app_state.playlists_state.shuffle_mode,
                                 app_state.playlists_state.playlist_rows,
                             );

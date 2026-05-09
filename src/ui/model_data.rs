@@ -41,7 +41,7 @@ impl UiModel {
                 .keyframe(1.0, |key| key.opacity(0.0)),
         );
 
-        let mut preferences_data = PreferencesData::new(cx);
+        let mut preferences_data = PreferencesData::new();
         preferences_data.load(cx);
 
         panel_state.load();
@@ -58,7 +58,7 @@ impl UiModel {
         // Share the same preference signals with playback state so UI and behavior stay in lockstep.
         playback_state.autoplay_on_queue_add = preferences_data.autoplay_on_queue_add;
         playback_state.restore_queue_on_startup = preferences_data.restore_queue_on_startup;
-        
+
         // Restore queue if enabled
         playback_state.restore_queue();
 

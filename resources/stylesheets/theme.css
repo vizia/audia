@@ -1,8 +1,11 @@
 :root {
+    --primary: #ba710c;
+    --primary-foreground: #f0f0f0;
 }
 
 .dark {
     --primary: #ba710c;
+    --primary-hover: #b67711;
     --primary-foreground: #f0f0f0;
 }
 
@@ -13,6 +16,12 @@
 * {
     /* border-width: 1px;
     border-color: red; */
+}
+
+button,
+toggle-button,
+submenu {
+    cursor: hand;
 }
 
 /* Login Dialog */

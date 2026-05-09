@@ -12,6 +12,7 @@ pub struct OAuthState {
     pub status: Signal<String>,
     pub auth_valid: Signal<bool>,
     pub show_login_modal: Signal<bool>,
+    pub login_client_id_input: Signal<String>,
     pub auth_username: Signal<String>,
     pub profile_image_key: Signal<Option<String>>,
 }
@@ -23,6 +24,7 @@ impl OAuthState {
             status,
             auth_valid: Signal::new(false),
             show_login_modal: Signal::new(false),
+            login_client_id_input: Signal::new(String::new()),
             auth_username: Signal::new(String::new()),
             profile_image_key: Signal::new(None),
         }
@@ -68,8 +70,17 @@ impl Model for OAuthState {
                 self.status.set("Resetting saved login...".to_string());
                 worker::reset_login(self.backend.clone(), cx.get_proxy());
             }
+            OAuthUiEvent::SetLoginClientId(client_id) => {
+                self.login_client_id_input.set(client_id.clone());
+            }
             OAuthUiEvent::StartOAuthLogin => {
-                let client_id = configured_client_id();
+                let typed_client_id = self.login_client_id_input.get();
+                let typed_client_id = typed_client_id.trim();
+                let client_id = if typed_client_id.is_empty() {
+                    configured_client_id()
+                } else {
+                    Some(typed_client_id.to_string())
+                };
 
                 let Some(client_id) = client_id else {
                     self.status.set(

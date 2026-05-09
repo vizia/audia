@@ -107,7 +107,6 @@ pub fn search_results_panel(
                         .class("result-row");
                     })
                     .selectable(Selectable::Single)
-                    .selection(selected_index.map(|idx| vec![*idx]))
                     .selection_follows_focus(true)
                     .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectResult(idx)))
                     .width(Stretch(1.0))

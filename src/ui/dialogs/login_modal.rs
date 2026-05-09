@@ -1,11 +1,15 @@
 use crate::ui::events::OAuthUiEvent;
 use vizia::prelude::*;
 
-pub fn login_modal(cx: &mut Context, show_login_modal: Signal<bool>) {
+pub fn login_modal(
+    cx: &mut Context,
+    show_login_modal: Signal<bool>,
+    login_client_id_input: Signal<String>,
+) {
     Binding::new(cx, show_login_modal, move |cx| {
         let is_open = show_login_modal.get();
         if is_open {
-            Window::popup(cx, true, |cx| {
+            Window::popup(cx, true, move |cx| {
                 VStack::new(cx, |cx| {
                     VStack::new(cx, |cx| {
                         Label::new(cx, "Login to Spotify")
@@ -26,6 +30,16 @@ pub fn login_modal(cx: &mut Context, show_login_modal: Signal<bool>) {
                         )
                         .alignment(Alignment::Center)
                         .width(Stretch(1.0));
+
+                        Textbox::new(cx, login_client_id_input)
+                            .placeholder("Spotify Client ID")
+                            .on_edit(|cx, value| cx.emit(OAuthUiEvent::SetLoginClientId(value)))
+                            .on_submit(|cx, _value, enter_key| {
+                                if enter_key {
+                                    cx.emit(OAuthUiEvent::StartOAuthLogin);
+                                }
+                            })
+                            .width(Stretch(1.0));
                     }).padding_top(Pixels(12.0)).alignment(Alignment::TopCenter).gap(Pixels(8.0));
 
                     HStack::new(cx, |cx| {
@@ -48,7 +62,7 @@ pub fn login_modal(cx: &mut Context, show_login_modal: Signal<bool>) {
             })
             .on_close(|cx| cx.emit(OAuthUiEvent::CloseLoginModal))
             .title("Spotify Login")
-            .inner_size((520, 220))
+            .inner_size((520, 270))
             .anchor(Anchor::Center);
         }
     });

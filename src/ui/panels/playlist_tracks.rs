@@ -12,7 +12,6 @@ pub fn playlist_tracks_panel(
     playlist_image_key: Signal<Option<String>>,
     track_filter_input: Signal<String>,
     filtered_playlist_tracks: Signal<Vec<Track>>,
-    playlist_selected_index: Signal<usize>,
     shuffle_mode: Signal<bool>,
     playlist_rows: Signal<Vec<PlaylistEntry>>,
 ) {
@@ -94,7 +93,7 @@ pub fn playlist_tracks_panel(
                 })
                 .on_press(|cx| cx.emit(PlaylistsUiEvent::ShufflePlaylist));
             Textbox::new(cx, track_filter_input)
-                //.placeholder("Search tracks")
+                .placeholder("Search...")
                 .on_edit(|cx, value| cx.emit(PlaylistsUiEvent::SetTrackFilter(value)))
                 .width(Stretch(1.0));
         })
@@ -112,6 +111,7 @@ pub fn playlist_tracks_panel(
                 let image_key = item.map(|track| track.album_image_key.clone());
                 let track_id = item.map(|track| track.id.clone());
 
+                // Album art with click to open album
                 Binding::new(cx, image_key, move |cx| {
                     let tid = track_id.get();
                     if let Some(key) = image_key.get() {
@@ -122,7 +122,7 @@ pub fn playlist_tracks_panel(
                                 cx.emit(SearchUiEvent::OpenAlbumFromTrack(tid.clone()))
                             });
                     } else {
-                        Label::new(cx, "♪")
+                        Element::new(cx)
                             .class("playlist-track-album-art")
                             .pointer_events(PointerEvents::Auto)
                             .on_press(move |cx| {
@@ -131,6 +131,7 @@ pub fn playlist_tracks_panel(
                     }
                 });
 
+                // Track title and artist
                 VStack::new(cx, |cx| {
                     Label::new(cx, item.map(|track| track.name.clone()))
                         .text_wrap(false)
@@ -143,15 +144,16 @@ pub fn playlist_tracks_panel(
                 .height(Auto)
                 .gap(Pixels(2.0));
 
+                // Track duration
                 Label::new(cx, item.map(|track| format_time(track.duration_ms)))
                     .hoverable(false)
                     .class("track-duration");
 
-                // Add to Playlist menu
                 let track_id_for_menu = item.map(|track| track.id.clone());
                 let track_id_copy = track_id_for_menu.get();
                 let playlists_copy = playlist_rows.get();
 
+                // Add to Playlist menu
                 Submenu::new(
                     cx,
                     |cx| Svg::new(cx, ICON_DOTS),
@@ -198,7 +200,6 @@ pub fn playlist_tracks_panel(
             .class("playlist-track-row");
         })
         .selectable(Selectable::Single)
-        .selection(playlist_selected_index.map(|idx| vec![*idx]))
         .selection_follows_focus(true)
         .on_select(|cx, idx| cx.emit(PlaylistsUiEvent::PlaylistTrackSelected(idx)))
         .width(Stretch(1.0))

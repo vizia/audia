@@ -3,6 +3,7 @@ pub enum OAuthUiEvent {
     OpenLoginModal,
     CloseLoginModal,
     ResetLogin,
+    SetLoginClientId(String),
     StartOAuthLogin,
     RefreshToken,
 }

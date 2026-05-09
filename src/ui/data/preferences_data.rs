@@ -20,19 +20,16 @@ struct PreferencesSnapshot {
     #[serde(default)]
     follow_system_theme: bool,
     #[serde(default)]
-    plugins_path: PathBuf,
-    #[serde(default)]
     autoplay_on_queue_add: bool,
     #[serde(default)]
     restore_queue_on_startup: bool,
 }
 
-/// Data model for the Preferences Dialog (reactive signals)
-#[derive(Clone, Copy, Serialize, Deserialize)]
+/// Data model for the Preferences Dialog
+#[derive(Clone, Copy)]
 pub struct PreferencesData {
-    #[serde(skip)]
     pub show: Signal<bool>,
-    #[serde(skip)]
+
     pub selected_page: Signal<PreferencesPage>,
     pub search_string: Signal<String>,
     pub preferences: Signal<Vec<Preference>>,
@@ -50,15 +47,12 @@ pub struct PreferencesData {
     // Playback Page
     pub autoplay_on_queue_add: Signal<bool>,
     pub restore_queue_on_startup: Signal<bool>,
-
-    // Plugins Page
-    pub plugins_path: Signal<PathBuf>,
 }
 
 impl PreferencesData {
     /// Create a new PreferencesData
-    pub fn new(cx: &mut Context) -> Self {
-        let data = Self {
+    pub fn new() -> Self {
+        Self {
             show: Signal::new(false),
             selected_page: Signal::new(PreferencesPage::General),
             search_string: Signal::new(String::new()),
@@ -74,9 +68,7 @@ impl PreferencesData {
             language: Signal::new(vec![
                 String::from("System Default"),
                 String::from("English (UK)"),
-                String::from("Deutsch"),
-                String::from("Español"),
-                String::from("Français"),
+                String::from("English (US)"),
             ]),
             selected_language: Signal::new(Some(0)),
 
@@ -88,11 +80,7 @@ impl PreferencesData {
             // Playback Page
             autoplay_on_queue_add: Signal::new(true),
             restore_queue_on_startup: Signal::new(false),
-
-            // Plugins Page
-            plugins_path: Signal::new(PathBuf::new()),
-        };
-        data
+        }
     }
 
     /// Search the preferences
@@ -114,7 +102,9 @@ impl PreferencesData {
                 })
                 .collect::<Vec<_>>()
         });
+
         filtered_preferences.sort_by_key(|a| std::cmp::Reverse(a.1));
+
         self.filtered_preferences
             .set(filtered_preferences.iter().map(|(p, _)| *p).collect());
     }
@@ -138,10 +128,10 @@ impl PreferencesData {
             selected_language: self.selected_language.get_untracked(),
             selected_theme: self.selected_theme.get_untracked(),
             follow_system_theme: self.follow_system_theme.get_untracked(),
-            plugins_path: self.plugins_path.get_untracked(),
             autoplay_on_queue_add: self.autoplay_on_queue_add.get_untracked(),
             restore_queue_on_startup: self.restore_queue_on_startup.get_untracked(),
         };
+
         if let Ok(data) = ron::ser::to_string_pretty(&snapshot, ron::ser::PrettyConfig::default()) {
             let _ = std::fs::write(path, data);
         }
@@ -151,6 +141,7 @@ impl PreferencesData {
         let Ok(path) = Self::preferences_path() else {
             return;
         };
+
         if let Ok(f) = std::fs::File::open(path) {
             if let Ok(saved) = from_reader::<_, PreferencesSnapshot>(f) {
                 self.search_string.set(saved.search_string);
@@ -167,8 +158,8 @@ impl PreferencesData {
                         ThemeMode::System
                     },
                 ));
+
                 self.follow_system_theme.set(saved.follow_system_theme);
-                self.plugins_path.set(saved.plugins_path);
                 self.autoplay_on_queue_add.set(saved.autoplay_on_queue_add);
                 self.restore_queue_on_startup
                     .set(saved.restore_queue_on_startup);
@@ -283,6 +274,7 @@ impl Model for PreferencesData {
             }
             PreferencesEvent::SetSelectedTheme(selected_theme) => {
                 self.selected_theme.set(Some(*selected_theme));
+                self.follow_system_theme.set(false);
                 cx.emit(EnvironmentEvent::SetThemeMode(if *selected_theme == 0 {
                     ThemeMode::LightMode
                 } else {
@@ -292,6 +284,7 @@ impl Model for PreferencesData {
             }
             PreferencesEvent::ToggleUseSystemTheme => {
                 self.follow_system_theme.update(|v| *v = !*v);
+                cx.emit(EnvironmentEvent::SetThemeMode(ThemeMode::System));
                 self.save();
             }
             PreferencesEvent::ToggleAutoplayOnQueueAdd => {
