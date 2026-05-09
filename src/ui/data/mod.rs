@@ -7,6 +7,9 @@ pub use artist_state::*;
 mod center_state;
 pub use center_state::*;
 
+mod right_panel_state;
+pub use right_panel_state::*;
+
 mod preferences_data;
 pub use preferences_data::*;
 

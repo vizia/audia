@@ -8,6 +8,7 @@ impl Model for UiModel {
         self.preferences_data.event(cx, event);
         self.panel_state.event(cx, event);
         self.center_state.event(cx, event);
+        self.right_panel_state.event(cx, event);
         self.playback_state.event(cx, event);
         self.search_state.event(cx, event);
         self.album_state.event(cx, event);

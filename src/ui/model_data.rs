@@ -1,6 +1,6 @@
 use crate::ui::data::{
     AlbumState, ArtistState, CenterState, OAuthState, PanelState, PlaybackState, PlaylistsState,
-    PreferencesData, SearchState,
+    PreferencesData, RightPanelState, SearchState,
 };
 use crate::worker;
 use vizia::prelude::*;
@@ -13,6 +13,12 @@ pub(crate) enum CenterPage {
     Artist,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum RightPanelPage {
+    Queue,
+    RecentlyPlayed,
+}
+
 #[derive(Clone)]
 pub struct UiModel {
     pub(crate) status: Signal<String>,
@@ -20,6 +26,7 @@ pub struct UiModel {
     pub(crate) preferences_data: PreferencesData,
     pub(crate) panel_state: PanelState,
     pub(crate) center_state: CenterState,
+    pub(crate) right_panel_state: RightPanelState,
     pub(crate) playback_state: PlaybackState,
     pub(crate) search_state: SearchState,
     pub(crate) album_state: AlbumState,
@@ -68,6 +75,7 @@ impl UiModel {
             preferences_data: preferences_data,
             panel_state,
             center_state: CenterState::new(),
+            right_panel_state: RightPanelState::new(),
             playback_state,
             search_state: SearchState::new(backend.clone(), status.clone()),
             album_state: AlbumState::new(),

@@ -9,7 +9,7 @@ pub mod events;
 pub mod model_data;
 pub mod panels;
 
-use model_data::{CenterPage, UiModel};
+use model_data::{CenterPage, RightPanelPage, UiModel};
 
 pub fn run() -> Result<(), ApplicationError> {
     let icon = image::ImageReader::new(std::io::Cursor::new(include_bytes!(
@@ -201,12 +201,23 @@ pub fn run() -> Result<(), ApplicationError> {
                         cx.emit(PanelEvent::SetRightPanelWidth(w));
                     },
                     move |cx| {
-                        panels::queue_panel(
-                            cx,
-                            app_state.playback_state.queue_tracks,
-                            app_state.playback_state.queue_current_index,
-                            app_state.playback_state.recently_played,
-                        );
+                        Binding::new(cx, app_state.right_panel_state.current_page, move |cx| {
+                            match app_state.right_panel_state.current_page.get() {
+                                RightPanelPage::Queue => {
+                                    panels::queue_panel(
+                                        cx,
+                                        app_state.playback_state.queue_tracks,
+                                        app_state.playback_state.queue_current_index,
+                                    );
+                                }
+                                RightPanelPage::RecentlyPlayed => {
+                                    panels::recently_played_panel(
+                                        cx,
+                                        app_state.playback_state.recently_played,
+                                    );
+                                }
+                            }
+                        });
                     },
                 )
                 .class("right-panel");
