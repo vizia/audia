@@ -33,6 +33,12 @@ pub fn run() -> Result<(), ApplicationError> {
         )
         .expect("Failed to load en-GB translation");
 
+        cx.add_translation(
+            langid!("en-US"),
+            include_str!("../../resources/translations/en-US/strings.ftl"),
+        )
+        .expect("Failed to load en-US translation");
+
         let backend = worker::init_backend(cx.get_proxy());
 
         let app_state = UiModel::new(cx, backend.clone(), panel_state);
@@ -118,10 +124,10 @@ pub fn run() -> Result<(), ApplicationError> {
                 app_state.center_state.can_go_forward,
             );
 
-            Textbox::new(cx, app_state.status)
-                .class("status")
-                .read_only(true)
-                .on_edit(|_, _| {});
+            // Textbox::new(cx, app_state.status)
+            //     .class("status")
+            //     .read_only(true)
+            //     .on_edit(|_, _| {});
 
             HStack::new(cx, |cx| {
                 Resizable::new(
@@ -176,7 +182,6 @@ pub fn run() -> Result<(), ApplicationError> {
                                 app_state.search_state.search_result_rows,
                                 app_state.search_state.search_artist_rows,
                                 app_state.search_state.search_album_rows,
-                                app_state.search_state.selected_index,
                                 app_state.search_state.search_tabs,
                                 app_state.search_state.selected_search_tab,
                                 app_state.playlists_state.playlist_rows,

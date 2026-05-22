@@ -78,7 +78,7 @@ async fn load_images_parallel(
 }
 
 pub struct BackendState {
-    pub runtime: Arc<Runtime>,
+    pub runtime: Result<Arc<Runtime>, String>,
     pub spotify: SpotifyService,
     pub playback: SharedPlayback,
     pub oauth_in_progress: bool,
@@ -89,9 +89,10 @@ pub struct BackendState {
 
 impl Default for BackendState {
     fn default() -> Self {
-        let runtime = Runtime::new().expect("failed to build shared tokio runtime");
         Self {
-            runtime: Arc::new(runtime),
+            runtime: Runtime::new()
+                .map(Arc::new)
+                .map_err(|err| format!("failed to build shared tokio runtime: {err}")),
             spotify: SpotifyService::default(),
             playback: Arc::new(Mutex::new(PlaybackService::default())),
             oauth_in_progress: false,
@@ -125,20 +126,29 @@ impl BackendState {
 pub type SharedBackend = Arc<Mutex<BackendState>>;
 pub type SharedPlayback = Arc<Mutex<PlaybackService>>;
 
-fn lock_backend(backend: &SharedBackend) -> MutexGuard<'_, BackendState> {
+pub fn lock_backend(backend: &SharedBackend) -> Result<MutexGuard<'_, BackendState>, String> {
     backend
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .map_err(|_| "backend state is unavailable after a prior panic".to_string())
 }
 
-fn lock_playback(playback: &SharedPlayback) -> MutexGuard<'_, PlaybackService> {
+pub fn lock_playback(playback: &SharedPlayback) -> Result<MutexGuard<'_, PlaybackService>, String> {
     playback
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .map_err(|_| "playback state is unavailable after a prior panic".to_string())
 }
 
-pub fn shared_playback(backend: &SharedBackend) -> SharedPlayback {
-    lock_backend(backend).playback.clone()
+pub fn backend_runtime(backend: &SharedBackend) -> Result<Arc<Runtime>, String> {
+    lock_backend(backend)?.runtime.clone()
+}
+
+pub fn shared_playback(backend: &SharedBackend) -> Result<SharedPlayback, String> {
+    Ok(lock_backend(backend)?.playback.clone())
+}
+
+pub fn set_oauth_in_progress(backend: &SharedBackend, in_progress: bool) -> Result<(), String> {
+    lock_backend(backend)?.oauth_in_progress = in_progress;
+    Ok(())
 }
 
 fn is_auth_error(err: &str) -> bool {
@@ -151,7 +161,7 @@ fn is_auth_error(err: &str) -> bool {
 
 async fn force_refresh_access_token_async(backend: &SharedBackend) -> Result<(), String> {
     let (cid, rt) = {
-        let state = lock_backend(backend);
+        let state = lock_backend(backend)?;
         (state.client_id.clone(), state.refresh_token.clone())
     };
 
@@ -172,7 +182,7 @@ async fn force_refresh_access_token_async(backend: &SharedBackend) -> Result<(),
     let new_refresh = tokens.refresh_token.clone();
 
     {
-        let mut state = lock_backend(backend);
+        let mut state = lock_backend(backend)?;
         state.spotify.set_access_token(tokens.access_token.clone());
         if let Some(rt) = new_refresh {
             state.refresh_token = Some(rt);
@@ -182,7 +192,7 @@ async fn force_refresh_access_token_async(backend: &SharedBackend) -> Result<(),
 
     let _ = bootstrap_playback_from_token(backend, &tokens.access_token).await;
 
-    let refresh_token = lock_backend(backend).refresh_token.clone();
+    let refresh_token = lock_backend(backend)?.refresh_token.clone();
     let _ = TokenStore {
         access_token: tokens.access_token,
         refresh_token,
@@ -200,12 +210,12 @@ where
 {
     ensure_fresh_access_token_async(backend).await?;
 
-    let spotify = { lock_backend(backend).spotify.clone() };
+    let spotify = { lock_backend(backend)?.spotify.clone() };
     match op(spotify).await {
         Ok(value) => Ok(value),
         Err(err) if is_auth_error(&err) => {
             force_refresh_access_token_async(backend).await?;
-            let spotify = { lock_backend(backend).spotify.clone() };
+            let spotify = { lock_backend(backend)?.spotify.clone() };
             op(spotify).await
         }
         Err(err) => Err(err),
@@ -213,7 +223,7 @@ where
 }
 
 async fn ensure_fresh_access_token_async(backend: &SharedBackend) -> Result<(), String> {
-    let needs_refresh = { lock_backend(backend).token_needs_refresh() };
+    let needs_refresh = { lock_backend(backend)?.token_needs_refresh() };
 
     if !needs_refresh {
         return Ok(());
@@ -226,15 +236,15 @@ async fn bootstrap_playback_from_token(
     backend: &SharedBackend,
     access_token: &str,
 ) -> Result<(), String> {
-    let shared_playback = shared_playback(backend);
+    let shared_playback = shared_playback(backend)?;
     let mut playback = {
-        let mut state = lock_playback(&shared_playback);
+        let mut state = lock_playback(&shared_playback)?;
         std::mem::take(&mut *state)
     };
 
     let result = playback.bootstrap_from_access_token(access_token).await;
 
-    let mut state = lock_playback(&shared_playback);
+    let mut state = lock_playback(&shared_playback)?;
     *state = playback;
     result
 }
@@ -244,12 +254,12 @@ async fn apply_token_response(
     tokens: &oauth_api::TokenResponse,
     client_id: &str,
     proxy: &mut ContextProxy,
-) {
+) -> Result<(), String> {
     let expires_at = BackendState::now_secs() + tokens.expires_in;
     let new_refresh = tokens.refresh_token.clone();
 
     {
-        let mut state = backend.lock().unwrap();
+        let mut state = lock_backend(backend)?;
         state.spotify.set_access_token(tokens.access_token.clone());
         if let Some(rt) = new_refresh {
             state.refresh_token = Some(rt);
@@ -265,7 +275,7 @@ async fn apply_token_response(
         let _ = proxy.emit(PlaybackAppEvent::SessionReady);
     }
 
-    let refresh_token = backend.lock().unwrap().refresh_token.clone();
+    let refresh_token = lock_backend(backend)?.refresh_token.clone();
     let _ = TokenStore {
         access_token: tokens.access_token.clone(),
         refresh_token,
@@ -273,9 +283,11 @@ async fn apply_token_response(
     }
     .save();
 
-    let spotify = { lock_backend(backend).spotify.clone() };
+    let spotify = { lock_backend(backend)?.spotify.clone() };
     let profile = spotify.fetch_profile().await.ok();
     emit_login_profile_event(profile, proxy);
+
+    Ok(())
 }
 
 fn emit_login_profile_event(profile: Option<SpotifyProfile>, proxy: &mut ContextProxy) {

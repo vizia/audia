@@ -171,26 +171,11 @@ pub fn playback_controls_panel(
                     .range(0.0..100.0)
                     .on_change(|cx, val| cx.emit(PlaybackUiEvent::SetVolume(val)))
                     .width(Pixels(110.0));
-                // Label::new(
-                //     cx,
-                //     playback_volume.map(|v| format!("{}%", v.round() as i32)),
-                // )
-                // .width(Pixels(44.0));
             })
             .height(Auto)
             .width(Auto)
             .alignment(Alignment::Center)
             .gap(Pixels(8.0));
-
-            // PickList::new(
-            //     cx,
-            //     playback_device_options,
-            //     selected_playback_device_index,
-            //     true,
-            // )
-            // .width(Pixels(220.0))
-            // .placeholder("Choose a playback device")
-            // .on_select(|cx, index| cx.emit(PlaybackUiEvent::SelectPlaybackDevice(index)));
         })
         .alignment(Alignment::Right)
         .height(Auto);

@@ -3,6 +3,8 @@ use crate::ui::data::{
     PreferencesData, RightPanelState, SearchState,
 };
 use crate::worker;
+use crate::playback::PlaybackService;
+use std::sync::{Arc, Mutex};
 use vizia::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,7 +55,13 @@ impl UiModel {
 
         panel_state.load();
 
-        let playback = worker::shared_playback(&backend);
+        let playback = match worker::shared_playback(&backend) {
+            Ok(playback) => playback,
+            Err(err) => {
+                status.set(format!("Initialization warning: {err}"));
+                Arc::new(Mutex::new(PlaybackService::default()))
+            }
+        };
 
         let mut playback_state = PlaybackState::new(
             backend.clone(),

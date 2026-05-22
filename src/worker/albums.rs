@@ -1,16 +1,17 @@
-use std::sync::Arc;
-
 use vizia::prelude::ContextProxy;
 
 use crate::messages::Album;
 use crate::ui::events::{SearchAppEvent, SystemAppEvent};
 
-use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
+use super::{SharedBackend, backend_runtime, load_images_parallel, with_spotify_auth_retry};
 
 pub fn fetch_album_tracks(backend: SharedBackend, album: Album, mut proxy: ContextProxy) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
@@ -68,9 +69,12 @@ pub fn fetch_album_tracks(backend: SharedBackend, album: Album, mut proxy: Conte
 }
 
 pub fn fetch_album_from_track(backend: SharedBackend, track_id: String, mut proxy: ContextProxy) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {

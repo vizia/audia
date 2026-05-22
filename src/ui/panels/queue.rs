@@ -3,7 +3,7 @@ use crate::ui::{
     events::{PlaybackUiEvent, RightPanelUiEvent},
     model_data::RightPanelPage,
 };
-use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_CLEAR_ALL, ICON_INPUT_X, ICON_LIST, ICON_X};
+use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_LIST, ICON_X};
 use vizia::prelude::*;
 
 pub fn queue_panel(
@@ -70,10 +70,10 @@ pub fn queue_panel(
                 VStack::new(cx, |cx| {
                     Label::new(cx, item.map(|track| track.name.clone()))
                         .text_wrap(false)
-                        .class("search-result-title");
+                        .class("track-title");
                     Label::new(cx, item.map(|track| track.artist.clone()))
                         .text_wrap(false)
-                        .class("search-result-artist");
+                        .class("track-artist");
                 })
                 .width(Stretch(1.0))
                 .height(Auto)

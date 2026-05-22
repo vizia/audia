@@ -4,19 +4,32 @@ use crate::oauth as oauth_api;
 use crate::storage::{ClientCredentialStore, clear_persisted_login};
 use crate::ui::events::{OAuthAppEvent, SystemAppEvent};
 
-use super::{SharedBackend, apply_token_response, shared_playback};
+use super::{
+    SharedBackend, apply_token_response, backend_runtime, lock_backend, lock_playback,
+    set_oauth_in_progress, shared_playback,
+};
 
 pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: ContextProxy) {
     std::thread::spawn(move || {
-        let runtime = {
-            let state = backend.lock().unwrap();
-            state.runtime.clone()
+        let runtime = match backend_runtime(&backend) {
+            Ok(runtime) => runtime,
+            Err(err) => {
+                let mut proxy = proxy;
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+                return;
+            }
         };
 
         let mut proxy = proxy;
 
         {
-            let mut state = backend.lock().unwrap();
+            let mut state = match lock_backend(&backend) {
+                Ok(state) => state,
+                Err(err) => {
+                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                    return;
+                }
+            };
             if state.oauth_in_progress {
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(
                     "OAuth login is already in progress. Complete it in your browser.".to_string(),
@@ -31,7 +44,9 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: Conte
         })
         .save()
         {
-            backend.lock().unwrap().oauth_in_progress = false;
+            if let Err(lock_err) = set_oauth_in_progress(&backend, false) {
+                let _ = proxy.emit(SystemAppEvent::Error(lock_err));
+            }
             let _ = proxy.emit(SystemAppEvent::Error(format!(
                 "Failed to save client credentials: {err}"
             )));
@@ -39,7 +54,13 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: Conte
         }
 
         {
-            let mut state = backend.lock().unwrap();
+            let mut state = match lock_backend(&backend) {
+                Ok(state) => state,
+                Err(err) => {
+                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                    return;
+                }
+            };
             state.client_id = Some(client_id.clone());
         }
 
@@ -49,7 +70,9 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: Conte
         let url = oauth_api::auth_url(&client_id, &state_token, &challenge);
 
         if let Err(err) = webbrowser::open(&url) {
-            backend.lock().unwrap().oauth_in_progress = false;
+            if let Err(lock_err) = set_oauth_in_progress(&backend, false) {
+                let _ = proxy.emit(SystemAppEvent::Error(lock_err));
+            }
             let _ = proxy.emit(SystemAppEvent::Error(format!(
                 "Failed to open browser: {err}"
             )));
@@ -71,7 +94,9 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: Conte
         let code = match code_result {
             Ok(code) => code,
             Err(err) => {
-                backend.lock().unwrap().oauth_in_progress = false;
+                if let Err(lock_err) = set_oauth_in_progress(&backend, false) {
+                    let _ = proxy.emit(SystemAppEvent::Error(lock_err));
+                }
                 let _ = proxy.emit(SystemAppEvent::Error(format!(
                     "OAuth callback error: {err}"
                 )));
@@ -86,11 +111,19 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: Conte
         runtime.spawn(async move {
             match oauth_api::exchange_code(&client_id, &code, &code_verifier).await {
                 Ok(tokens) => {
-                    apply_token_response(&backend, &tokens, &client_id, &mut proxy).await;
-                    backend.lock().unwrap().oauth_in_progress = false;
+                    if let Err(err) =
+                        apply_token_response(&backend, &tokens, &client_id, &mut proxy).await
+                    {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                    }
+                    if let Err(err) = set_oauth_in_progress(&backend, false) {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                    }
                 }
                 Err(err) => {
-                    backend.lock().unwrap().oauth_in_progress = false;
+                    if let Err(lock_err) = set_oauth_in_progress(&backend, false) {
+                        let _ = proxy.emit(SystemAppEvent::Error(lock_err));
+                    }
                     let _ = proxy.emit(SystemAppEvent::Error(format!(
                         "Token exchange failed: {err}"
                     )));
@@ -101,22 +134,36 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, proxy: Conte
 }
 
 pub fn refresh_access_token(backend: SharedBackend, proxy: ContextProxy) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        state.runtime.clone()
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let mut proxy = proxy;
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
         let mut proxy = proxy;
         let (cid, rt) = {
-            let state = backend.lock().unwrap();
+            let state = match lock_backend(&backend) {
+                Ok(state) => state,
+                Err(err) => {
+                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                    return;
+                }
+            };
             (state.client_id.clone(), state.refresh_token.clone())
         };
 
         match (cid, rt) {
             (Some(cid), Some(rt)) => match oauth_api::refresh_access_token(&cid, &rt).await {
                 Ok(tokens) => {
-                    apply_token_response(&backend, &tokens, &cid, &mut proxy).await;
+                    if let Err(err) =
+                        apply_token_response(&backend, &tokens, &cid, &mut proxy).await
+                    {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                    }
                 }
                 Err(err) => {
                     let _ = proxy.emit(SystemAppEvent::Error(format!(
@@ -143,7 +190,13 @@ pub fn reset_login(backend: SharedBackend, proxy: ContextProxy) {
         }
 
         {
-            let mut state = backend.lock().unwrap();
+            let mut state = match lock_backend(&backend) {
+                Ok(state) => state,
+                Err(err) => {
+                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                    return;
+                }
+            };
             state.spotify.clear_access_token();
             state.refresh_token = None;
             state.client_id = None;
@@ -151,10 +204,20 @@ pub fn reset_login(backend: SharedBackend, proxy: ContextProxy) {
         }
 
         {
-            let playback = shared_playback(&backend);
-            let mut state = playback
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let playback = match shared_playback(&backend) {
+                Ok(playback) => playback,
+                Err(err) => {
+                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                    return;
+                }
+            };
+            let mut state = match lock_playback(&playback) {
+                Ok(state) => state,
+                Err(err) => {
+                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                    return;
+                }
+            };
             state.reset();
         }
 

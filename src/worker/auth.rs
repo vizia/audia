@@ -6,14 +6,23 @@ use crate::oauth as oauth_api;
 use crate::storage::{ClientCredentialStore, TokenStore};
 use crate::ui::events::{PlaybackAppEvent, SystemAppEvent};
 
-use super::{BackendState, SharedBackend, apply_token_response, bootstrap_playback_from_token, emit_login_profile_event};
+use super::{
+    BackendState, SharedBackend, apply_token_response, backend_runtime,
+    bootstrap_playback_from_token, emit_login_profile_event, lock_backend,
+};
 
 pub fn init_backend(proxy: ContextProxy) -> SharedBackend {
     let backend: SharedBackend = Arc::new(Mutex::new(BackendState::default()));
     let backend_clone = Arc::clone(&backend);
-    let runtime = {
-        let state = backend_clone.lock().unwrap();
-        state.runtime.clone()
+    let runtime = match backend_runtime(&backend_clone) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            proxy.spawn(move |proxy| {
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemAppEvent::Ready);
+            });
+            return backend;
+        }
     };
 
     runtime.spawn(async move {
@@ -21,19 +30,40 @@ pub fn init_backend(proxy: ContextProxy) -> SharedBackend {
 
         if let Ok(Some(token)) = TokenStore::load() {
             {
-                let mut state = backend_clone.lock().unwrap();
+                let mut state = match lock_backend(&backend_clone) {
+                    Ok(state) => state,
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                        let _ = proxy.emit(SystemAppEvent::Ready);
+                        return;
+                    }
+                };
                 state.spotify.set_access_token(token.access_token.clone());
                 state.refresh_token = token.refresh_token.clone();
                 state.token_expires_at = token.expires_at;
             }
 
             if let Ok(Some(creds)) = ClientCredentialStore::load() {
-                let mut state = backend_clone.lock().unwrap();
+                let mut state = match lock_backend(&backend_clone) {
+                    Ok(state) => state,
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                        let _ = proxy.emit(SystemAppEvent::Ready);
+                        return;
+                    }
+                };
                 state.client_id = Some(creds.client_id);
             }
 
             let (needs_refresh, cid, rt) = {
-                let state = backend_clone.lock().unwrap();
+                let state = match lock_backend(&backend_clone) {
+                    Ok(state) => state,
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                        let _ = proxy.emit(SystemAppEvent::Ready);
+                        return;
+                    }
+                };
                 (
                     state.token_needs_refresh(),
                     state.client_id.clone(),
@@ -45,7 +75,12 @@ pub fn init_backend(proxy: ContextProxy) -> SharedBackend {
                 if let (Some(cid), Some(rt)) = (cid, rt) {
                     match oauth_api::refresh_access_token(&cid, &rt).await {
                         Ok(tokens) => {
-                            apply_token_response(&backend_clone, &tokens, &cid, &mut proxy).await;
+                            if let Err(err) =
+                                apply_token_response(&backend_clone, &tokens, &cid, &mut proxy)
+                                    .await
+                            {
+                                let _ = proxy.emit(SystemAppEvent::Error(err));
+                            }
                             let _ = proxy.emit(SystemAppEvent::Ready);
                         }
                         Err(err) => {
@@ -58,9 +93,13 @@ pub fn init_backend(proxy: ContextProxy) -> SharedBackend {
                     return;
                 }
             } else {
-                let spotify = {
-                    let state = backend_clone.lock().unwrap();
-                    state.spotify.clone()
+                let spotify = match lock_backend(&backend_clone) {
+                    Ok(state) => state.spotify.clone(),
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                        let _ = proxy.emit(SystemAppEvent::Ready);
+                        return;
+                    }
                 };
                 let access_token = token.access_token.clone();
 

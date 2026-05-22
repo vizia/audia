@@ -1,5 +1,6 @@
 :root {
     --primary: #ba710c;
+    --primary-hover: #b67711;
     --primary-foreground: #f0f0f0;
 }
 
@@ -129,9 +130,13 @@ submenu {
     corner-radius: 12px;
     border-width: 1px;
     border-color: var(--border);
-    background-color: rgba(71, 71, 71, 0.552);
+    background-color: rgba(145, 145, 145, 0.552);
     backdrop-filter: blur(50px);
     shadow: 0px 1px 3px #0000001a;
+}
+
+.dark .panel {
+    background-color: rgba(71, 71, 71, 0.552);
 }
 
 .panel-header {
@@ -238,10 +243,18 @@ button.avatar-menu-trigger:hover {
 
 .playback-toggle {
     background-color: var(--primary);
+    fill: var(--primary-foreground);
     border-width: 0px;
     width: 50px;
     height: 50px;
     corner-radius: 50%;
+    scale: 1;
+    transition: scale 0.1s ease;
+}
+
+.playback-toggle:active {
+    scale: 0.95;
+    transition: scale 0.1s ease;
 }
 
 .playback-toggle:checked {
@@ -377,11 +390,20 @@ button.avatar-menu-trigger:hover {
     width: 32px;
     height: 32px;
     corner-radius: 50%;
+    scale: 1;
+    transition: scale 0.1s ease;
 }
 
 .playlist-shuffle-toggle:hover {
     background-color: var(--background);
-    fill: var(--primary-foreground);
+    fill: var(--foreground);
+    scale: 1;
+    transition: scale 0.1s ease;
+}
+
+.playlist-shuffle-toggle:active {
+    scale: 0.95;
+    transition: scale 0.1s ease;
 }
 
 .playlist-shuffle-toggle:checked {

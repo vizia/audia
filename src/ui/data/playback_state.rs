@@ -40,7 +40,7 @@ pub struct PlaybackState {
     pub last_scrub_user_input_at: Option<std::time::Instant>,
     pub last_local_track_end_handled_at: Option<std::time::Instant>,
     pub artwork_fade_animation: Animation,
-    
+
     // Preferences
     pub autoplay_on_queue_add: Signal<bool>,
     pub restore_queue_on_startup: Signal<bool>,
@@ -90,7 +90,7 @@ impl PlaybackState {
             last_scrub_user_input_at: None,
             last_local_track_end_handled_at: None,
             artwork_fade_animation,
-            
+
             autoplay_on_queue_add: Signal::new(true),
             restore_queue_on_startup: Signal::new(false),
         }
@@ -145,7 +145,8 @@ impl PlaybackState {
                 if !snapshot.queue_tracks.is_empty() {
                     self.queue_tracks.set(snapshot.queue_tracks);
                     self.recently_played.set(snapshot.recently_played);
-                    self.status.set("Queue restored from last session.".to_string());
+                    self.status
+                        .set("Queue restored from last session.".to_string());
                 }
             }
         }
@@ -400,6 +401,11 @@ impl Model for PlaybackState {
                 self.playback_is_playing.set_if_changed(false);
             }
             PlaybackUiEvent::Next => {
+                if self.queue_tracks.with(|queue| queue.len() <= 1) {
+                    self.status.set("Queue is empty.".to_string());
+                    return;
+                }
+
                 // Remove the current front track and add it to recently played (manual skip).
                 let skipped = self.queue_tracks.with(|queue| queue.first().cloned());
                 if let Some(track) = skipped {

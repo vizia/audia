@@ -8,7 +8,6 @@ pub fn search_results_panel(
     search_result_rows: Signal<Vec<Track>>,
     search_artist_rows: Signal<Vec<Artist>>,
     search_album_rows: Signal<Vec<Album>>,
-    selected_index: Signal<usize>,
     search_tabs: Signal<Vec<&'static str>>,
     selected_search_tab: Signal<usize>,
     playlist_rows: Signal<Vec<PlaylistEntry>>,

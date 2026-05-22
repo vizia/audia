@@ -1,16 +1,17 @@
-use std::sync::Arc;
-
 use vizia::prelude::ContextProxy;
 
 use crate::messages::PlaylistEntry;
 use crate::ui::events::{PlaylistsAppEvent, SystemAppEvent};
 
-use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
+use super::{SharedBackend, backend_runtime, load_images_parallel, with_spotify_auth_retry};
 
 pub fn refresh_user_playlists(backend: SharedBackend, mut proxy: ContextProxy) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
@@ -56,9 +57,12 @@ pub fn refresh_user_playlists(backend: SharedBackend, mut proxy: ContextProxy) {
 }
 
 pub fn create_playlist(backend: SharedBackend, name: String, mut proxy: ContextProxy) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
@@ -100,9 +104,12 @@ pub fn rename_playlist(
     name: String,
     mut proxy: ContextProxy,
 ) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
@@ -133,9 +140,12 @@ pub fn rename_playlist(
 }
 
 pub fn delete_playlist(backend: SharedBackend, playlist_id: String, mut proxy: ContextProxy) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
@@ -167,9 +177,12 @@ pub fn fetch_playlist_tracks(
     request_id: u64,
     mut proxy: ContextProxy,
 ) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
@@ -345,9 +358,12 @@ pub fn add_track_to_playlist(
     playlist_id: String,
     mut proxy: ContextProxy,
 ) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
@@ -399,9 +415,12 @@ pub fn remove_track_from_playlist(
     request_id: u64,
     mut proxy: ContextProxy,
 ) {
-    let runtime = {
-        let state = backend.lock().unwrap();
-        Arc::clone(&state.runtime)
+    let runtime = match backend_runtime(&backend) {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            let _ = proxy.emit(SystemAppEvent::Error(err));
+            return;
+        }
     };
 
     runtime.spawn(async move {
