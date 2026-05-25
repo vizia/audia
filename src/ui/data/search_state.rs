@@ -124,6 +124,30 @@ impl Model for SearchState {
                 Self::cancel_task(&mut self.active_search_task);
                 self.active_search_task = Some(worker::hydrate_search_artwork(results.clone(), cx));
             }
+            SearchAppEvent::LoadAlbumTracks(album) => {
+                self.status
+                    .set(format!("Loading tracks for '{}'...", album.name));
+                Self::cancel_task(&mut self.active_album_task);
+                self.active_album_task = Some(worker::fetch_album_tracks(
+                    self.backend.clone(),
+                    album.clone(),
+                    cx,
+                ));
+            }
+            SearchAppEvent::HydrateAlbumArtwork(data) => {
+                Self::cancel_task(&mut self.active_album_task);
+                self.active_album_task = Some(worker::hydrate_album_artwork(
+                    data.id.clone(),
+                    data.name.clone(),
+                    data.artist.clone(),
+                    data.image_url.clone(),
+                    data.tracks.clone(),
+                    data.release_year,
+                    data.track_count,
+                    data.total_duration_ms,
+                    cx,
+                ));
+            }
             SearchAppEvent::HydrateArtistArtwork {
                 id,
                 name,
@@ -139,7 +163,7 @@ impl Model for SearchState {
                     cx,
                 ));
             }
-            SearchAppEvent::AlbumTracks { .. } | SearchAppEvent::ArtistView { .. } => {}
+            SearchAppEvent::AlbumTracks(_) | SearchAppEvent::ArtistView { .. } => {}
         });
 
         event.map(|search_ui_event, _: &mut _| match search_ui_event {

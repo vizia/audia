@@ -37,24 +37,15 @@ impl AlbumState {
 impl Model for AlbumState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|app_event, _: &mut _| match app_event {
-            SearchAppEvent::AlbumTracks {
-                id,
-                name,
-                artist,
-                image_key,
-                tracks,
-                release_year,
-                track_count,
-                total_duration_ms,
-            } => {
-                let _ = id;
-                self.album_name.set(name.clone());
-                self.album_artist.set(artist.clone());
-                self.album_release_year.set(*release_year);
-                self.album_track_count.set(*track_count);
-                self.album_total_duration_ms.set(*total_duration_ms);
-                self.album_image_key.set(image_key.clone());
-                self.album_tracks.set(tracks.clone());
+            SearchAppEvent::AlbumTracks(data) => {
+                let _ = &data.id;
+                self.album_name.set(data.name.clone());
+                self.album_artist.set(data.artist.clone());
+                self.album_release_year.set(data.release_year);
+                self.album_track_count.set(data.track_count);
+                self.album_total_duration_ms.set(data.total_duration_ms);
+                self.album_image_key.set(data.image_key.clone());
+                self.album_tracks.set(data.tracks.clone());
                 self.album_selected_index.set(0);
             }
 
@@ -76,14 +67,14 @@ impl Model for AlbumState {
                 }
 
                 let tracks = self.album_tracks.get();
+                cx.emit(PlaybackUiEvent::ClearQueue);
                 cx.emit(PlaybackUiEvent::AddToQueue(tracks));
                 if self.album_shuffle_mode.get() {
                     cx.emit(PlaybackUiEvent::ShuffleQueue);
                 }
             }
             AlbumUiEvent::ShuffleAlbum => {
-                let current = self.album_shuffle_mode.get();
-                self.album_shuffle_mode.set(!current);
+                self.album_shuffle_mode.update(|value| *value = !*value);
             }
         });
     }

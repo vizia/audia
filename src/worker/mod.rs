@@ -19,7 +19,7 @@ mod playback;
 mod playlists;
 mod search;
 
-pub use albums::{fetch_album_from_track, fetch_album_tracks};
+pub use albums::{fetch_album_from_track, fetch_album_tracks, hydrate_album_artwork};
 pub use artists::{fetch_artist_view, fetch_artist_view_from_track, hydrate_artist_artwork};
 pub use auth::init_backend;
 pub use oauth::{refresh_access_token, reset_login, start_oauth_login};

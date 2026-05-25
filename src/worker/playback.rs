@@ -70,37 +70,44 @@ pub fn start_playback_progress_poller(backend: SharedBackend, cx: &Context) {
 }
 
 pub fn load_playback_artwork(image_url: Option<String>, cx: &EventContext<'_>) {
-    let proxy = cx.get_proxy();
     cx.add_task(
         Task::new(move |_| {
-            let mut proxy = proxy.clone();
             let image_url = image_url.clone();
             async move {
                 let Some(url) = image_url else {
-                    let _ = proxy.emit(PlaybackAppEvent::ArtworkLoaded { image_key: None });
-                    return Ok::<(), String>(());
+                    return Ok::<Option<(String, Vec<u8>)>, String>(None);
                 };
 
-                let bytes = fetch_image_bytes(url.clone()).await;
+                let image_bytes = fetch_image_bytes(url.clone())
+                    .await
+                    .ok_or_else(|| format!("Failed to fetch playback artwork from {url}"))?;
 
-                let image_key = if let Some(image_bytes) = bytes {
-                    let key = format!("playback-artwork:{}", url);
-                    let _ =
-                        proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever);
-                    Some(key)
-                } else {
-                    None
-                };
+                let key = format!("playback-artwork:{}", url);
 
-                let _ = proxy.emit(PlaybackAppEvent::ArtworkLoaded { image_key });
-                Ok::<(), String>(())
+                Ok::<Option<(String, Vec<u8>)>, String>(Some((key, image_bytes)))
             }
         })
         .name("load-playback-artwork")
-        .on_result(|result, proxy| {
-            if let TaskResult::Error(err) = result {
+        .on_result(|result, proxy| match result {
+            TaskResult::Completed(Some((key, image_bytes))) => {
+                match proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever) {
+                    Ok(()) => {
+                        let _ = proxy.emit(PlaybackAppEvent::ArtworkLoaded {
+                            image_key: Some(key),
+                        });
+                    }
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(format!(
+                            "Failed to load playback artwork image: {err}"
+                        )));
+                    }
+                }
+            }
+            TaskResult::Completed(None) => {}
+            TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     );
 }

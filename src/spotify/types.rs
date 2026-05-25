@@ -71,6 +71,44 @@ pub(super) struct AlbumSummary {
 #[derive(Debug, Deserialize)]
 pub(super) struct SpotifyImage {
     pub(super) url: String,
+    pub(super) width: Option<u32>,
+    pub(super) height: Option<u32>,
+}
+
+pub(super) fn pick_image_url(images: &[SpotifyImage], target_px: u32) -> Option<String> {
+    if images.is_empty() {
+        return None;
+    }
+
+    let best = images
+        .iter()
+        .filter_map(|image| {
+            let dim = image.width.or(image.height)?;
+            let undersized = dim < target_px;
+            let delta = if undersized {
+                target_px.saturating_sub(dim)
+            } else {
+                dim.saturating_sub(target_px)
+            };
+            Some(((undersized, delta), image))
+        })
+        .min_by_key(|(score, _)| *score)
+        .map(|(_, image)| image);
+
+    best.or_else(|| images.first())
+        .map(|image| image.url.clone())
+}
+
+pub(super) fn pick_largest_image_url(images: &[SpotifyImage]) -> Option<String> {
+    if images.is_empty() {
+        return None;
+    }
+
+    images
+        .iter()
+        .max_by_key(|image| image.width.or(image.height).unwrap_or(0))
+        .or_else(|| images.first())
+        .map(|image| image.url.clone())
 }
 
 #[derive(Debug, Deserialize)]
@@ -105,4 +143,3 @@ pub(super) struct PlaylistOwner {
 pub(super) struct PlaylistTrackCount {
     pub(super) total: Option<usize>,
 }
-

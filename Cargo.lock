@@ -1844,9 +1844,9 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3ba2a386d7f85a81f119ad7498ebe444d2e22c2af0b86b069416ace48b3311a"
+checksum = "8be7462df143984c4598a256ef469b251d7d7f9e271135073e78fc535414f3d0"
 dependencies = [
  "bytes",
  "itoa",
@@ -5454,6 +5454,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "vizia"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 dependencies = [
  "skia-safe",
  "tokio",
@@ -5464,6 +5465,7 @@ dependencies = [
 [[package]]
 name = "vizia_core"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 dependencies = [
  "accesskit",
  "bitflags 2.11.1",
@@ -5497,10 +5499,12 @@ dependencies = [
 [[package]]
 name = "vizia_id"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 
 [[package]]
 name = "vizia_input"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 dependencies = [
  "bitflags 2.11.1",
  "keyboard-types",
@@ -5510,6 +5514,7 @@ dependencies = [
 [[package]]
 name = "vizia_reactive"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 dependencies = [
  "parking_lot",
  "serde",
@@ -5519,6 +5524,7 @@ dependencies = [
 [[package]]
 name = "vizia_storage"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 dependencies = [
  "vizia_id",
 ]
@@ -5526,6 +5532,7 @@ dependencies = [
 [[package]]
 name = "vizia_style"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 dependencies = [
  "bitflags 2.11.1",
  "cssparser",
@@ -5540,6 +5547,7 @@ dependencies = [
 [[package]]
 name = "vizia_window"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 dependencies = [
  "bitflags 2.11.1",
  "vizia_input",
@@ -5548,6 +5556,7 @@ dependencies = [
 [[package]]
 name = "vizia_winit"
 version = "0.4.0"
+source = "git+https://github.com/vizia/vizia#5e5dfa1873807424b07a02b53aa1895af32f1bbc"
 dependencies = [
  "accesskit",
  "accesskit_winit",

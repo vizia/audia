@@ -104,7 +104,7 @@ pub fn hydrate_user_playlist_artwork(
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     )
 }
@@ -289,7 +289,7 @@ pub fn refresh_user_playlists(backend: SharedBackend, cx: &EventContext<'_>) {
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     );
 }
@@ -331,7 +331,7 @@ pub fn create_playlist(backend: SharedBackend, name: String, cx: &EventContext<'
                 let _ = proxy.emit(PlaylistsAppEvent::PlaylistCreateFailed(err.clone()));
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     );
 }
@@ -380,7 +380,7 @@ pub fn rename_playlist(
                 let _ = proxy.emit(PlaylistsAppEvent::PlaylistRenameFailed(err.clone()));
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     );
 }
@@ -414,7 +414,7 @@ pub fn delete_playlist(backend: SharedBackend, playlist_id: String, cx: &EventCo
                 let _ = proxy.emit(PlaylistsAppEvent::PlaylistDeleteFailed(err.clone()));
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     );
 }
@@ -498,7 +498,7 @@ pub fn add_track_to_playlist(
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     );
 }
@@ -558,7 +558,7 @@ pub fn remove_track_from_playlist(
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     );
 }

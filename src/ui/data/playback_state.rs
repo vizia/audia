@@ -97,14 +97,23 @@ impl PlaybackState {
     }
 
     fn set_current_track_artwork(&self, cx: &mut EventContext, track: &Track) {
-        if track.album_image_key.is_some() {
+        if let Some(image_key) = track.album_image_key.clone() {
             cx.emit(PlaybackAppEvent::ArtworkLoaded {
-                image_key: track.album_image_key.clone(),
+                image_key: Some(image_key),
             });
-            return;
         }
 
-        worker::load_playback_artwork(track.album_image_url.clone(), cx);
+        let playback_image_url = track
+            .album_playback_image_url
+            .clone()
+            .or(track.album_image_url.clone());
+
+        if let Some(url) = playback_image_url {
+            worker::load_playback_artwork(Some(url), cx);
+        } else if track.album_image_key.is_none() {
+            // Explicitly clear artwork only when this track has no image source at all.
+            cx.emit(PlaybackAppEvent::ArtworkLoaded { image_key: None });
+        }
     }
 
     fn local_track_near_end(&self) -> bool {
@@ -214,11 +223,7 @@ impl Model for PlaybackState {
                     self.status
                         .set("Loading album from current track...".to_string());
                     cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
-                    worker::fetch_album_from_track(
-                        self.backend.clone(),
-                        track_id.clone(),
-                        cx,
-                    );
+                    worker::fetch_album_from_track(self.backend.clone(), track_id.clone(), cx);
                     return;
                 }
 
@@ -284,11 +289,7 @@ impl Model for PlaybackState {
 
                 self.status
                     .set("Playing selected queue song on local device...".to_string());
-                worker::playback_play_local_track(
-                    self.backend.clone(),
-                    selected_track,
-                    cx,
-                );
+                worker::playback_play_local_track(self.backend.clone(), selected_track, cx);
                 self.playback_is_playing.set_if_changed(true);
             }
             PlaybackUiEvent::Previous => {

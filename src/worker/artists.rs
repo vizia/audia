@@ -149,7 +149,7 @@ pub fn fetch_artist_view(
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     )
 }
@@ -197,7 +197,7 @@ pub fn fetch_artist_view_from_track(
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     )
 }
@@ -239,7 +239,7 @@ pub fn hydrate_artist_artwork(
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     )
 }

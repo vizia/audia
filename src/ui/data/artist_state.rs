@@ -48,8 +48,10 @@ impl Model for ArtistState {
             }
             SearchAppEvent::Results(_)
             | SearchAppEvent::HydrateArtwork(_)
+            | SearchAppEvent::LoadAlbumTracks(_)
+            | SearchAppEvent::HydrateAlbumArtwork(_)
             | SearchAppEvent::HydrateArtistArtwork { .. }
-            | SearchAppEvent::AlbumTracks { .. } => {}
+            | SearchAppEvent::AlbumTracks(_) => {}
         });
 
         event.map(|ui_event, _: &mut _| match ui_event {

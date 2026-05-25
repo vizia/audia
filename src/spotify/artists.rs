@@ -2,11 +2,13 @@ use serde::Deserialize;
 
 use super::{
     SpotifyService,
-    types::{SearchArtist, SpotifyImage},
+    types::{SearchArtist, SpotifyImage, pick_image_url},
 };
 use crate::messages::{Album, Artist};
 
 const ARTIST_ALBUMS_PAGE_SIZE: usize = 10;
+const ARTIST_IMAGE_TARGET_PX: u32 = 96;
+const ARTIST_ALBUM_IMAGE_TARGET_PX: u32 = 160;
 
 impl SpotifyService {
     pub async fn get_artist(&self, artist_id: &str) -> Result<Artist, String> {
@@ -46,7 +48,7 @@ impl SpotifyService {
         Ok(Artist {
             id: payload.id,
             name: payload.name,
-            image_url: payload.images.first().map(|img| img.url.clone()),
+            image_url: pick_image_url(&payload.images, ARTIST_IMAGE_TARGET_PX),
             image_key: None,
         })
     }
@@ -175,7 +177,7 @@ impl SpotifyService {
                         .map(|artist| artist.name.clone())
                         .unwrap_or_else(|| "Unknown artist".to_string()),
                     release_date: item.release_date,
-                    image_url: item.images.first().map(|img| img.url.clone()),
+                    image_url: pick_image_url(&item.images, ARTIST_ALBUM_IMAGE_TARGET_PX),
                     image_key: None,
                 })
             })

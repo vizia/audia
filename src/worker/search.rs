@@ -37,7 +37,7 @@ pub fn search_tracks(backend: SharedBackend, query: String, cx: &EventContext<'_
                 TaskResult::Error(err) => {
                     let _ = proxy.emit(SystemAppEvent::Error(err));
                 }
-                TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+                TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
             }
         }),
     )
@@ -134,7 +134,7 @@ pub fn hydrate_search_artwork(results: SearchResultsData, cx: &EventContext<'_>)
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
     )
 }
