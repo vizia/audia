@@ -5,7 +5,7 @@ use crate::{
     playback::DEFAULT_LOCAL_VOLUME_PERCENT,
     storage::{LocalPlaybackSettings, QueueSnapshot},
     ui::{
-        events::{CenterEvents, PlaybackEvents},
+        events::{CenterPanelEvents, PlaybackEvents},
         model_data::CenterPage,
     },
     worker::{self, SharedBackend, SharedPlayback},
@@ -222,7 +222,7 @@ impl Model for PlaybackState {
                 if let Some(track_id) = track_id {
                     self.status
                         .set("Loading album from current track...".to_string());
-                    cx.emit(CenterEvents::NavigateTo(CenterPage::AlbumTracks));
+                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
                     worker::fetch_album_from_track(self.backend.clone(), track_id.clone(), cx);
                     return;
                 }
@@ -232,7 +232,7 @@ impl Model for PlaybackState {
                     && *image_key == current_album_key
                     && !self.album_tracks.get().is_empty()
                 {
-                    cx.emit(CenterEvents::NavigateTo(CenterPage::AlbumTracks));
+                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
                     return;
                 }
 
@@ -253,7 +253,7 @@ impl Model for PlaybackState {
                 if let Some(album) = by_key.or(by_url) {
                     self.status
                         .set(format!("Loading tracks for '{}'...", album.name));
-                    cx.emit(CenterEvents::NavigateTo(CenterPage::AlbumTracks));
+                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
                     worker::fetch_album_tracks(self.backend.clone(), album, cx);
                 } else {
                     self.status

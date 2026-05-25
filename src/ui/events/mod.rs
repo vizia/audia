@@ -5,7 +5,7 @@ mod playlists;
 mod search;
 mod system;
 
-pub use navigation::{CenterEvents, RightPanelEvents};
+pub use navigation::{CenterPanelEvents, RightPanelEvents};
 pub use oauth::OAuthEvents;
 pub use playback::PlaybackEvents;
 pub use playlists::PlaylistsEvents;

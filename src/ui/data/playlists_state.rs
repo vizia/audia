@@ -4,7 +4,7 @@ use vizia::prelude::*;
 use crate::{
     messages::{PlaylistEntry, Track},
     ui::{
-        events::{CenterEvents, PlaybackEvents, PlaylistsEvents},
+        events::{CenterPanelEvents, PlaybackEvents, PlaylistsEvents},
         model_data::CenterPage,
     },
     worker,
@@ -198,7 +198,7 @@ impl Model for PlaylistsState {
                 self.track_filter_input.set(String::new());
                 self.apply_track_filter();
                 self.playlist_selected_index.set(0);
-                cx.emit(CenterEvents::NavigateTo(CenterPage::PlaylistTracks));
+                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::PlaylistTracks));
 
                 let mut playlist_rows = self.playlist_rows.get();
                 if let Some(row) = playlist_rows.iter_mut().find(|row| row.id == *id) {
@@ -304,7 +304,7 @@ impl Model for PlaylistsState {
                 {
                     self.status
                         .set(format!("Showing cached playlist '{}'...", playlist.name));
-                    cx.emit(CenterEvents::NavigateTo(CenterPage::PlaylistTracks));
+                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::PlaylistTracks));
                     return;
                 }
 

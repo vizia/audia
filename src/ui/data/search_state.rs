@@ -3,7 +3,7 @@ use vizia::prelude::*;
 use crate::{
     messages::{Album, Artist, Track},
     ui::{
-        events::{CenterEvents, PlaybackEvents, SearchEvents},
+        events::{CenterPanelEvents, PlaybackEvents, SearchEvents},
         model_data::CenterPage,
     },
     worker,
@@ -196,13 +196,13 @@ impl Model for SearchState {
                 {
                     self.status
                         .set(format!("Showing cached albums for '{}'", artist.name));
-                    cx.emit(CenterEvents::NavigateTo(CenterPage::Artist));
+                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::Artist));
                     return;
                 }
 
                 self.status
                     .set(format!("Loading albums for '{}'...", artist.name));
-                cx.emit(CenterEvents::NavigateTo(CenterPage::Artist));
+                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::Artist));
                 Self::cancel_task(&mut self.active_artist_task);
                 self.active_artist_task = Some(worker::fetch_artist_view(
                     self.backend.clone(),
@@ -221,14 +221,14 @@ impl Model for SearchState {
                 let album = albums[*index].clone();
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
-                cx.emit(CenterEvents::NavigateTo(CenterPage::AlbumTracks));
+                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
                 Self::cancel_task(&mut self.active_album_task);
                 self.active_album_task =
                     Some(worker::fetch_album_tracks(self.backend.clone(), album, cx));
             }
             SearchEvents::OpenAlbumFromTrack(track_id) => {
                 self.status.set("Loading album...".to_string());
-                cx.emit(CenterEvents::NavigateTo(CenterPage::AlbumTracks));
+                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
                 Self::cancel_task(&mut self.active_album_task);
                 self.active_album_task = Some(worker::fetch_album_from_track(
                     self.backend.clone(),
@@ -239,7 +239,7 @@ impl Model for SearchState {
             SearchEvents::OpenArtistFromTrack(track_id) => {
                 self.status
                     .set("Loading artist from current track...".to_string());
-                cx.emit(CenterEvents::NavigateTo(CenterPage::Artist));
+                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::Artist));
                 Self::cancel_task(&mut self.active_artist_task);
                 self.active_artist_task = Some(worker::fetch_artist_view_from_track(
                     self.backend.clone(),
@@ -258,7 +258,7 @@ impl Model for SearchState {
                     return;
                 }
 
-                cx.emit(CenterEvents::NavigateTo(CenterPage::Search));
+                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::Search));
                 self.status.set(format!("Searching for '{query}'..."));
                 Self::cancel_task(&mut self.active_search_task);
                 self.active_search_task =

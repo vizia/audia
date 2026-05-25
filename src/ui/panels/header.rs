@@ -1,5 +1,5 @@
 use crate::ui::data::PreferencesEvent;
-use crate::ui::events::{CenterEvents, OAuthEvents, SearchEvents};
+use crate::ui::events::{CenterPanelEvents, OAuthEvents, SearchEvents};
 use vizia::icons::{ICON_CHEVRON_LEFT, ICON_CHEVRON_RIGHT};
 use vizia::{icons::ICON_SETTINGS, prelude::*};
 
@@ -21,7 +21,7 @@ pub fn header_panel(
                         Label::new(cx, Localized::new("back"));
                     })
                 })
-                .on_press(|cx| cx.emit(CenterEvents::NavigateBack));
+                .on_press(|cx| cx.emit(CenterPanelEvents::NavigateBack));
 
             Button::new(cx, |cx| Svg::new(cx, ICON_CHEVRON_RIGHT))
                 .class("playback-skip-forward")
@@ -31,7 +31,7 @@ pub fn header_panel(
                         Label::new(cx, Localized::new("forward"));
                     })
                 })
-                .on_press(|cx| cx.emit(CenterEvents::NavigateForward));
+                .on_press(|cx| cx.emit(CenterPanelEvents::NavigateForward));
         })
         .height(Auto)
         .width(Stretch(1.0))

@@ -3,7 +3,7 @@ use vizia::prelude::*;
 use crate::{
     messages::Album,
     ui::{
-        events::{ArtistEvents, CenterEvents, SearchEvents},
+        events::{ArtistEvents, CenterPanelEvents, SearchEvents},
         model_data::CenterPage,
     },
     worker,
@@ -67,7 +67,7 @@ impl Model for ArtistState {
                 let album = albums[*index].clone();
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
-                cx.emit(CenterEvents::NavigateTo(CenterPage::AlbumTracks));
+                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
                 worker::fetch_album_tracks(self.backend.clone(), album, cx);
             }
         });
