@@ -107,7 +107,7 @@ pub fn search_results_panel(
                     })
                     .selectable(Selectable::Single)
                     .selection_follows_focus(true)
-                    .on_select(|cx, idx| cx.emit(SearchEvent::SelectResult(idx)))
+                    .on_select(|cx, idx| cx.emit(SearchEvent::SelectTrack(idx)))
                     .width(Stretch(1.0))
                     .height(Stretch(1.0));
                 },

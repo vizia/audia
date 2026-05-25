@@ -16,7 +16,7 @@ pub struct AlbumTracksData {
 #[derive(Clone, Debug)]
 pub enum SearchEvent {
     SelectTab(usize),
-    SelectResult(usize),
+    SelectTrack(usize),
     SelectArtist(usize),
     SelectAlbum(usize),
     OpenAlbumFromTrack(String),

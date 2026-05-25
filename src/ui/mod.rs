@@ -179,7 +179,7 @@ pub fn run() -> Result<(), ApplicationError> {
                         CenterPage::Search => {
                             panels::search_results_panel(
                                 cx,
-                                app_state.search_state.search_result_rows,
+                                app_state.search_state.search_track_rows,
                                 app_state.search_state.search_artist_rows,
                                 app_state.search_state.search_album_rows,
                                 app_state.search_state.search_tabs,

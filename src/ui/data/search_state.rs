@@ -12,17 +12,13 @@ use crate::{
 #[derive(Clone)]
 pub struct SearchState {
     pub backend: crate::worker::SharedBackend,
+    pub search_tabs: Signal<Vec<&'static str>>,
     pub selected_search_tab: Signal<usize>,
     pub status: Signal<String>,
     pub search_input: Signal<String>,
-    pub search_result_rows: Signal<Vec<Track>>,
+    pub search_track_rows: Signal<Vec<Track>>,
     pub search_artist_rows: Signal<Vec<Artist>>,
     pub search_album_rows: Signal<Vec<Album>>,
-    pub current_artist_id: Signal<Option<String>>,
-    pub current_artist_albums: Signal<Vec<Album>>,
-    pub selected_index: Signal<usize>,
-    pub selected_summary: Signal<String>,
-    pub search_tabs: Signal<Vec<&'static str>>,
     pub active_search_task: Option<TaskHandle>,
     pub active_artist_task: Option<TaskHandle>,
     pub active_album_task: Option<TaskHandle>,
@@ -35,13 +31,9 @@ impl SearchState {
             selected_search_tab: Signal::new(0),
             status,
             search_input: Signal::new(String::new()),
-            search_result_rows: Signal::new(Vec::new()),
+            search_track_rows: Signal::new(Vec::new()),
             search_artist_rows: Signal::new(Vec::new()),
             search_album_rows: Signal::new(Vec::new()),
-            current_artist_id: Signal::new(None),
-            current_artist_albums: Signal::new(Vec::new()),
-            selected_index: Signal::new(0),
-            selected_summary: Signal::new("Selected: none".to_string()),
             search_tabs: Signal::new(vec!["Songs", "Artists", "Albums"]),
             active_search_task: None,
             active_artist_task: None,
@@ -54,22 +46,6 @@ impl SearchState {
             existing.cancel();
         }
     }
-    pub(crate) fn refresh_selected_summary(&mut self) {
-        let results = self.search_result_rows.get();
-        let summary = if results.is_empty() {
-            "Selected: none".to_string()
-        } else {
-            let idx = self
-                .selected_index
-                .get()
-                .min(results.len().saturating_sub(1));
-            self.selected_index.set(idx);
-            let track = &results[idx];
-            format!("Selected #{}: {} - {}", idx + 1, track.name, track.artist)
-        };
-
-        self.selected_summary.set(summary);
-    }
 
     pub(crate) fn set_search_results(
         &mut self,
@@ -77,48 +53,21 @@ impl SearchState {
         artists: Vec<Artist>,
         albums: Vec<Album>,
     ) {
-        self.search_result_rows.set(tracks);
+        self.search_track_rows.set(tracks);
         self.search_artist_rows.set(artists);
         self.search_album_rows.set(albums);
-    }
-
-    pub(crate) fn refresh_result_selection(&mut self) {
-        let results = self.search_result_rows.get();
-        let idx = self
-            .selected_index
-            .get()
-            .min(results.len().saturating_sub(1));
-        self.selected_index.set(idx);
     }
 }
 
 impl Model for SearchState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|search_event, _: &mut _| match search_event {
+        event.map(|search_event, _| match search_event {
             SearchEvent::Results(results) => {
-                let previous_track_ids = self
-                    .search_result_rows
-                    .get()
-                    .iter()
-                    .map(|track| track.id.clone())
-                    .collect::<Vec<_>>();
-                let incoming_track_ids = results
-                    .tracks
-                    .iter()
-                    .map(|track| track.id.clone())
-                    .collect::<Vec<_>>();
-                let same_track_set = previous_track_ids == incoming_track_ids;
-
                 self.set_search_results(
                     results.tracks.clone(),
                     results.artists.clone(),
                     results.albums.clone(),
                 );
-                if !same_track_set {
-                    self.selected_index.set(0);
-                }
-                self.refresh_selected_summary();
-                self.refresh_result_selection();
             }
             SearchEvent::HydrateArtwork(results) => {
                 Self::cancel_task(&mut self.active_search_task);
@@ -166,8 +115,8 @@ impl Model for SearchState {
             SearchEvent::SelectTab(index) => {
                 self.selected_search_tab.set(*index);
             }
-            SearchEvent::SelectResult(index) => {
-                let search_results = self.search_result_rows.get();
+            SearchEvent::SelectTrack(index) => {
+                let search_results = self.search_track_rows.get();
                 if *index >= search_results.len() {
                     self.status
                         .set("Selected search result is unavailable.".to_string());
@@ -186,14 +135,6 @@ impl Model for SearchState {
                 }
 
                 let artist = artists[*index].clone();
-                if self.current_artist_id.get().as_deref() == Some(artist.id.as_str())
-                    && !self.current_artist_albums.get().is_empty()
-                {
-                    self.status
-                        .set(format!("Showing cached albums for '{}'", artist.name));
-                    cx.emit(CenterPanelEvent::NavigateTo(CenterPage::Artist));
-                    return;
-                }
 
                 self.status
                     .set(format!("Loading albums for '{}'...", artist.name));
