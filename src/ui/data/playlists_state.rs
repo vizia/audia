@@ -35,6 +35,7 @@ pub struct PlaylistsState {
     pub shuffle_mode: Signal<bool>,
     pub current_playlist_request_id: u64,
     pub playlist_track_filter_input: Signal<String>,
+    pub active_playlist_task: Option<TaskHandle>,
 }
 
 impl PlaylistsState {
@@ -63,6 +64,13 @@ impl PlaylistsState {
             shuffle_mode: Signal::new(false),
             current_playlist_request_id: 0,
             playlist_track_filter_input: Signal::new(String::new()),
+            active_playlist_task: None,
+        }
+    }
+
+    fn cancel_task(handle: &mut Option<TaskHandle>) {
+        if let Some(existing) = handle.take() {
+            existing.cancel();
         }
     }
 
@@ -206,7 +214,7 @@ impl Model for PlaylistsState {
                 worker::create_playlist(
                     self.backend.clone(),
                     trimmed_name.to_string(),
-                    cx.get_proxy(),
+                    cx,
                 );
             }
             PlaylistsUiEvent::OpenRenamePlaylistModal { id, name } => {
@@ -241,12 +249,12 @@ impl Model for PlaylistsState {
                     self.backend.clone(),
                     self.rename_playlist_id.get(),
                     trimmed.to_string(),
-                    cx.get_proxy(),
+                    cx,
                 );
             }
             PlaylistsUiEvent::DeletePlaylist(playlist_id) => {
                 self.status.set("Removing playlist...".to_string());
-                worker::delete_playlist(self.backend.clone(), playlist_id.clone(), cx.get_proxy());
+                worker::delete_playlist(self.backend.clone(), playlist_id.clone(), cx);
             }
             PlaylistsUiEvent::ShufflePlaylist => {
                 let current = self.shuffle_mode.get();
@@ -286,13 +294,14 @@ impl Model for PlaylistsState {
                 self.current_playlist_request_id =
                     self.current_playlist_request_id.saturating_add(1);
 
-                worker::fetch_playlist_tracks(
+                Self::cancel_task(&mut self.active_playlist_task);
+                self.active_playlist_task = Some(worker::fetch_playlist_tracks(
                     self.backend.clone(),
                     playlist.id,
                     playlist.name,
                     self.current_playlist_request_id,
-                    cx.get_proxy(),
-                );
+                    cx,
+                ));
             }
             PlaylistsUiEvent::PlayPlaylist => {
                 cx.emit(PlaybackUiEvent::ClearQueue);
@@ -335,7 +344,7 @@ impl Model for PlaylistsState {
                     self.backend.clone(),
                     track_id.clone(),
                     playlist_id.clone(),
-                    cx.get_proxy(),
+                    cx,
                 );
             }
             PlaylistsUiEvent::RemoveTrackFromPlaylist {
@@ -346,13 +355,14 @@ impl Model for PlaylistsState {
                     .set("Removing track from playlist...".to_string());
                 self.current_playlist_request_id =
                     self.current_playlist_request_id.saturating_add(1);
+                Self::cancel_task(&mut self.active_playlist_task);
                 worker::remove_track_from_playlist(
                     self.backend.clone(),
                     track_id.clone(),
                     playlist_id.clone(),
                     self.active_playlist_name.get(),
                     self.current_playlist_request_id,
-                    cx.get_proxy(),
+                    cx,
                 );
             }
         });

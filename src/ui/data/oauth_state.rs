@@ -47,7 +47,7 @@ impl Model for OAuthState {
                 self.auth_username.set(username.clone());
                 self.profile_image_key.set(profile_image_key.clone());
                 self.status.set(format!("Logged in as {}.", username));
-                worker::refresh_user_playlists(self.backend.clone(), cx.get_proxy());
+                worker::refresh_user_playlists(self.backend.clone(), cx);
             }
             OAuthAppEvent::LoggedOut => {
                 self.auth_valid.set(false);
@@ -68,7 +68,7 @@ impl Model for OAuthState {
             }
             OAuthUiEvent::ResetLogin => {
                 self.status.set("Resetting saved login...".to_string());
-                worker::reset_login(self.backend.clone(), cx.get_proxy());
+                worker::reset_login(self.backend.clone(), cx);
             }
             OAuthUiEvent::SetLoginClientId(client_id) => {
                 self.login_client_id_input.set(client_id.clone());
@@ -92,11 +92,11 @@ impl Model for OAuthState {
 
                 self.status
                     .set("Opening Spotify authorization in browser...".to_string());
-                worker::start_oauth_login(self.backend.clone(), client_id, cx.get_proxy());
+                worker::start_oauth_login(self.backend.clone(), client_id, cx);
             }
             OAuthUiEvent::RefreshToken => {
                 self.status.set("Refreshing access token...".to_string());
-                worker::refresh_access_token(self.backend.clone(), cx.get_proxy());
+                worker::refresh_access_token(self.backend.clone(), cx);
             }
         });
     }

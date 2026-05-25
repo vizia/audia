@@ -8,15 +8,6 @@ use crate::messages::{Album, Artist};
 
 const ARTIST_ALBUMS_PAGE_SIZE: usize = 10;
 
-fn sort_and_dedup_albums(albums: &mut Vec<Album>) {
-    albums.sort_by(|a, b| {
-        b.release_date
-            .cmp(&a.release_date)
-            .then_with(|| a.name.cmp(&b.name))
-    });
-    albums.dedup_by(|a, b| a.id == b.id);
-}
-
 impl SpotifyService {
     pub async fn get_artist(&self, artist_id: &str) -> Result<Artist, String> {
         let token = self.access_token()?;
@@ -108,28 +99,6 @@ impl SpotifyService {
             image_url: None,
             image_key: None,
         })
-    }
-
-    pub async fn get_artist_albums(&self, artist_id: &str) -> Result<Vec<Album>, String> {
-        let mut albums = Vec::new();
-        let mut offset = 0usize;
-
-        loop {
-            let (mut page_albums, total) = self
-                .get_artist_albums_page(artist_id, ARTIST_ALBUMS_PAGE_SIZE, offset)
-                .await?;
-
-            let page_size = page_albums.len();
-            albums.append(&mut page_albums);
-
-            offset += page_size;
-            if offset >= total || page_size == 0 {
-                break;
-            }
-        }
-
-        sort_and_dedup_albums(&mut albums);
-        Ok(albums)
     }
 
     pub async fn get_artist_albums_page(

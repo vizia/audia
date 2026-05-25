@@ -38,7 +38,7 @@ impl Model for AlbumState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|app_event, _: &mut _| match app_event {
             SearchAppEvent::AlbumTracks {
-                id: _,
+                id,
                 name,
                 artist,
                 image_key,
@@ -47,6 +47,7 @@ impl Model for AlbumState {
                 track_count,
                 total_duration_ms,
             } => {
+                let _ = id;
                 self.album_name.set(name.clone());
                 self.album_artist.set(artist.clone());
                 self.album_release_year.set(*release_year);

@@ -23,6 +23,9 @@ pub struct SearchState {
     pub selected_index: Signal<usize>,
     pub selected_summary: Signal<String>,
     pub search_tabs: Signal<Vec<&'static str>>,
+    pub active_search_task: Option<TaskHandle>,
+    pub active_artist_task: Option<TaskHandle>,
+    pub active_album_task: Option<TaskHandle>,
 }
 
 impl SearchState {
@@ -40,6 +43,15 @@ impl SearchState {
             selected_index: Signal::new(0),
             selected_summary: Signal::new("Selected: none".to_string()),
             search_tabs: Signal::new(vec!["Songs", "Artists", "Albums"]),
+            active_search_task: None,
+            active_artist_task: None,
+            active_album_task: None,
+        }
+    }
+
+    fn cancel_task(handle: &mut Option<TaskHandle>) {
+        if let Some(existing) = handle.take() {
+            existing.cancel();
         }
     }
     pub(crate) fn refresh_selected_summary(&mut self) {
@@ -147,7 +159,12 @@ impl Model for SearchState {
                 self.status
                     .set(format!("Loading albums for '{}'...", artist.name));
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
-                worker::fetch_artist_view(self.backend.clone(), artist.id, cx.get_proxy());
+                Self::cancel_task(&mut self.active_artist_task);
+                self.active_artist_task = Some(worker::fetch_artist_view(
+                    self.backend.clone(),
+                    artist.id,
+                    cx,
+                ));
             }
             SearchUiEvent::SelectAlbum(index) => {
                 let albums = self.search_album_rows.get();
@@ -161,26 +178,33 @@ impl Model for SearchState {
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
-                worker::fetch_album_tracks(self.backend.clone(), album, cx.get_proxy());
+                Self::cancel_task(&mut self.active_album_task);
+                self.active_album_task = Some(worker::fetch_album_tracks(
+                    self.backend.clone(),
+                    album,
+                    cx,
+                ));
             }
             SearchUiEvent::OpenAlbumFromTrack(track_id) => {
                 self.status.set("Loading album...".to_string());
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
-                worker::fetch_album_from_track(
+                Self::cancel_task(&mut self.active_album_task);
+                self.active_album_task = Some(worker::fetch_album_from_track(
                     self.backend.clone(),
                     track_id.clone(),
-                    cx.get_proxy(),
-                );
+                    cx,
+                ));
             }
             SearchUiEvent::OpenArtistFromTrack(track_id) => {
                 self.status
                     .set("Loading artist from current track...".to_string());
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::Artist));
-                worker::fetch_artist_view_from_track(
+                Self::cancel_task(&mut self.active_artist_task);
+                self.active_artist_task = Some(worker::fetch_artist_view_from_track(
                     self.backend.clone(),
                     track_id.clone(),
-                    cx.get_proxy(),
-                );
+                    cx,
+                ));
             }
 
             SearchUiEvent::SetInput(value) => {
@@ -195,7 +219,8 @@ impl Model for SearchState {
 
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::Search));
                 self.status.set(format!("Searching for '{query}'..."));
-                worker::search_tracks(self.backend.clone(), query, cx.get_proxy());
+                Self::cancel_task(&mut self.active_search_task);
+                self.active_search_task = Some(worker::search_tracks(self.backend.clone(), query, cx));
             }
         });
     }

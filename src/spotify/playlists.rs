@@ -157,32 +157,6 @@ impl SpotifyService {
             .collect())
     }
 
-    pub async fn get_playlist_tracks(
-        &self,
-        playlist_id: &str,
-        _limit: usize,
-    ) -> Result<Vec<Track>, String> {
-        let mut all_tracks = Vec::new();
-        let mut offset = 0;
-        const PAGE_SIZE: usize = 50;
-
-        loop {
-            let (mut page_tracks, total) = self
-                .get_playlist_tracks_page(playlist_id, PAGE_SIZE, offset)
-                .await?;
-
-            let page_size = page_tracks.len();
-            all_tracks.append(&mut page_tracks);
-
-            offset += page_size;
-            if offset >= total || page_size == 0 {
-                break;
-            }
-        }
-
-        Ok(all_tracks)
-    }
-
     pub async fn get_playlist_tracks_page(
         &self,
         playlist_id: &str,

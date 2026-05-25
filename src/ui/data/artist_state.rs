@@ -62,7 +62,7 @@ impl Model for ArtistState {
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
-                worker::fetch_album_tracks(self.backend.clone(), album, cx.get_proxy());
+                worker::fetch_album_tracks(self.backend.clone(), album, cx);
             }
         });
     }

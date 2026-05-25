@@ -2632,7 +2632,7 @@ dependencies = [
 [[package]]
 name = "morphorm"
 version = "0.8.0"
-source = "git+https://github.com/vizia/morphorm.git?rev=e7e5fe35e5f184500d3030287f948a4f4c7f57ae#e7e5fe35e5f184500d3030287f948a4f4c7f57ae"
+source = "git+https://github.com/vizia/morphorm.git?rev=f48333f042e346cff64a8a563b791a5b4c18163b#f48333f042e346cff64a8a563b791a5b4c18163b"
 dependencies = [
  "smallvec",
 ]
@@ -4999,9 +4999,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.52.1"
+version = "1.52.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b67dee974fe86fd92cc45b7a95fdd2f99a36a6d7b0d431a231178d3d670bbcc6"
+checksum = "8fc7f01b389ac15039e4dc9531aa973a135d7a4135281b12d7c1bc79fd57fffe"
 dependencies = [
  "bytes",
  "libc",
@@ -5455,7 +5455,6 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "vizia"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 dependencies = [
  "skia-safe",
  "vizia_core",
@@ -5465,7 +5464,6 @@ dependencies = [
 [[package]]
 name = "vizia_core"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 dependencies = [
  "accesskit",
  "bitflags 2.11.1",
@@ -5484,6 +5482,7 @@ dependencies = [
  "open",
  "skia-safe",
  "sys-locale",
+ "tokio",
  "unic-langid",
  "unicode-bidi",
  "unicode-segmentation",
@@ -5498,12 +5497,10 @@ dependencies = [
 [[package]]
 name = "vizia_id"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 
 [[package]]
 name = "vizia_input"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 dependencies = [
  "bitflags 2.11.1",
  "keyboard-types",
@@ -5513,7 +5510,6 @@ dependencies = [
 [[package]]
 name = "vizia_reactive"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 dependencies = [
  "parking_lot",
  "serde",
@@ -5523,7 +5519,6 @@ dependencies = [
 [[package]]
 name = "vizia_storage"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 dependencies = [
  "vizia_id",
 ]
@@ -5531,7 +5526,6 @@ dependencies = [
 [[package]]
 name = "vizia_style"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 dependencies = [
  "bitflags 2.11.1",
  "cssparser",
@@ -5546,7 +5540,6 @@ dependencies = [
 [[package]]
 name = "vizia_window"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 dependencies = [
  "bitflags 2.11.1",
  "vizia_input",
@@ -5555,7 +5548,6 @@ dependencies = [
 [[package]]
 name = "vizia_winit"
 version = "0.4.0"
-source = "git+https://github.com/vizia/vizia?branch=main#56f4c964a2c0d9d256adc5e5ad166d4195516173"
 dependencies = [
  "accesskit",
  "accesskit_winit",

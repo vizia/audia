@@ -3,7 +3,6 @@ use std::sync::OnceLock;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tokio::runtime::Runtime;
 use vizia::prelude::{ContextProxy, ImageRetentionPolicy};
 
 use crate::oauth as oauth_api;
@@ -26,7 +25,7 @@ pub use auth::init_backend;
 pub use oauth::{refresh_access_token, reset_login, start_oauth_login};
 pub use playback::{
     load_playback_artwork, playback_pause_local, playback_play_local_track, playback_resume_local,
-    playback_seek_local, start_playback_progress_poller,
+    playback_seek_local, playback_stop_local, start_playback_progress_poller,
 };
 pub use playlists::{
     add_track_to_playlist, create_playlist, delete_playlist, fetch_playlist_tracks,
@@ -78,7 +77,6 @@ async fn load_images_parallel(
 }
 
 pub struct BackendState {
-    pub runtime: Result<Arc<Runtime>, String>,
     pub spotify: SpotifyService,
     pub playback: SharedPlayback,
     pub oauth_in_progress: bool,
@@ -90,9 +88,6 @@ pub struct BackendState {
 impl Default for BackendState {
     fn default() -> Self {
         Self {
-            runtime: Runtime::new()
-                .map(Arc::new)
-                .map_err(|err| format!("failed to build shared tokio runtime: {err}")),
             spotify: SpotifyService::default(),
             playback: Arc::new(Mutex::new(PlaybackService::default())),
             oauth_in_progress: false,
@@ -136,10 +131,6 @@ pub fn lock_playback(playback: &SharedPlayback) -> Result<MutexGuard<'_, Playbac
     playback
         .lock()
         .map_err(|_| "playback state is unavailable after a prior panic".to_string())
-}
-
-pub fn backend_runtime(backend: &SharedBackend) -> Result<Arc<Runtime>, String> {
-    lock_backend(backend)?.runtime.clone()
 }
 
 pub fn shared_playback(backend: &SharedBackend) -> Result<SharedPlayback, String> {
