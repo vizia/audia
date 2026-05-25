@@ -1,7 +1,7 @@
 use crate::messages::{PlaylistEntry, Track};
 
 #[derive(Clone, Debug)]
-pub enum PlaylistsUiEvent {
+pub enum PlaylistsEvents {
     OpenCreatePlaylistModal,
     CloseCreatePlaylistModal,
     SetCreatePlaylistName(String),
@@ -28,10 +28,6 @@ pub enum PlaylistsUiEvent {
     PlaylistTrackSelected(usize),
     ShufflePlaylist,
     SetTrackFilter(String),
-}
-
-#[derive(Clone, Debug)]
-pub enum PlaylistsAppEvent {
     Playlists(Vec<PlaylistEntry>),
     HydrateUserPlaylistsArtwork {
         playlists: Vec<PlaylistEntry>,

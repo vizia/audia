@@ -1,5 +1,5 @@
 use crate::messages::{PlaylistEntry, Track};
-use crate::ui::events::{AlbumUiEvent, PlaylistsUiEvent};
+use crate::ui::events::{AlbumEvents, PlaylistsEvents};
 use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_DOTS, ICON_PLAYER_PLAY_FILLED};
 use vizia::prelude::*;
 
@@ -89,7 +89,7 @@ pub fn album_tracks_panel(
                         Label::new(cx, Localized::new("play_album"));
                     })
                 })
-                .on_press(|cx| cx.emit(AlbumUiEvent::PlayAlbum));
+                .on_press(|cx| cx.emit(AlbumEvents::PlayAlbum));
 
             ToggleButton::new(cx, album_shuffle_mode, |cx| {
                 Svg::new(cx, ICON_ARROWS_SHUFFLE)
@@ -100,7 +100,7 @@ pub fn album_tracks_panel(
                     Label::new(cx, Localized::new("shuffle_album"));
                 })
             })
-            .on_press(|cx| cx.emit(AlbumUiEvent::ShuffleAlbum));
+            .on_press(|cx| cx.emit(AlbumEvents::ShuffleAlbum));
         })
         .class("album-header");
 
@@ -142,7 +142,7 @@ pub fn album_tracks_panel(
                                 cx,
                                 move |cx| {
                                     if !pid.is_empty() && !tid.is_empty() {
-                                        cx.emit(PlaylistsUiEvent::AddTrackToPlaylist {
+                                        cx.emit(PlaylistsEvents::AddTrackToPlaylist {
                                             track_id: tid.clone(),
                                             playlist_id: pid.clone(),
                                         });
@@ -162,7 +162,7 @@ pub fn album_tracks_panel(
         .selectable(Selectable::Single)
         .selection(album_selected_index.map(|idx| vec![*idx]))
         .selection_follows_focus(true)
-        .on_select(|cx, idx| cx.emit(AlbumUiEvent::AlbumTrackSelected(idx)))
+        .on_select(|cx, idx| cx.emit(AlbumEvents::AlbumTrackSelected(idx)))
         .width(Stretch(1.0))
         .height(Stretch(1.0));
     })

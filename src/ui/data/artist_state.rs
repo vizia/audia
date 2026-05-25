@@ -3,7 +3,7 @@ use vizia::prelude::*;
 use crate::{
     messages::Album,
     ui::{
-        events::{ArtistUiEvent, CenterUiEvent, SearchAppEvent},
+        events::{ArtistEvents, CenterEvents, SearchEvents},
         model_data::CenterPage,
     },
     worker,
@@ -35,7 +35,7 @@ impl ArtistState {
 impl Model for ArtistState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|app_event, _: &mut _| match app_event {
-            SearchAppEvent::ArtistView {
+            SearchEvents::ArtistView {
                 id,
                 name,
                 image_key,
@@ -46,16 +46,17 @@ impl Model for ArtistState {
                 self.artist_image_key.set(image_key.clone());
                 self.artist_albums.set(albums.clone());
             }
-            SearchAppEvent::Results(_)
-            | SearchAppEvent::HydrateArtwork(_)
-            | SearchAppEvent::LoadAlbumTracks(_)
-            | SearchAppEvent::HydrateAlbumArtwork(_)
-            | SearchAppEvent::HydrateArtistArtwork { .. }
-            | SearchAppEvent::AlbumTracks(_) => {}
+            SearchEvents::Results(_)
+            | SearchEvents::HydrateArtwork(_)
+            | SearchEvents::LoadAlbumTracks(_)
+            | SearchEvents::HydrateAlbumArtwork(_)
+            | SearchEvents::HydrateArtistArtwork { .. }
+            | SearchEvents::AlbumTracks(_) => {}
+            _ => {}
         });
 
         event.map(|ui_event, _: &mut _| match ui_event {
-            ArtistUiEvent::ArtistAlbumSelected(index) => {
+            ArtistEvents::ArtistAlbumSelected(index) => {
                 let albums = self.artist_albums.get();
                 if *index >= albums.len() {
                     self.status
@@ -66,7 +67,7 @@ impl Model for ArtistState {
                 let album = albums[*index].clone();
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
-                cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
+                cx.emit(CenterEvents::NavigateTo(CenterPage::AlbumTracks));
                 worker::fetch_album_tracks(self.backend.clone(), album, cx);
             }
         });

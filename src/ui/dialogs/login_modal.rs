@@ -1,4 +1,4 @@
-use crate::ui::events::OAuthUiEvent;
+use crate::ui::events::OAuthEvents;
 use vizia::prelude::*;
 
 pub fn login_modal(
@@ -27,10 +27,10 @@ pub fn login_modal(
 
                         Textbox::new(cx, login_client_id_input)
                             .placeholder(Localized::new("spotify_client_id_placeholder"))
-                            .on_edit(|cx, value| cx.emit(OAuthUiEvent::SetLoginClientId(value)))
+                            .on_edit(|cx, value| cx.emit(OAuthEvents::SetLoginClientId(value)))
                             .on_submit(|cx, _value, enter_key| {
                                 if enter_key {
-                                    cx.emit(OAuthUiEvent::StartOAuthLogin);
+                                    cx.emit(OAuthEvents::StartOAuthLogin);
                                 }
                             })
                             .width(Stretch(1.0));
@@ -43,12 +43,12 @@ pub fn login_modal(
                         Button::new(cx, |cx| {
                             Label::new(cx, Localized::new("login_with_spotify"))
                         })
-                        .on_press(|cx| cx.emit(OAuthUiEvent::StartOAuthLogin))
+                        .on_press(|cx| cx.emit(OAuthEvents::StartOAuthLogin))
                         .width(Pixels(170.0));
 
                         Button::new(cx, |cx| Label::new(cx, Localized::new("close")))
                             .variant(ButtonVariant::Secondary)
-                            .on_press(|cx| cx.emit(OAuthUiEvent::CloseLoginModal))
+                            .on_press(|cx| cx.emit(OAuthEvents::CloseLoginModal))
                             .width(Pixels(120.0));
                     })
                     .gap(Pixels(12.0))
@@ -59,7 +59,7 @@ pub fn login_modal(
                 .vertical_gap(Pixels(16.0))
                 .padding(Pixels(16.0));
             })
-            .on_close(|cx| cx.emit(OAuthUiEvent::CloseLoginModal))
+            .on_close(|cx| cx.emit(OAuthEvents::CloseLoginModal))
             .title("Spotify Login")
             .inner_size((520, 270))
             .anchor(Anchor::Center);

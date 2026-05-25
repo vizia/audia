@@ -2,7 +2,7 @@ use vizia::prelude::{EventContext, Task, TaskResult};
 
 use crate::oauth as oauth_api;
 use crate::storage::{ClientCredentialStore, clear_persisted_login};
-use crate::ui::events::{OAuthAppEvent, SystemAppEvent};
+use crate::ui::events::{OAuthEvents, SystemEvents};
 
 use super::{
     SharedBackend, apply_token_response, lock_backend, lock_playback, set_oauth_in_progress,
@@ -21,12 +21,12 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, cx: &EventCo
                     let mut state = match lock_backend(&backend) {
                         Ok(state) => state,
                         Err(err) => {
-                            let _ = proxy.emit(SystemAppEvent::Error(err));
+                            let _ = proxy.emit(SystemEvents::Error(err));
                             return Ok::<(), String>(());
                         }
                     };
                     if state.oauth_in_progress {
-                        let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                        let _ = proxy.emit(SystemEvents::StatusMessage(
                             "OAuth login is already in progress. Complete it in your browser."
                                 .to_string(),
                         ));
@@ -41,9 +41,9 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, cx: &EventCo
                 .save()
                 {
                     if let Err(lock_err) = set_oauth_in_progress(&backend, false) {
-                        let _ = proxy.emit(SystemAppEvent::Error(lock_err));
+                        let _ = proxy.emit(SystemEvents::Error(lock_err));
                     }
-                    let _ = proxy.emit(SystemAppEvent::Error(format!(
+                    let _ = proxy.emit(SystemEvents::Error(format!(
                         "Failed to save client credentials: {err}"
                     )));
                     return Ok::<(), String>(());
@@ -53,7 +53,7 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, cx: &EventCo
                     let mut state = match lock_backend(&backend) {
                         Ok(state) => state,
                         Err(err) => {
-                            let _ = proxy.emit(SystemAppEvent::Error(err));
+                            let _ = proxy.emit(SystemEvents::Error(err));
                             return Ok::<(), String>(());
                         }
                     };
@@ -67,16 +67,16 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, cx: &EventCo
 
                 if let Err(err) = webbrowser::open(&url) {
                     if let Err(lock_err) = set_oauth_in_progress(&backend, false) {
-                        let _ = proxy.emit(SystemAppEvent::Error(lock_err));
+                        let _ = proxy.emit(SystemEvents::Error(lock_err));
                     }
-                    let _ = proxy.emit(SystemAppEvent::Error(format!(
+                    let _ = proxy.emit(SystemEvents::Error(format!(
                         "Failed to open browser: {err}"
                     )));
                     return Ok::<(), String>(());
                 }
 
-                let _ = proxy.emit(OAuthAppEvent::BrowserOpened);
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                let _ = proxy.emit(OAuthEvents::BrowserOpened);
+                let _ = proxy.emit(SystemEvents::StatusMessage(
                     "Waiting for OAuth callback from browser...".to_string(),
                 ));
 
@@ -92,16 +92,16 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, cx: &EventCo
                     Ok(code) => code,
                     Err(err) => {
                         if let Err(lock_err) = set_oauth_in_progress(&backend, false) {
-                            let _ = proxy.emit(SystemAppEvent::Error(lock_err));
+                            let _ = proxy.emit(SystemEvents::Error(lock_err));
                         }
-                        let _ = proxy.emit(SystemAppEvent::Error(format!(
+                        let _ = proxy.emit(SystemEvents::Error(format!(
                             "OAuth callback error: {err}"
                         )));
                         return Ok::<(), String>(());
                     }
                 };
 
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                let _ = proxy.emit(SystemEvents::StatusMessage(
                     "OAuth callback received. Exchanging code for tokens...".to_string(),
                 ));
 
@@ -110,17 +110,17 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, cx: &EventCo
                         if let Err(err) =
                             apply_token_response(&backend, &tokens, &client_id, &mut proxy).await
                         {
-                            let _ = proxy.emit(SystemAppEvent::Error(err));
+                            let _ = proxy.emit(SystemEvents::Error(err));
                         }
                         if let Err(err) = set_oauth_in_progress(&backend, false) {
-                            let _ = proxy.emit(SystemAppEvent::Error(err));
+                            let _ = proxy.emit(SystemEvents::Error(err));
                         }
                     }
                     Err(err) => {
                         if let Err(lock_err) = set_oauth_in_progress(&backend, false) {
-                            let _ = proxy.emit(SystemAppEvent::Error(lock_err));
+                            let _ = proxy.emit(SystemEvents::Error(lock_err));
                         }
-                        let _ = proxy.emit(SystemAppEvent::Error(format!(
+                        let _ = proxy.emit(SystemEvents::Error(format!(
                             "Token exchange failed: {err}"
                         )));
                     }
@@ -132,7 +132,7 @@ pub fn start_oauth_login(backend: SharedBackend, client_id: String, cx: &EventCo
         .name("start-oauth-login")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
         }),
     );
@@ -149,7 +149,7 @@ pub fn refresh_access_token(backend: SharedBackend, cx: &EventContext<'_>) {
                     let state = match lock_backend(&backend) {
                         Ok(state) => state,
                         Err(err) => {
-                            let _ = proxy.emit(SystemAppEvent::Error(err));
+                            let _ = proxy.emit(SystemEvents::Error(err));
                             return Ok::<(), String>(());
                         }
                     };
@@ -163,17 +163,17 @@ pub fn refresh_access_token(backend: SharedBackend, cx: &EventContext<'_>) {
                             if let Err(err) =
                                 apply_token_response(&backend, &tokens, &cid, &mut proxy).await
                             {
-                                let _ = proxy.emit(SystemAppEvent::Error(err));
+                                let _ = proxy.emit(SystemEvents::Error(err));
                             }
                         }
                         Err(err) => {
-                            let _ = proxy.emit(SystemAppEvent::Error(format!(
+                            let _ = proxy.emit(SystemEvents::Error(format!(
                                 "Token refresh failed: {err}"
                             )));
                         }
                     },
                     _ => {
-                        let _ = proxy.emit(SystemAppEvent::Error(
+                        let _ = proxy.emit(SystemEvents::Error(
                             "Cannot refresh: no client ID or refresh token stored.".to_string(),
                         ));
                     }
@@ -185,7 +185,7 @@ pub fn refresh_access_token(backend: SharedBackend, cx: &EventContext<'_>) {
         .name("refresh-access-token")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
         }),
     );
@@ -199,7 +199,7 @@ pub fn reset_login(backend: SharedBackend, cx: &EventContext<'_>) {
             let backend = backend.clone();
             async move {
                 if let Err(err) = clear_persisted_login() {
-                    let _ = proxy.emit(SystemAppEvent::Error(format!(
+                    let _ = proxy.emit(SystemEvents::Error(format!(
                         "Failed to clear persisted login: {err}"
                     )));
                     return Ok::<(), String>(());
@@ -209,7 +209,7 @@ pub fn reset_login(backend: SharedBackend, cx: &EventContext<'_>) {
                     let mut state = match lock_backend(&backend) {
                         Ok(state) => state,
                         Err(err) => {
-                            let _ = proxy.emit(SystemAppEvent::Error(err));
+                            let _ = proxy.emit(SystemEvents::Error(err));
                             return Ok::<(), String>(());
                         }
                     };
@@ -223,28 +223,28 @@ pub fn reset_login(backend: SharedBackend, cx: &EventContext<'_>) {
                     let playback = match shared_playback(&backend) {
                         Ok(playback) => playback,
                         Err(err) => {
-                            let _ = proxy.emit(SystemAppEvent::Error(err));
+                            let _ = proxy.emit(SystemEvents::Error(err));
                             return Ok::<(), String>(());
                         }
                     };
                     let mut state = match lock_playback(&playback) {
                         Ok(state) => state,
                         Err(err) => {
-                            let _ = proxy.emit(SystemAppEvent::Error(err));
+                            let _ = proxy.emit(SystemEvents::Error(err));
                             return Ok::<(), String>(());
                         }
                     };
                     state.reset();
                 }
 
-                let _ = proxy.emit(OAuthAppEvent::LoggedOut);
+                let _ = proxy.emit(OAuthEvents::LoggedOut);
                 Ok::<(), String>(())
             }
         })
         .name("reset-login")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
         }),
     );

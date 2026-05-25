@@ -1,5 +1,5 @@
 use crate::messages::PlaylistEntry;
-use crate::ui::events::PlaylistsUiEvent;
+use crate::ui::events::PlaylistsEvents;
 use vizia::icons::{ICON_DOTS, ICON_MUSIC, ICON_PLUS};
 use vizia::prelude::*;
 
@@ -15,7 +15,7 @@ pub fn playlists_panel(cx: &mut Context, playlist_rows: Signal<Vec<PlaylistEntry
                         Label::new(cx, Localized::new("create_new_playlist"));
                     })
                 })
-                .on_press(|cx| cx.emit(PlaylistsUiEvent::OpenCreatePlaylistModal));
+                .on_press(|cx| cx.emit(PlaylistsEvents::OpenCreatePlaylistModal));
         })
         .class("panel-header");
 
@@ -51,7 +51,7 @@ pub fn playlists_panel(cx: &mut Context, playlist_rows: Signal<Vec<PlaylistEntry
                         MenuButton::new(
                             cx,
                             move |cx| {
-                                cx.emit(PlaylistsUiEvent::OpenRenamePlaylistModal {
+                                cx.emit(PlaylistsEvents::OpenRenamePlaylistModal {
                                     id: id_for_rename.clone(),
                                     name: name_for_rename.clone(),
                                 })
@@ -63,7 +63,7 @@ pub fn playlists_panel(cx: &mut Context, playlist_rows: Signal<Vec<PlaylistEntry
                         MenuButton::new(
                             cx,
                             move |cx| {
-                                cx.emit(PlaylistsUiEvent::DeletePlaylist(id_for_delete.clone()))
+                                cx.emit(PlaylistsEvents::DeletePlaylist(id_for_delete.clone()))
                             },
                             |cx| Label::new(cx, Localized::new("delete")),
                         );
@@ -76,7 +76,7 @@ pub fn playlists_panel(cx: &mut Context, playlist_rows: Signal<Vec<PlaylistEntry
             .class("result-row");
         })
         .selectable(Selectable::Single)
-        .on_select(|cx, idx| cx.emit(PlaylistsUiEvent::SelectPlaylist(idx)))
+        .on_select(|cx, idx| cx.emit(PlaylistsEvents::SelectPlaylist(idx)))
         .height(Stretch(1.0));
     })
     .class("panel");

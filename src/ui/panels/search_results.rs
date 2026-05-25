@@ -1,5 +1,5 @@
 use crate::messages::{Album, Artist, PlaylistEntry, Track};
-use crate::ui::events::{PlaylistsUiEvent, SearchUiEvent};
+use crate::ui::events::{PlaylistsEvents, SearchEvents};
 use vizia::icons::ICON_DOTS;
 use vizia::prelude::*;
 
@@ -42,7 +42,7 @@ pub fn search_results_panel(
                                         .class("album-art")
                                         .pointer_events(PointerEvents::Auto)
                                         .on_press(move |cx| {
-                                            cx.emit(SearchUiEvent::OpenAlbumFromTrack(tid.clone()))
+                                            cx.emit(SearchEvents::OpenAlbumFromTrack(tid.clone()))
                                         });
                                 } else {
                                     Label::new(cx, "♪")
@@ -50,7 +50,7 @@ pub fn search_results_panel(
                                         .class("search-result-fallback")
                                         .pointer_events(PointerEvents::Auto)
                                         .on_press(move |cx| {
-                                            cx.emit(SearchUiEvent::OpenAlbumFromTrack(tid.clone()))
+                                            cx.emit(SearchEvents::OpenAlbumFromTrack(tid.clone()))
                                         });
                                 }
                             });
@@ -88,7 +88,7 @@ pub fn search_results_panel(
                                             cx,
                                             move |cx| {
                                                 if !pid.is_empty() && !tid.is_empty() {
-                                                    cx.emit(PlaylistsUiEvent::AddTrackToPlaylist {
+                                                    cx.emit(PlaylistsEvents::AddTrackToPlaylist {
                                                         track_id: tid.clone(),
                                                         playlist_id: pid.clone(),
                                                     });
@@ -107,7 +107,7 @@ pub fn search_results_panel(
                     })
                     .selectable(Selectable::Single)
                     .selection_follows_focus(true)
-                    .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectResult(idx)))
+                    .on_select(|cx, idx| cx.emit(SearchEvents::SelectResult(idx)))
                     .width(Stretch(1.0))
                     .height(Stretch(1.0));
                 },
@@ -142,7 +142,7 @@ pub fn search_results_panel(
                     })
                     .selectable(Selectable::Single)
                     .selection_follows_focus(true)
-                    .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectArtist(idx)))
+                    .on_select(|cx, idx| cx.emit(SearchEvents::SelectArtist(idx)))
                     .width(Stretch(1.0))
                     .height(Stretch(1.0));
                 },
@@ -186,7 +186,7 @@ pub fn search_results_panel(
                     })
                     .selectable(Selectable::Single)
                     .selection_follows_focus(true)
-                    .on_select(|cx, idx| cx.emit(SearchUiEvent::SelectAlbum(idx)))
+                    .on_select(|cx, idx| cx.emit(SearchEvents::SelectAlbum(idx)))
                     .width(Stretch(1.0))
                     .height(Stretch(1.0));
                 },
@@ -194,7 +194,7 @@ pub fn search_results_panel(
             _ => unreachable!(),
         })
         .with_selected(selected_search_tab)
-        .on_select(|cx, index| cx.emit(SearchUiEvent::SelectTab(index)))
+        .on_select(|cx, index| cx.emit(SearchEvents::SelectTab(index)))
         .class("search-tabs")
         .width(Stretch(1.0))
         .height(Stretch(1.0));

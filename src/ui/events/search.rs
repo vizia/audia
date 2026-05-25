@@ -14,7 +14,7 @@ pub struct AlbumTracksData {
 }
 
 #[derive(Clone, Debug)]
-pub enum SearchUiEvent {
+pub enum SearchEvents {
     SelectTab(usize),
     SelectResult(usize),
     SelectArtist(usize),
@@ -23,22 +23,6 @@ pub enum SearchUiEvent {
     OpenArtistFromTrack(String),
     SetInput(String),
     SubmitQuery(String),
-}
-
-#[derive(Clone, Debug)]
-pub enum AlbumUiEvent {
-    AlbumTrackSelected(usize),
-    PlayAlbum,
-    ShuffleAlbum,
-}
-
-#[derive(Clone, Debug)]
-pub enum ArtistUiEvent {
-    ArtistAlbumSelected(usize),
-}
-
-#[derive(Clone, Debug)]
-pub enum SearchAppEvent {
     Results(SearchResultsData),
     HydrateArtwork(SearchResultsData),
     LoadAlbumTracks(Album),
@@ -56,4 +40,16 @@ pub enum SearchAppEvent {
         image_key: Option<String>,
         albums: Vec<Album>,
     },
+}
+
+#[derive(Clone, Debug)]
+pub enum AlbumEvents {
+    AlbumTrackSelected(usize),
+    PlayAlbum,
+    ShuffleAlbum,
+}
+
+#[derive(Clone, Debug)]
+pub enum ArtistEvents {
+    ArtistAlbumSelected(usize),
 }

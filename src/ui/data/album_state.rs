@@ -2,7 +2,7 @@ use vizia::prelude::*;
 
 use crate::{
     messages::Track,
-    ui::events::{AlbumUiEvent, PlaybackUiEvent, SearchAppEvent},
+    ui::events::{AlbumEvents, PlaybackEvents, SearchEvents},
 };
 
 #[derive(Clone)]
@@ -37,7 +37,7 @@ impl AlbumState {
 impl Model for AlbumState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|app_event, _: &mut _| match app_event {
-            SearchAppEvent::AlbumTracks(data) => {
+            SearchEvents::AlbumTracks(data) => {
                 let _ = &data.id;
                 self.album_name.set(data.name.clone());
                 self.album_artist.set(data.artist.clone());
@@ -53,27 +53,27 @@ impl Model for AlbumState {
         });
 
         event.map(|ui_event, _: &mut _| match ui_event {
-            AlbumUiEvent::AlbumTrackSelected(index) => {
+            AlbumEvents::AlbumTrackSelected(index) => {
                 let tracks_len = self.album_tracks.with(|tracks| tracks.len());
                 if *index >= tracks_len {
                     return;
                 }
                 let track = self.album_tracks.with(|tracks| tracks[*index].clone());
-                cx.emit(PlaybackUiEvent::AddToQueue(vec![track]));
+                cx.emit(PlaybackEvents::AddToQueue(vec![track]));
             }
-            AlbumUiEvent::PlayAlbum => {
+            AlbumEvents::PlayAlbum => {
                 if self.album_tracks.with(|tracks| tracks.is_empty()) {
                     return;
                 }
 
                 let tracks = self.album_tracks.get();
-                cx.emit(PlaybackUiEvent::ClearQueue);
-                cx.emit(PlaybackUiEvent::AddToQueue(tracks));
+                cx.emit(PlaybackEvents::ClearQueue);
+                cx.emit(PlaybackEvents::AddToQueue(tracks));
                 if self.album_shuffle_mode.get() {
-                    cx.emit(PlaybackUiEvent::ShuffleQueue);
+                    cx.emit(PlaybackEvents::ShuffleQueue);
                 }
             }
-            AlbumUiEvent::ShuffleAlbum => {
+            AlbumEvents::ShuffleAlbum => {
                 self.album_shuffle_mode.update(|value| *value = !*value);
             }
         });

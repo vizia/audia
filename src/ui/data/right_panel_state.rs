@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui::{events::RightPanelUiEvent, model_data::RightPanelPage};
+use crate::ui::{events::RightPanelEvents, model_data::RightPanelPage};
 
 #[derive(Clone, Copy)]
 pub struct RightPanelState {
@@ -18,7 +18,7 @@ impl RightPanelState {
 impl Model for RightPanelState {
     fn event(&mut self, _cx: &mut EventContext, event: &mut Event) {
         event.map(|ui_event, _: &mut _| match ui_event {
-            RightPanelUiEvent::NavigateTo(page) => {
+            RightPanelEvents::NavigateTo(page) => {
                 self.current_page.set(*page);
             }
         });

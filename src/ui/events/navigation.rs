@@ -1,13 +1,13 @@
 use crate::ui::model_data::{CenterPage, RightPanelPage};
 
 #[derive(Clone, Debug)]
-pub enum CenterUiEvent {
+pub enum CenterEvents {
     NavigateTo(CenterPage),
     NavigateBack,
     NavigateForward,
 }
 
 #[derive(Clone, Debug)]
-pub enum RightPanelUiEvent {
+pub enum RightPanelEvents {
     NavigateTo(RightPanelPage),
 }

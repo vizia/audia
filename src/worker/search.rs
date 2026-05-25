@@ -1,6 +1,6 @@
 use vizia::prelude::{EventContext, Task, TaskHandle, TaskResult};
 
-use crate::ui::events::{SearchAppEvent, SystemAppEvent};
+use crate::ui::events::{SearchEvents, SystemEvents};
 
 use crate::messages::SearchResultsData;
 
@@ -28,14 +28,14 @@ pub fn search_tracks(backend: SharedBackend, query: String, cx: &EventContext<'_
                     let artist_count = results.artists.len();
                     let album_count = results.albums.len();
 
-                    let _ = proxy.emit(SearchAppEvent::Results(results.clone()));
-                    let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                    let _ = proxy.emit(SearchEvents::Results(results.clone()));
+                    let _ = proxy.emit(SystemEvents::StatusMessage(format!(
                         "Search complete: {count} tracks, {artist_count} artists, {album_count} albums. Loading artwork..."
                     )));
-                    let _ = proxy.emit(SearchAppEvent::HydrateArtwork(results));
+                    let _ = proxy.emit(SearchEvents::HydrateArtwork(results));
                 }
                 TaskResult::Error(err) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                    let _ = proxy.emit(SystemEvents::Error(err));
                 }
                 TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
             }
@@ -126,13 +126,13 @@ pub fn hydrate_search_artwork(results: SearchResultsData, cx: &EventContext<'_>)
                 let artist_count = results.artists.len();
                 let album_count = results.albums.len();
 
-                let _ = proxy.emit(SearchAppEvent::Results(results));
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                let _ = proxy.emit(SearchEvents::Results(results));
+                let _ = proxy.emit(SystemEvents::StatusMessage(format!(
                     "Search complete: {count} tracks, {artist_count} artists, {album_count} albums."
                 )));
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),

@@ -5,10 +5,10 @@ mod playlists;
 mod search;
 mod system;
 
-pub use navigation::{CenterUiEvent, RightPanelUiEvent};
-pub use oauth::{OAuthAppEvent, OAuthUiEvent};
-pub use playback::{PlaybackAppEvent, PlaybackUiEvent};
-pub use playlists::{PlaylistsAppEvent, PlaylistsUiEvent};
+pub use navigation::{CenterEvents, RightPanelEvents};
+pub use oauth::OAuthEvents;
+pub use playback::PlaybackEvents;
+pub use playlists::PlaylistsEvents;
 pub use search::AlbumTracksData;
-pub use search::{AlbumUiEvent, ArtistUiEvent, SearchAppEvent, SearchUiEvent};
-pub use system::SystemAppEvent;
+pub use search::{AlbumEvents, ArtistEvents, SearchEvents};
+pub use system::SystemEvents;

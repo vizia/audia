@@ -1,4 +1,4 @@
-use crate::ui::events::{PlaybackUiEvent, SearchUiEvent};
+use crate::ui::events::{PlaybackEvents, SearchEvents};
 use vizia::icons::{
     ICON_PLAYER_PAUSE_FILLED, ICON_PLAYER_PLAY_FILLED, ICON_PLAYER_SKIP_BACK_FILLED,
     ICON_PLAYER_SKIP_FORWARD_FILLED, ICON_VOLUME, ICON_VOLUME_OFF,
@@ -53,7 +53,7 @@ pub fn playback_controls_panel(
                         })
                     })
                     .on_press(move |cx| {
-                        cx.emit(PlaybackUiEvent::OpenAlbumFromPlayback {
+                        cx.emit(PlaybackEvents::OpenAlbumFromPlayback {
                             track_id: playback_track_id.get(),
                             image_key: Some(image_key_for_event.clone()),
                             image_url: image_url.get(),
@@ -73,7 +73,7 @@ pub fn playback_controls_panel(
                     .class("now-playing-artist")
                     .on_press(move |cx| {
                         if let Some(track_id) = playback_track_id.get() {
-                            cx.emit(SearchUiEvent::OpenArtistFromTrack(track_id));
+                            cx.emit(SearchEvents::OpenArtistFromTrack(track_id));
                         }
                     });
             })
@@ -96,7 +96,7 @@ pub fn playback_controls_panel(
                             Label::new(cx, Localized::new("previous_track"));
                         })
                     })
-                    .on_press(|cx| cx.emit(PlaybackUiEvent::Previous));
+                    .on_press(|cx| cx.emit(PlaybackEvents::Previous));
 
                 ToggleButton::with_contents(
                     cx,
@@ -110,7 +110,7 @@ pub fn playback_controls_panel(
                         Label::new(cx, Localized::new("play_or_pause"));
                     })
                 })
-                .on_toggle(|cx| cx.emit(PlaybackUiEvent::Toggle));
+                .on_toggle(|cx| cx.emit(PlaybackEvents::Toggle));
 
                 Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_SKIP_FORWARD_FILLED))
                     .class("playback-skip-forward")
@@ -120,7 +120,7 @@ pub fn playback_controls_panel(
                             Label::new(cx, Localized::new("next_track"));
                         })
                     })
-                    .on_press(|cx| cx.emit(PlaybackUiEvent::Next));
+                    .on_press(|cx| cx.emit(PlaybackEvents::Next));
             })
             .class("transport")
             .height(Auto)
@@ -134,7 +134,7 @@ pub fn playback_controls_panel(
                     .width(Pixels(40.0));
                 Slider::new(cx, playback_scrub_percent)
                     .range(0.0..100.0)
-                    .on_change(|cx, val| cx.emit(PlaybackUiEvent::SetScrub(val)))
+                    .on_change(|cx, val| cx.emit(PlaybackEvents::SetScrub(val)))
                     .width(Stretch(1.0));
                 Label::new(
                     cx,
@@ -166,10 +166,10 @@ pub fn playback_controls_panel(
                         Label::new(cx, Localized::new("mute_or_unmute"));
                     })
                 })
-                .on_toggle(|cx| cx.emit(PlaybackUiEvent::ToggleMute));
+                .on_toggle(|cx| cx.emit(PlaybackEvents::ToggleMute));
                 Slider::new(cx, playback_volume)
                     .range(0.0..100.0)
-                    .on_change(|cx, val| cx.emit(PlaybackUiEvent::SetVolume(val)))
+                    .on_change(|cx, val| cx.emit(PlaybackEvents::SetVolume(val)))
                     .width(Pixels(110.0));
             })
             .height(Auto)

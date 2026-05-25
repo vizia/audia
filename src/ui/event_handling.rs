@@ -1,4 +1,4 @@
-use crate::ui::events::SystemAppEvent;
+use crate::ui::events::SystemEvents;
 use crate::ui::model_data::UiModel;
 use vizia::prelude::*;
 
@@ -15,17 +15,17 @@ impl Model for UiModel {
         self.artist_state.event(cx, event);
         self.playlists_state.event(cx, event);
 
-        event.map(|system_event: &SystemAppEvent, _| match system_event {
-            SystemAppEvent::Ready => {
+        event.map(|system_event: &SystemEvents, _| match system_event {
+            SystemEvents::Ready => {
                 if !self.oauth_state.auth_valid.get() {
                     self.status
                         .set("Not logged in. Click Login with Spotify to continue.".to_string());
                 }
             }
-            SystemAppEvent::StatusMessage(message) => {
+            SystemEvents::StatusMessage(message) => {
                 self.status.set(message.clone());
             }
-            SystemAppEvent::Error(error) => {
+            SystemEvents::Error(error) => {
                 self.status.set(format!("Error: {error}"));
             }
         });

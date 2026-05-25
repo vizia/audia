@@ -1,4 +1,4 @@
-use crate::ui::events::PlaylistsUiEvent;
+use crate::ui::events::PlaylistsEvents;
 use vizia::prelude::*;
 
 pub fn create_playlist_dialog(
@@ -19,24 +19,24 @@ pub fn create_playlist_dialog(
                     Textbox::new(cx, create_playlist_name)
                         .placeholder(Localized::new("playlist_name_placeholder"))
                         .on_edit(|cx, value| {
-                            cx.emit(PlaylistsUiEvent::SetCreatePlaylistName(value))
+                            cx.emit(PlaylistsEvents::SetCreatePlaylistName(value))
                         })
                         .on_submit(|cx, _value, enter_key| {
                             if enter_key {
-                                cx.emit(PlaylistsUiEvent::SubmitCreatePlaylist);
+                                cx.emit(PlaylistsEvents::SubmitCreatePlaylist);
                             }
                         })
                         .width(Stretch(1.0));
 
                     HStack::new(cx, |cx| {
                         Button::new(cx, |cx| Label::new(cx, Localized::new("create")))
-                            .on_press(|cx| cx.emit(PlaylistsUiEvent::SubmitCreatePlaylist))
+                            .on_press(|cx| cx.emit(PlaylistsEvents::SubmitCreatePlaylist))
                             .disabled(is_creating_playlist)
                             .width(Pixels(120.0));
 
                         Button::new(cx, |cx| Label::new(cx, Localized::new("cancel")))
                             .variant(ButtonVariant::Secondary)
-                            .on_press(|cx| cx.emit(PlaylistsUiEvent::CloseCreatePlaylistModal))
+                            .on_press(|cx| cx.emit(PlaylistsEvents::CloseCreatePlaylistModal))
                             .disabled(is_creating_playlist)
                             .width(Pixels(120.0));
                     })
@@ -48,7 +48,7 @@ pub fn create_playlist_dialog(
                 .vertical_gap(Pixels(16.0))
                 .padding(Pixels(16.0));
             })
-            .on_close(|cx| cx.emit(PlaylistsUiEvent::CloseCreatePlaylistModal))
+            .on_close(|cx| cx.emit(PlaylistsEvents::CloseCreatePlaylistModal))
             .title("Create playlist")
             .inner_size((420, 170))
             .anchor(Anchor::Center);

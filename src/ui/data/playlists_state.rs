@@ -4,7 +4,7 @@ use vizia::prelude::*;
 use crate::{
     messages::{PlaylistEntry, Track},
     ui::{
-        events::{CenterUiEvent, PlaybackUiEvent, PlaylistsAppEvent, PlaylistsUiEvent},
+        events::{CenterEvents, PlaybackEvents, PlaylistsEvents},
         model_data::CenterPage,
     },
     worker,
@@ -110,10 +110,10 @@ impl PlaylistsState {
 impl Model for PlaylistsState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|playlists_event, _: &mut _| match playlists_event {
-            PlaylistsAppEvent::Playlists(playlists) => {
+            PlaylistsEvents::Playlists(playlists) => {
                 self.playlist_rows.set(playlists.clone());
             }
-            PlaylistsAppEvent::HydrateUserPlaylistsArtwork {
+            PlaylistsEvents::HydrateUserPlaylistsArtwork {
                 playlists,
                 artwork_urls,
             } => {
@@ -123,10 +123,10 @@ impl Model for PlaylistsState {
                     cx,
                 );
             }
-            PlaylistsAppEvent::RefreshUserPlaylists => {
+            PlaylistsEvents::RefreshUserPlaylists => {
                 worker::refresh_user_playlists(self.backend.clone(), cx);
             }
-            PlaylistsAppEvent::RefreshPlaylistTracks {
+            PlaylistsEvents::RefreshPlaylistTracks {
                 request_id,
                 id,
                 name,
@@ -141,7 +141,7 @@ impl Model for PlaylistsState {
                     cx,
                 ));
             }
-            PlaylistsAppEvent::PlaylistCreated { id, name } => {
+            PlaylistsEvents::PlaylistCreated { id, name } => {
                 self.is_creating_playlist.set(false);
                 self.show_create_playlist_modal.set(false);
                 self.create_playlist_name.set(String::new());
@@ -149,11 +149,11 @@ impl Model for PlaylistsState {
                 self.active_playlist_id.set(Some(id.clone()));
                 self.active_playlist_name.set(name.clone());
             }
-            PlaylistsAppEvent::PlaylistCreateFailed(message) => {
+            PlaylistsEvents::PlaylistCreateFailed(message) => {
                 self.is_creating_playlist.set(false);
                 self.status.set(message.clone());
             }
-            PlaylistsAppEvent::PlaylistRenamed { id, name } => {
+            PlaylistsEvents::PlaylistRenamed { id, name } => {
                 self.is_renaming_playlist.set(false);
                 self.show_rename_playlist_modal.set(false);
                 self.rename_playlist_name.set(String::new());
@@ -162,11 +162,11 @@ impl Model for PlaylistsState {
                     self.active_playlist_name.set(name.clone());
                 }
             }
-            PlaylistsAppEvent::PlaylistRenameFailed(message) => {
+            PlaylistsEvents::PlaylistRenameFailed(message) => {
                 self.is_renaming_playlist.set(false);
                 self.status.set(message.clone());
             }
-            PlaylistsAppEvent::PlaylistDeleted(id) => {
+            PlaylistsEvents::PlaylistDeleted(id) => {
                 if self.active_playlist_id.get().as_deref() == Some(id.as_str()) {
                     self.active_playlist_id.set(None);
                     self.active_playlist_name.set(String::new());
@@ -175,10 +175,10 @@ impl Model for PlaylistsState {
                 }
                 self.status.set("Playlist removed.".to_string());
             }
-            PlaylistsAppEvent::PlaylistDeleteFailed(message) => {
+            PlaylistsEvents::PlaylistDeleteFailed(message) => {
                 self.status.set(message.clone());
             }
-            PlaylistsAppEvent::PlaylistTracks {
+            PlaylistsEvents::PlaylistTracks {
                 request_id,
                 id,
                 name,
@@ -198,7 +198,7 @@ impl Model for PlaylistsState {
                 self.track_filter_input.set(String::new());
                 self.apply_track_filter();
                 self.playlist_selected_index.set(0);
-                cx.emit(CenterUiEvent::NavigateTo(CenterPage::PlaylistTracks));
+                cx.emit(CenterEvents::NavigateTo(CenterPage::PlaylistTracks));
 
                 let mut playlist_rows = self.playlist_rows.get();
                 if let Some(row) = playlist_rows.iter_mut().find(|row| row.id == *id) {
@@ -208,22 +208,23 @@ impl Model for PlaylistsState {
                 }
                 self.playlist_rows.set(playlist_rows);
             }
+            _ => {}
         });
 
         event.map(|app_event, _| match app_event {
-            PlaylistsUiEvent::OpenCreatePlaylistModal => {
+            PlaylistsEvents::OpenCreatePlaylistModal => {
                 self.show_create_playlist_modal.set(true);
                 self.create_playlist_name.set(String::new());
             }
-            PlaylistsUiEvent::CloseCreatePlaylistModal => {
+            PlaylistsEvents::CloseCreatePlaylistModal => {
                 self.show_create_playlist_modal.set(false);
                 self.create_playlist_name.set(String::new());
                 self.is_creating_playlist.set(false);
             }
-            PlaylistsUiEvent::SetCreatePlaylistName(value) => {
+            PlaylistsEvents::SetCreatePlaylistName(value) => {
                 self.create_playlist_name.set(value.clone());
             }
-            PlaylistsUiEvent::SubmitCreatePlaylist => {
+            PlaylistsEvents::SubmitCreatePlaylist => {
                 if self.is_creating_playlist.get() {
                     return;
                 }
@@ -241,20 +242,20 @@ impl Model for PlaylistsState {
                     .set(format!("Creating playlist '{}'...", trimmed_name));
                 worker::create_playlist(self.backend.clone(), trimmed_name.to_string(), cx);
             }
-            PlaylistsUiEvent::OpenRenamePlaylistModal { id, name } => {
+            PlaylistsEvents::OpenRenamePlaylistModal { id, name } => {
                 self.rename_playlist_id.set(id.clone());
                 self.rename_playlist_name.set(name.clone());
                 self.show_rename_playlist_modal.set(true);
             }
-            PlaylistsUiEvent::CloseRenamePlaylistModal => {
+            PlaylistsEvents::CloseRenamePlaylistModal => {
                 self.show_rename_playlist_modal.set(false);
                 self.rename_playlist_name.set(String::new());
                 self.is_renaming_playlist.set(false);
             }
-            PlaylistsUiEvent::SetRenamePlaylistName(value) => {
+            PlaylistsEvents::SetRenamePlaylistName(value) => {
                 self.rename_playlist_name.set(value.clone());
             }
-            PlaylistsUiEvent::SubmitRenamePlaylist => {
+            PlaylistsEvents::SubmitRenamePlaylist => {
                 if self.is_renaming_playlist.get() {
                     return;
                 }
@@ -276,20 +277,20 @@ impl Model for PlaylistsState {
                     cx,
                 );
             }
-            PlaylistsUiEvent::DeletePlaylist(playlist_id) => {
+            PlaylistsEvents::DeletePlaylist(playlist_id) => {
                 self.status.set("Removing playlist...".to_string());
                 worker::delete_playlist(self.backend.clone(), playlist_id.clone(), cx);
             }
-            PlaylistsUiEvent::ShufflePlaylist => {
+            PlaylistsEvents::ShufflePlaylist => {
                 let current = self.shuffle_mode.get();
                 self.shuffle_mode.set(!current);
             }
-            PlaylistsUiEvent::SetTrackFilter(value) => {
+            PlaylistsEvents::SetTrackFilter(value) => {
                 self.track_filter_input.set(value.clone());
                 self.apply_track_filter();
                 self.playlist_selected_index.set(0);
             }
-            PlaylistsUiEvent::SelectPlaylist(index) => {
+            PlaylistsEvents::SelectPlaylist(index) => {
                 let playlists = self.playlist_rows.get();
                 if *index >= playlists.len() {
                     self.status
@@ -303,7 +304,7 @@ impl Model for PlaylistsState {
                 {
                     self.status
                         .set(format!("Showing cached playlist '{}'...", playlist.name));
-                    cx.emit(CenterUiEvent::NavigateTo(CenterPage::PlaylistTracks));
+                    cx.emit(CenterEvents::NavigateTo(CenterPage::PlaylistTracks));
                     return;
                 }
 
@@ -327,11 +328,11 @@ impl Model for PlaylistsState {
                     cx,
                 ));
             }
-            PlaylistsUiEvent::PlayPlaylist => {
-                cx.emit(PlaybackUiEvent::ClearQueue);
-                cx.emit(PlaylistsUiEvent::AddPlaylistToQueue);
+            PlaylistsEvents::PlayPlaylist => {
+                cx.emit(PlaybackEvents::ClearQueue);
+                cx.emit(PlaylistsEvents::AddPlaylistToQueue);
             }
-            PlaylistsUiEvent::AddPlaylistToQueue => {
+            PlaylistsEvents::AddPlaylistToQueue => {
                 let tracks = self.playlist_tracks.get();
                 if tracks.is_empty() {
                     self.status
@@ -339,12 +340,12 @@ impl Model for PlaylistsState {
                     return;
                 }
 
-                cx.emit(PlaybackUiEvent::AddToQueue(tracks));
+                cx.emit(PlaybackEvents::AddToQueue(tracks));
                 if self.shuffle_mode.get() {
-                    cx.emit(PlaybackUiEvent::ShuffleQueue);
+                    cx.emit(PlaybackEvents::ShuffleQueue);
                 }
             }
-            PlaylistsUiEvent::PlaylistTrackSelected(index) => {
+            PlaylistsEvents::PlaylistTrackSelected(index) => {
                 let filtered_indices = self.filtered_track_indices.get();
                 if *index >= filtered_indices.len() {
                     self.status
@@ -357,9 +358,9 @@ impl Model for PlaylistsState {
                 let source_index = filtered_indices[*index];
                 let track = tracks[source_index].clone();
 
-                cx.emit(PlaybackUiEvent::AddToQueue(vec![track]));
+                cx.emit(PlaybackEvents::AddToQueue(vec![track]));
             }
-            PlaylistsUiEvent::AddTrackToPlaylist {
+            PlaylistsEvents::AddTrackToPlaylist {
                 track_id,
                 playlist_id,
             } => {
@@ -371,7 +372,7 @@ impl Model for PlaylistsState {
                     cx,
                 );
             }
-            PlaylistsUiEvent::RemoveTrackFromPlaylist {
+            PlaylistsEvents::RemoveTrackFromPlaylist {
                 track_id,
                 playlist_id,
             } => {
@@ -389,6 +390,7 @@ impl Model for PlaylistsState {
                     cx,
                 );
             }
+            _ => {}
         });
     }
 }

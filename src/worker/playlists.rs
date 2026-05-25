@@ -1,7 +1,7 @@
 use vizia::prelude::{ContextProxy, EventContext, Task, TaskHandle, TaskResult};
 
 use crate::messages::PlaylistEntry;
-use crate::ui::events::{PlaylistsAppEvent, SystemAppEvent};
+use crate::ui::events::{PlaylistsEvents, SystemEvents};
 
 use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
 
@@ -99,10 +99,10 @@ pub fn hydrate_user_playlist_artwork(
         .name("hydrate-user-playlists-artwork")
         .on_result(|result, proxy| match result {
             TaskResult::Completed(playlists) => {
-                let _ = proxy.emit(PlaylistsAppEvent::Playlists(playlists));
+                let _ = proxy.emit(PlaylistsEvents::Playlists(playlists));
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -132,7 +132,7 @@ async fn fetch_playlist_tracks_inner(
         .iter()
         .map(|track| track.duration_ms as u64)
         .sum::<u64>();
-    let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+    let _ = proxy.emit(PlaylistsEvents::PlaylistTracks {
         request_id,
         id: playlist_id.clone(),
         name: playlist_name.clone(),
@@ -169,7 +169,7 @@ async fn fetch_playlist_tracks_inner(
         .iter()
         .map(|track| track.duration_ms as u64)
         .sum::<u64>();
-    let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+    let _ = proxy.emit(PlaylistsEvents::PlaylistTracks {
         request_id,
         id: playlist_id.clone(),
         name: playlist_name.clone(),
@@ -200,7 +200,7 @@ async fn fetch_playlist_tracks_inner(
             .iter()
             .map(|track| track.duration_ms as u64)
             .sum::<u64>();
-        let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+        let _ = proxy.emit(PlaylistsEvents::PlaylistTracks {
             request_id,
             id: playlist_id.clone(),
             name: playlist_name.clone(),
@@ -238,7 +238,7 @@ async fn fetch_playlist_tracks_inner(
             .iter()
             .map(|track| track.duration_ms as u64)
             .sum::<u64>();
-        let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+        let _ = proxy.emit(PlaylistsEvents::PlaylistTracks {
             request_id,
             id: playlist_id.clone(),
             name: playlist_name.clone(),
@@ -256,7 +256,7 @@ async fn fetch_playlist_tracks_inner(
         .iter()
         .map(|track| track.duration_ms as u64)
         .sum::<u64>();
-    let _ = proxy.emit(PlaylistsAppEvent::PlaylistTracks {
+    let _ = proxy.emit(PlaylistsEvents::PlaylistTracks {
         request_id,
         id: playlist_id,
         name: playlist_name,
@@ -264,7 +264,7 @@ async fn fetch_playlist_tracks_inner(
         track_count: count,
         total_duration_ms,
     });
-    let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+    let _ = proxy.emit(SystemEvents::StatusMessage(format!(
         "Loaded {count} tracks from playlist."
     )));
 
@@ -280,14 +280,14 @@ pub fn refresh_user_playlists(backend: SharedBackend, cx: &EventContext<'_>) {
         .name("refresh-user-playlists")
         .on_result(|result, proxy| match result {
             TaskResult::Completed(payload) => {
-                let _ = proxy.emit(PlaylistsAppEvent::Playlists(payload.playlists.clone()));
-                let _ = proxy.emit(PlaylistsAppEvent::HydrateUserPlaylistsArtwork {
+                let _ = proxy.emit(PlaylistsEvents::Playlists(payload.playlists.clone()));
+                let _ = proxy.emit(PlaylistsEvents::HydrateUserPlaylistsArtwork {
                     playlists: payload.playlists,
                     artwork_urls: payload.artwork_urls,
                 });
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -317,19 +317,19 @@ pub fn create_playlist(backend: SharedBackend, name: String, cx: &EventContext<'
         .name(task_name)
         .on_result(|result, proxy| match result {
             TaskResult::Completed(playlist) => {
-                let _ = proxy.emit(PlaylistsAppEvent::PlaylistCreated {
+                let _ = proxy.emit(PlaylistsEvents::PlaylistCreated {
                     id: playlist.id,
                     name: playlist.name.clone(),
                 });
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                let _ = proxy.emit(SystemEvents::StatusMessage(format!(
                     "Created playlist '{}'.",
                     playlist.name
                 )));
-                let _ = proxy.emit(PlaylistsAppEvent::RefreshUserPlaylists);
+                let _ = proxy.emit(PlaylistsEvents::RefreshUserPlaylists);
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(PlaylistsAppEvent::PlaylistCreateFailed(err.clone()));
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(PlaylistsEvents::PlaylistCreateFailed(err.clone()));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -366,19 +366,19 @@ pub fn rename_playlist(
         .name(task_name)
         .on_result(|result, proxy| match result {
             TaskResult::Completed(playlist) => {
-                let _ = proxy.emit(PlaylistsAppEvent::PlaylistRenamed {
+                let _ = proxy.emit(PlaylistsEvents::PlaylistRenamed {
                     id: playlist.id,
                     name: playlist.name.clone(),
                 });
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                let _ = proxy.emit(SystemEvents::StatusMessage(format!(
                     "Renamed playlist to '{}'.",
                     playlist.name
                 )));
-                let _ = proxy.emit(PlaylistsAppEvent::RefreshUserPlaylists);
+                let _ = proxy.emit(PlaylistsEvents::RefreshUserPlaylists);
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(PlaylistsAppEvent::PlaylistRenameFailed(err.clone()));
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(PlaylistsEvents::PlaylistRenameFailed(err.clone()));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -404,15 +404,15 @@ pub fn delete_playlist(backend: SharedBackend, playlist_id: String, cx: &EventCo
         .name(task_name)
         .on_result(|result, proxy| match result {
             TaskResult::Completed(playlist_id) => {
-                let _ = proxy.emit(PlaylistsAppEvent::PlaylistDeleted(playlist_id));
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                let _ = proxy.emit(PlaylistsEvents::PlaylistDeleted(playlist_id));
+                let _ = proxy.emit(SystemEvents::StatusMessage(
                     "Playlist removed.".to_string(),
                 ));
-                let _ = proxy.emit(PlaylistsAppEvent::RefreshUserPlaylists);
+                let _ = proxy.emit(PlaylistsEvents::RefreshUserPlaylists);
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(PlaylistsAppEvent::PlaylistDeleteFailed(err.clone()));
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(PlaylistsEvents::PlaylistDeleteFailed(err.clone()));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -449,7 +449,7 @@ pub fn fetch_playlist_tracks(
         .name(task_name)
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
         }),
     )
@@ -491,12 +491,12 @@ pub fn add_track_to_playlist(
         .name(task_name)
         .on_result(|result, proxy| match result {
             TaskResult::Completed(()) => {
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                let _ = proxy.emit(SystemEvents::StatusMessage(
                     "Track added to playlist.".to_string(),
                 ));
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -546,17 +546,17 @@ pub fn remove_track_from_playlist(
         .name(task_name)
         .on_result(|result, proxy| match result {
             TaskResult::Completed(refresh_request) => {
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                let _ = proxy.emit(SystemEvents::StatusMessage(
                     "Removed track from playlist.".to_string(),
                 ));
-                let _ = proxy.emit(PlaylistsAppEvent::RefreshPlaylistTracks {
+                let _ = proxy.emit(PlaylistsEvents::RefreshPlaylistTracks {
                     request_id: refresh_request.request_id,
                     id: refresh_request.id,
                     name: refresh_request.name,
                 });
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
+                let _ = proxy.emit(SystemEvents::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),

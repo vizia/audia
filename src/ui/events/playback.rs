@@ -1,7 +1,7 @@
 use crate::messages::Track;
 
 #[derive(Clone, Debug)]
-pub enum PlaybackUiEvent {
+pub enum PlaybackEvents {
     SelectQueueTrack(usize),
     AddToQueue(Vec<Track>),
     ShuffleQueue,
@@ -22,10 +22,6 @@ pub enum PlaybackUiEvent {
         image_key: Option<String>,
         image_url: Option<String>,
     },
-}
-
-#[derive(Clone, Debug)]
-pub enum PlaybackAppEvent {
     SessionReady,
     LocalTrackEnded,
 

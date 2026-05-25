@@ -9,7 +9,7 @@ use crate::oauth as oauth_api;
 use crate::playback::PlaybackService;
 use crate::spotify::{SpotifyProfile, SpotifyService};
 use crate::storage::TokenStore;
-use crate::ui::events::{OAuthAppEvent, PlaybackAppEvent};
+use crate::ui::events::{OAuthEvents, PlaybackEvents};
 
 mod albums;
 mod artists;
@@ -264,7 +264,7 @@ async fn apply_token_response(
         .await
         .is_ok()
     {
-        let _ = proxy.emit(PlaybackAppEvent::SessionReady);
+        let _ = proxy.emit(PlaybackEvents::SessionReady);
     }
 
     let refresh_token = lock_backend(backend)?.refresh_token.clone();
@@ -297,7 +297,7 @@ fn emit_login_profile_event(profile: Option<SpotifyProfile>, proxy: &mut Context
             None
         };
 
-    let _ = proxy.emit(OAuthAppEvent::LoginComplete {
+    let _ = proxy.emit(OAuthEvents::LoginComplete {
         username,
         profile_image_key,
     });

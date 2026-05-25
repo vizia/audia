@@ -1,15 +1,11 @@
 #[derive(Clone, Debug)]
-pub enum OAuthUiEvent {
+pub enum OAuthEvents {
     OpenLoginModal,
     CloseLoginModal,
     ResetLogin,
     SetLoginClientId(String),
     StartOAuthLogin,
     RefreshToken,
-}
-
-#[derive(Clone, Debug)]
-pub enum OAuthAppEvent {
     BrowserOpened,
     LoginComplete {
         username: String,

@@ -1,5 +1,5 @@
 use crate::messages::Album;
-use crate::ui::events::ArtistUiEvent;
+use crate::ui::events::ArtistEvents;
 use vizia::prelude::*;
 
 pub fn artist_panel(
@@ -72,7 +72,7 @@ pub fn artist_panel(
         })
         .selectable(Selectable::Single)
         .selection_follows_focus(true)
-        .on_select(|cx, idx| cx.emit(ArtistUiEvent::ArtistAlbumSelected(idx)))
+        .on_select(|cx, idx| cx.emit(ArtistEvents::ArtistAlbumSelected(idx)))
         .width(Stretch(1.0))
         .height(Stretch(1.0));
     })
