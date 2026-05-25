@@ -1,15 +1,33 @@
 use vizia::prelude::{ContextProxy, EventContext, Task, TaskHandle, TaskResult};
 
-use crate::ui::events::{SearchAppEvent, SystemAppEvent};
+use crate::{
+    messages::Album,
+    ui::events::{SearchAppEvent, SystemAppEvent},
+};
 
 use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
 
-async fn fetch_artist_view_inner(
+#[derive(Clone, Debug)]
+struct ArtistViewTaskData {
+    id: String,
+    name: String,
+    image_url: Option<String>,
+    albums: Vec<Album>,
+}
+
+#[derive(Clone, Debug)]
+struct HydratedArtistView {
+    id: String,
+    name: String,
+    image_key: Option<String>,
+    albums: Vec<Album>,
+}
+
+async fn collect_artist_view_data(
     backend: SharedBackend,
     artist_id: String,
-    proxy: &mut ContextProxy,
-) {
-    let (artist, (mut albums, album_total)) = match tokio::try_join!(
+) -> Result<ArtistViewTaskData, String> {
+    let (artist, (mut albums, album_total)) = tokio::try_join!(
         with_spotify_auth_retry(&backend, |spotify| {
             let artist_id = artist_id.clone();
             async move { spotify.get_artist(&artist_id).await }
@@ -18,96 +36,20 @@ async fn fetch_artist_view_inner(
             let artist_id = artist_id.clone();
             async move { spotify.get_artist_albums_page(&artist_id, 10, 0).await }
         })
-    ) {
-        Ok(result) => result,
-        Err(err) => {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-    };
+    )?;
 
-    let artist_id = artist.id.clone();
-    let artist_name = artist.name.clone();
-    let artist_image_url = artist.image_url.clone();
-
+    let artist_id = artist.id;
     let mut offset = albums.len();
     let mut has_more = offset < album_total;
 
-    let _ = proxy.emit(SearchAppEvent::ArtistView {
-        id: artist_id.clone(),
-        name: artist_name.clone(),
-        image_key: None,
-        albums: albums.clone(),
-    });
-
-    let first_page_image_ids = albums
-        .iter()
-        .map(|album| album.id.clone())
-        .collect::<Vec<_>>();
-    let first_page_image_jobs = albums
-        .iter()
-        .enumerate()
-        .filter_map(|(index, album)| {
-            album.image_url.as_ref().map(|url| {
-                (
-                    index,
-                    format!("artist-album-artwork:{}:{}", artist_id, album.id),
-                    url.clone(),
-                )
-            })
-        })
-        .collect::<Vec<_>>();
-
-    let first_page_images = load_images_parallel(proxy, first_page_image_jobs).await;
-    for (local_index, key) in first_page_images {
-        if let Some(album_id) = first_page_image_ids.get(local_index)
-            && let Some(album) = albums.iter_mut().find(|album| album.id == *album_id)
-        {
-            album.image_key = Some(key);
-        }
-    }
-
-    let _ = proxy.emit(SearchAppEvent::ArtistView {
-        id: artist_id.clone(),
-        name: artist_name.clone(),
-        image_key: None,
-        albums: albums.clone(),
-    });
-
     while has_more {
-        let page_result = with_spotify_auth_retry(&backend, |spotify| {
+        let (mut page_albums, total) = with_spotify_auth_retry(&backend, |spotify| {
             let artist_id = artist_id.clone();
             async move { spotify.get_artist_albums_page(&artist_id, 10, offset).await }
         })
-        .await;
-
-        let (mut page_albums, total) = match page_result {
-            Ok(page) => page,
-            Err(err) => {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
-                return;
-            }
-        };
+        .await?;
 
         let page_size = page_albums.len();
-        let page_image_ids = page_albums
-            .iter()
-            .map(|album| album.id.clone())
-            .collect::<Vec<_>>();
-        let page_image_jobs = page_albums
-            .iter()
-            .enumerate()
-            .filter_map(|(index, album)| {
-                album.image_url.as_ref().map(|url| {
-                    (
-                        index,
-                        format!("artist-album-artwork:{}:{}", artist_id, album.id),
-                        url.clone(),
-                    )
-                })
-            })
-            .collect::<Vec<_>>();
-
         albums.append(&mut page_albums);
         albums.sort_by(|a, b| {
             b.release_date
@@ -116,35 +58,47 @@ async fn fetch_artist_view_inner(
         });
         albums.dedup_by(|a, b| a.id == b.id);
 
-        let _ = proxy.emit(SearchAppEvent::ArtistView {
-            id: artist_id.clone(),
-            name: artist_name.clone(),
-            image_key: None,
-            albums: albums.clone(),
-        });
-
-        let page_images = load_images_parallel(proxy, page_image_jobs).await;
-        for (local_index, key) in page_images {
-            if let Some(album_id) = page_image_ids.get(local_index)
-                && let Some(album) = albums.iter_mut().find(|album| album.id == *album_id)
-            {
-                album.image_key = Some(key);
-            }
-        }
-
-        let _ = proxy.emit(SearchAppEvent::ArtistView {
-            id: artist_id.clone(),
-            name: artist_name.clone(),
-            image_key: None,
-            albums: albums.clone(),
-        });
-
         offset += page_size;
         has_more = page_size > 0 && offset < total;
     }
 
-    let artist_image_key = if let Some(url) = artist_image_url.as_ref() {
-        let key = format!("artist-artwork:{}", artist_id);
+    Ok(ArtistViewTaskData {
+        id: artist_id,
+        name: artist.name,
+        image_url: artist.image_url,
+        albums,
+    })
+}
+
+async fn hydrate_artist_view_artwork(
+    data: ArtistViewTaskData,
+    proxy: &mut ContextProxy,
+) -> Result<HydratedArtistView, String> {
+    let mut albums = data.albums;
+
+    let album_jobs = albums
+        .iter()
+        .enumerate()
+        .filter_map(|(index, album)| {
+            album.image_url.as_ref().map(|url| {
+                (
+                    index,
+                    format!("artist-album-artwork:{}:{}", data.id, album.id),
+                    url.clone(),
+                )
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let loaded_album_images = load_images_parallel(proxy, album_jobs).await;
+    for (index, key) in loaded_album_images {
+        if let Some(album) = albums.get_mut(index) {
+            album.image_key = Some(key);
+        }
+    }
+
+    let image_key = if let Some(url) = data.image_url.as_ref() {
+        let key = format!("artist-artwork:{}", data.id);
         let image_jobs = vec![(0usize, key, url.clone())];
         let loaded = load_images_parallel(proxy, image_jobs).await;
         loaded.into_iter().next().map(|(_, loaded_key)| loaded_key)
@@ -152,27 +106,12 @@ async fn fetch_artist_view_inner(
         None
     };
 
-    if artist_image_key.is_some() {
-        let _ = proxy.emit(SearchAppEvent::ArtistView {
-            id: artist_id.clone(),
-            name: artist_name.clone(),
-            image_key: artist_image_key.clone(),
-            albums: albums.clone(),
-        });
-    }
-
-    let album_count = albums.len();
-
-    let _ = proxy.emit(SearchAppEvent::ArtistView {
-        id: artist_id,
-        name: artist_name,
-        image_key: artist_image_key,
+    Ok(HydratedArtistView {
+        id: data.id,
+        name: data.name,
+        image_key,
         albums,
-    });
-
-    let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
-        "Loaded artist details: {album_count} albums."
-    )));
+    })
 }
 
 pub fn fetch_artist_view(
@@ -180,23 +119,37 @@ pub fn fetch_artist_view(
     artist_id: String,
     cx: &EventContext<'_>,
 ) -> TaskHandle {
-    let proxy = cx.get_proxy();
     let task_name = ("fetch-artist-view", artist_id.clone());
     cx.add_task(
         Task::new(move |_| {
-            let mut proxy = proxy.clone();
             let backend = backend.clone();
             let artist_id = artist_id.clone();
-            async move {
-                fetch_artist_view_inner(backend, artist_id, &mut proxy).await;
-                Ok::<(), String>(())
-            }
+            async move { collect_artist_view_data(backend, artist_id).await }
         })
         .name(task_name)
-        .on_result(|result, proxy| {
-            if let TaskResult::Error(err) = result {
+        .on_result(|result, proxy| match result {
+            TaskResult::Completed(data) => {
+                let album_count = data.albums.len();
+                let _ = proxy.emit(SearchAppEvent::ArtistView {
+                    id: data.id.clone(),
+                    name: data.name.clone(),
+                    image_key: None,
+                    albums: data.albums.clone(),
+                });
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                    "Loaded artist details: {album_count} albums. Loading artwork..."
+                )));
+                let _ = proxy.emit(SearchAppEvent::HydrateArtistArtwork {
+                    id: data.id,
+                    name: data.name,
+                    image_url: data.image_url,
+                    albums: data.albums,
+                });
+            }
+            TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
         }),
     )
 }
@@ -206,37 +159,87 @@ pub fn fetch_artist_view_from_track(
     track_id: String,
     cx: &EventContext<'_>,
 ) -> TaskHandle {
-    let proxy = cx.get_proxy();
     let task_name = ("fetch-artist-view-from-track", track_id.clone());
     cx.add_task(
         Task::new(move |_| {
-            let mut proxy = proxy.clone();
             let backend = backend.clone();
             let track_id = track_id.clone();
             async move {
-                let artist = match with_spotify_auth_retry(&backend, |spotify| {
+                let artist = with_spotify_auth_retry(&backend, |spotify| {
                     let track_id = track_id.clone();
                     async move { spotify.get_primary_artist_for_track(&track_id).await }
                 })
-                .await
-                {
-                    Ok(artist) => artist,
-                    Err(err) => {
-                        let _ = proxy.emit(SystemAppEvent::Error(err));
-                        return Ok::<(), String>(());
-                    }
-                };
+                .await?;
 
-                fetch_artist_view_inner(backend, artist.id, &mut proxy).await;
-
-                Ok::<(), String>(())
+                collect_artist_view_data(backend, artist.id).await
             }
         })
         .name(task_name)
-        .on_result(|result, proxy| {
-            if let TaskResult::Error(err) = result {
+        .on_result(|result, proxy| match result {
+            TaskResult::Completed(data) => {
+                let album_count = data.albums.len();
+                let _ = proxy.emit(SearchAppEvent::ArtistView {
+                    id: data.id.clone(),
+                    name: data.name.clone(),
+                    image_key: None,
+                    albums: data.albums.clone(),
+                });
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                    "Loaded artist details: {album_count} albums. Loading artwork..."
+                )));
+                let _ = proxy.emit(SearchAppEvent::HydrateArtistArtwork {
+                    id: data.id,
+                    name: data.name,
+                    image_url: data.image_url,
+                    albums: data.albums,
+                });
+            }
+            TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+        }),
+    )
+}
+
+pub fn hydrate_artist_artwork(
+    id: String,
+    name: String,
+    image_url: Option<String>,
+    albums: Vec<Album>,
+    cx: &EventContext<'_>,
+) -> TaskHandle {
+    let proxy = cx.get_proxy();
+    let task_name = ("hydrate-artist-artwork", id.clone());
+    cx.add_task(
+        Task::new(move |_| {
+            let mut proxy = proxy.clone();
+            let data = ArtistViewTaskData {
+                id: id.clone(),
+                name: name.clone(),
+                image_url: image_url.clone(),
+                albums: albums.clone(),
+            };
+            async move { hydrate_artist_view_artwork(data, &mut proxy).await }
+        })
+        .name(task_name)
+        .on_result(|result, proxy| match result {
+            TaskResult::Completed(view) => {
+                let album_count = view.albums.len();
+                let _ = proxy.emit(SearchAppEvent::ArtistView {
+                    id: view.id,
+                    name: view.name,
+                    image_key: view.image_key,
+                    albums: view.albums,
+                });
+                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                    "Loaded artist details: {album_count} albums."
+                )));
+            }
+            TaskResult::Error(err) => {
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+            }
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
         }),
     )
 }

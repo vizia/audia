@@ -46,7 +46,10 @@ impl Model for ArtistState {
                 self.artist_image_key.set(image_key.clone());
                 self.artist_albums.set(albums.clone());
             }
-            SearchAppEvent::Results(_) | SearchAppEvent::AlbumTracks { .. } => {}
+            SearchAppEvent::Results(_)
+            | SearchAppEvent::HydrateArtwork(_)
+            | SearchAppEvent::HydrateArtistArtwork { .. }
+            | SearchAppEvent::AlbumTracks { .. } => {}
         });
 
         event.map(|ui_event, _: &mut _| match ui_event {

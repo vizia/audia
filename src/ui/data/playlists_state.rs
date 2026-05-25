@@ -113,6 +113,24 @@ impl Model for PlaylistsState {
             PlaylistsAppEvent::Playlists(playlists) => {
                 self.playlist_rows.set(playlists.clone());
             }
+            PlaylistsAppEvent::RefreshUserPlaylists => {
+                worker::refresh_user_playlists(self.backend.clone(), cx);
+            }
+            PlaylistsAppEvent::RefreshPlaylistTracks {
+                request_id,
+                id,
+                name,
+            } => {
+                self.current_playlist_request_id = *request_id;
+                Self::cancel_task(&mut self.active_playlist_task);
+                self.active_playlist_task = Some(worker::fetch_playlist_tracks(
+                    self.backend.clone(),
+                    id.clone(),
+                    name.clone(),
+                    *request_id,
+                    cx,
+                ));
+            }
             PlaylistsAppEvent::PlaylistCreated { id, name } => {
                 self.is_creating_playlist.set(false);
                 self.show_create_playlist_modal.set(false);
@@ -211,11 +229,7 @@ impl Model for PlaylistsState {
                 self.is_creating_playlist.set(true);
                 self.status
                     .set(format!("Creating playlist '{}'...", trimmed_name));
-                worker::create_playlist(
-                    self.backend.clone(),
-                    trimmed_name.to_string(),
-                    cx,
-                );
+                worker::create_playlist(self.backend.clone(), trimmed_name.to_string(), cx);
             }
             PlaylistsUiEvent::OpenRenamePlaylistModal { id, name } => {
                 self.rename_playlist_id.set(id.clone());

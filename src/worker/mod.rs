@@ -20,7 +20,7 @@ mod playlists;
 mod search;
 
 pub use albums::{fetch_album_from_track, fetch_album_tracks};
-pub use artists::{fetch_artist_view, fetch_artist_view_from_track};
+pub use artists::{fetch_artist_view, fetch_artist_view_from_track, hydrate_artist_artwork};
 pub use auth::init_backend;
 pub use oauth::{refresh_access_token, reset_login, start_oauth_login};
 pub use playback::{
@@ -31,7 +31,7 @@ pub use playlists::{
     add_track_to_playlist, create_playlist, delete_playlist, fetch_playlist_tracks,
     refresh_user_playlists, remove_track_from_playlist, rename_playlist,
 };
-pub use search::search_tracks;
+pub use search::{hydrate_search_artwork, search_tracks};
 
 const IMAGE_FETCH_CONCURRENCY: usize = 8;
 static IMAGE_HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();

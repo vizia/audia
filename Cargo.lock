@@ -5457,6 +5457,7 @@ name = "vizia"
 version = "0.4.0"
 dependencies = [
  "skia-safe",
+ "tokio",
  "vizia_core",
  "vizia_winit",
 ]

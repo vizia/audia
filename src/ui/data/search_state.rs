@@ -120,6 +120,25 @@ impl Model for SearchState {
                 self.refresh_selected_summary();
                 self.refresh_result_selection();
             }
+            SearchAppEvent::HydrateArtwork(results) => {
+                Self::cancel_task(&mut self.active_search_task);
+                self.active_search_task = Some(worker::hydrate_search_artwork(results.clone(), cx));
+            }
+            SearchAppEvent::HydrateArtistArtwork {
+                id,
+                name,
+                image_url,
+                albums,
+            } => {
+                Self::cancel_task(&mut self.active_artist_task);
+                self.active_artist_task = Some(worker::hydrate_artist_artwork(
+                    id.clone(),
+                    name.clone(),
+                    image_url.clone(),
+                    albums.clone(),
+                    cx,
+                ));
+            }
             SearchAppEvent::AlbumTracks { .. } | SearchAppEvent::ArtistView { .. } => {}
         });
 
@@ -179,11 +198,8 @@ impl Model for SearchState {
                     .set(format!("Loading tracks for '{}'...", album.name));
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
                 Self::cancel_task(&mut self.active_album_task);
-                self.active_album_task = Some(worker::fetch_album_tracks(
-                    self.backend.clone(),
-                    album,
-                    cx,
-                ));
+                self.active_album_task =
+                    Some(worker::fetch_album_tracks(self.backend.clone(), album, cx));
             }
             SearchUiEvent::OpenAlbumFromTrack(track_id) => {
                 self.status.set("Loading album...".to_string());
@@ -220,7 +236,8 @@ impl Model for SearchState {
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::Search));
                 self.status.set(format!("Searching for '{query}'..."));
                 Self::cancel_task(&mut self.active_search_task);
-                self.active_search_task = Some(worker::search_tracks(self.backend.clone(), query, cx));
+                self.active_search_task =
+                    Some(worker::search_tracks(self.backend.clone(), query, cx));
             }
         });
     }

@@ -27,6 +27,13 @@ pub enum ArtistUiEvent {
 #[derive(Clone, Debug)]
 pub enum SearchAppEvent {
     Results(SearchResultsData),
+    HydrateArtwork(SearchResultsData),
+    HydrateArtistArtwork {
+        id: String,
+        name: String,
+        image_url: Option<String>,
+        albums: Vec<Album>,
+    },
     AlbumTracks {
         id: String,
         name: String,

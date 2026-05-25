@@ -41,8 +41,8 @@ pub fn start_playback_progress_poller(backend: SharedBackend, cx: &Context) {
                         state.local_handle()
                     };
 
-                    let local_track_ended =
-                        playback.consume_track_finished() || playback.mark_track_finished_if_stalled();
+                    let local_track_ended = playback.consume_track_finished()
+                        || playback.mark_track_finished_if_stalled();
 
                     if local_track_ended {
                         let _ = proxy.emit(PlaybackAppEvent::LocalTrackEnded);
@@ -76,23 +76,24 @@ pub fn load_playback_artwork(image_url: Option<String>, cx: &EventContext<'_>) {
             let mut proxy = proxy.clone();
             let image_url = image_url.clone();
             async move {
-            let Some(url) = image_url else {
-                let _ = proxy.emit(PlaybackAppEvent::ArtworkLoaded { image_key: None });
-                return Ok::<(), String>(());
-            };
+                let Some(url) = image_url else {
+                    let _ = proxy.emit(PlaybackAppEvent::ArtworkLoaded { image_key: None });
+                    return Ok::<(), String>(());
+                };
 
-            let bytes = fetch_image_bytes(url.clone()).await;
+                let bytes = fetch_image_bytes(url.clone()).await;
 
-            let image_key = if let Some(image_bytes) = bytes {
-                let key = format!("playback-artwork:{}", url);
-                let _ = proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever);
-                Some(key)
-            } else {
-                None
-            };
+                let image_key = if let Some(image_bytes) = bytes {
+                    let key = format!("playback-artwork:{}", url);
+                    let _ =
+                        proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever);
+                    Some(key)
+                } else {
+                    None
+                };
 
-            let _ = proxy.emit(PlaybackAppEvent::ArtworkLoaded { image_key });
-            Ok::<(), String>(())
+                let _ = proxy.emit(PlaybackAppEvent::ArtworkLoaded { image_key });
+                Ok::<(), String>(())
             }
         })
         .name("load-playback-artwork")
@@ -112,32 +113,33 @@ pub fn playback_play_local_track(backend: SharedBackend, track: Track, cx: &Even
             let backend = backend.clone();
             let track = track.clone();
             async move {
-            let result = tokio::task::spawn_blocking(move || {
-                let playback = {
-                    let playback = shared_playback(&backend)?;
-                    let state = lock_playback(&playback)?;
-                    state.local_handle()
-                };
-                playback.play_track(&track)
-            })
-            .await;
+                let result = tokio::task::spawn_blocking(move || {
+                    let playback = {
+                        let playback = shared_playback(&backend)?;
+                        let state = lock_playback(&playback)?;
+                        state.local_handle()
+                    };
+                    playback.play_track(&track)
+                })
+                .await;
 
-            match result {
-                Ok(Ok(())) => {
-                    let _ =
-                        proxy.emit(SystemAppEvent::StatusMessage("Local track playback started.".to_string()));
+                match result {
+                    Ok(Ok(())) => {
+                        let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                            "Local track playback started.".to_string(),
+                        ));
+                    }
+                    Ok(Err(err)) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                    }
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(format!(
+                            "Playback task failed: {err}"
+                        )));
+                    }
                 }
-                Ok(Err(err)) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(err));
-                }
-                Err(err) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(format!(
-                        "Playback task failed: {err}"
-                    )));
-                }
-            }
 
-            Ok::<(), String>(())
+                Ok::<(), String>(())
             }
         })
         .name("playback-play-local-track")
@@ -156,31 +158,33 @@ pub fn playback_pause_local(backend: SharedBackend, cx: &EventContext<'_>) {
             let mut proxy = proxy.clone();
             let backend = backend.clone();
             async move {
-            let result = tokio::task::spawn_blocking(move || {
-                let playback = {
-                    let playback = shared_playback(&backend)?;
-                    let state = lock_playback(&playback)?;
-                    state.local_handle()
-                };
-                playback.pause()
-            })
-            .await;
+                let result = tokio::task::spawn_blocking(move || {
+                    let playback = {
+                        let playback = shared_playback(&backend)?;
+                        let state = lock_playback(&playback)?;
+                        state.local_handle()
+                    };
+                    playback.pause()
+                })
+                .await;
 
-            match result {
-                Ok(Ok(())) => {
-                    let _ = proxy.emit(SystemAppEvent::StatusMessage("Local playback paused.".to_string()));
+                match result {
+                    Ok(Ok(())) => {
+                        let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                            "Local playback paused.".to_string(),
+                        ));
+                    }
+                    Ok(Err(err)) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                    }
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(format!(
+                            "Playback task failed: {err}"
+                        )));
+                    }
                 }
-                Ok(Err(err)) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(err));
-                }
-                Err(err) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(format!(
-                        "Playback task failed: {err}"
-                    )));
-                }
-            }
 
-            Ok::<(), String>(())
+                Ok::<(), String>(())
             }
         })
         .name("playback-pause-local")
@@ -199,32 +203,33 @@ pub fn playback_resume_local(backend: SharedBackend, cx: &EventContext<'_>) {
             let mut proxy = proxy.clone();
             let backend = backend.clone();
             async move {
-            let result = tokio::task::spawn_blocking(move || {
-                let playback = {
-                    let playback = shared_playback(&backend)?;
-                    let state = lock_playback(&playback)?;
-                    state.local_handle()
-                };
-                playback.resume()
-            })
-            .await;
+                let result = tokio::task::spawn_blocking(move || {
+                    let playback = {
+                        let playback = shared_playback(&backend)?;
+                        let state = lock_playback(&playback)?;
+                        state.local_handle()
+                    };
+                    playback.resume()
+                })
+                .await;
 
-            match result {
-                Ok(Ok(())) => {
-                    let _ =
-                        proxy.emit(SystemAppEvent::StatusMessage("Local playback resumed.".to_string()));
+                match result {
+                    Ok(Ok(())) => {
+                        let _ = proxy.emit(SystemAppEvent::StatusMessage(
+                            "Local playback resumed.".to_string(),
+                        ));
+                    }
+                    Ok(Err(err)) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                    }
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(format!(
+                            "Playback task failed: {err}"
+                        )));
+                    }
                 }
-                Ok(Err(err)) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(err));
-                }
-                Err(err) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(format!(
-                        "Playback task failed: {err}"
-                    )));
-                }
-            }
 
-            Ok::<(), String>(())
+                Ok::<(), String>(())
             }
         })
         .name("playback-resume-local")
@@ -262,29 +267,29 @@ pub fn playback_seek_local(backend: SharedBackend, position_ms: u32, cx: &EventC
             let mut proxy = proxy.clone();
             let backend = backend.clone();
             async move {
-            let result = tokio::task::spawn_blocking(move || {
-                let playback = {
-                    let playback = shared_playback(&backend)?;
-                    let state = lock_playback(&playback)?;
-                    state.local_handle()
-                };
-                playback.seek_to(position_ms)
-            })
-            .await;
+                let result = tokio::task::spawn_blocking(move || {
+                    let playback = {
+                        let playback = shared_playback(&backend)?;
+                        let state = lock_playback(&playback)?;
+                        state.local_handle()
+                    };
+                    playback.seek_to(position_ms)
+                })
+                .await;
 
-            match result {
-                Ok(Ok(())) => {}
-                Ok(Err(err)) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                match result {
+                    Ok(Ok(())) => {}
+                    Ok(Err(err)) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(err));
+                    }
+                    Err(err) => {
+                        let _ = proxy.emit(SystemAppEvent::Error(format!(
+                            "Playback task failed: {err}"
+                        )));
+                    }
                 }
-                Err(err) => {
-                    let _ = proxy.emit(SystemAppEvent::Error(format!(
-                        "Playback task failed: {err}"
-                    )));
-                }
-            }
 
-            Ok::<(), String>(())
+                Ok::<(), String>(())
             }
         })
         .name("playback-seek-local")
