@@ -39,7 +39,7 @@ impl Model for OAuthState {
                 profile_image_key,
             } => {
                 self.auth_valid.set(true);
-                self.show_login_modal.set(false);
+                self.show_login_modal.set_if_changed(false);
                 self.auth_username.set(username.clone());
                 self.profile_image_key.set(profile_image_key.clone());
                 self.status.set(format!("Logged in as {}.", username));
@@ -47,25 +47,22 @@ impl Model for OAuthState {
             }
             OAuthEvent::LoggedOut => {
                 self.auth_valid.set(false);
-                self.show_login_modal.set(true);
+                self.show_login_modal.set_if_changed(true);
                 self.auth_username.set(String::new());
                 self.profile_image_key.set(None);
                 self.status
                     .set("Logged out. Please log in again.".to_string());
             }
-            _ => {}
-        });
-
-        event.map(|oauth_event: &OAuthEvent, _| match oauth_event {
             OAuthEvent::OpenLoginModal => {
-                self.show_login_modal.set(true);
+                self.show_login_modal.set_if_changed(true);
             }
             OAuthEvent::CloseLoginModal => {
-                self.show_login_modal.set(false);
+                self.show_login_modal.set_if_changed(false);
             }
             OAuthEvent::ResetLogin => {
                 self.status.set("Resetting saved login...".to_string());
                 worker::reset_login(self.backend.clone(), cx);
+                cx.emit(OAuthEvent::OpenLoginModal);
             }
             OAuthEvent::SetLoginClientId(client_id) => {
                 self.login_client_id_input.set(client_id.clone());
@@ -95,7 +92,6 @@ impl Model for OAuthState {
                 self.status.set("Refreshing access token...".to_string());
                 worker::refresh_access_token(self.backend.clone(), cx);
             }
-            _ => {}
         });
     }
 }

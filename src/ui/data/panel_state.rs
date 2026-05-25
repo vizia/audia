@@ -23,7 +23,7 @@ pub enum PanelEvent {
 }
 
 #[derive(Default, Serialize, Deserialize)]
-struct QueuePanelSnapshot {
+struct PanelStateSnapshot {
     #[serde(default = "default_left_panel_width")]
     left_width: f32,
     #[serde(default = "default_right_panel_width")]
@@ -99,7 +99,7 @@ impl PanelState {
         };
 
         if let Ok(file) = std::fs::File::open(path) {
-            if let Ok(saved) = from_reader::<_, QueuePanelSnapshot>(file) {
+            if let Ok(saved) = from_reader::<_, PanelStateSnapshot>(file) {
                 self.left_width.set(saved.left_width);
                 self.right_width.set(saved.right_width);
                 self.window_width.set(saved.window_width);
@@ -119,7 +119,7 @@ impl PanelState {
             let _ = std::fs::create_dir_all(parent);
         }
 
-        let snapshot = QueuePanelSnapshot {
+        let snapshot = PanelStateSnapshot {
             left_width: self.left_width.get_untracked(),
             right_width: self.right_width.get_untracked(),
             window_width: self.window_width.get_untracked(),

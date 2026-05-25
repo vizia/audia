@@ -476,10 +476,6 @@ impl Model for PlaybackState {
 
                 worker::playback_seek_local(self.backend.clone(), target_ms, cx);
             }
-            _ => {}
-        });
-
-        event.map(|playback_event, _: &mut _| match playback_event {
             PlaybackEvent::SessionReady => {
                 let persisted_local_volume = Self::persisted_local_volume_percent() as f32;
                 self.playback_ready.set(true);
@@ -556,7 +552,6 @@ impl Model for PlaybackState {
                     );
                 }
             }
-            _ => {}
         });
     }
 }

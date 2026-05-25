@@ -163,10 +163,6 @@ impl Model for SearchState {
                     cx,
                 ));
             }
-            _ => {}
-        });
-
-        event.map(|search_ui_event, _: &mut _| match search_ui_event {
             SearchEvent::SelectTab(index) => {
                 self.selected_search_tab.set(*index);
             }
@@ -263,7 +259,6 @@ impl Model for SearchState {
                 self.active_search_task =
                     Some(worker::search_tracks(self.backend.clone(), query, cx));
             }
-            _ => {}
         });
     }
 }

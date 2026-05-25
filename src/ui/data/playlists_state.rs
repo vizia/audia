@@ -208,10 +208,6 @@ impl Model for PlaylistsState {
                 }
                 self.playlist_rows.set(playlist_rows);
             }
-            _ => {}
-        });
-
-        event.map(|app_event, _| match app_event {
             PlaylistsEvent::OpenCreatePlaylistModal => {
                 self.show_create_playlist_modal.set(true);
                 self.create_playlist_name.set(String::new());
@@ -390,7 +386,6 @@ impl Model for PlaylistsState {
                     cx,
                 );
             }
-            _ => {}
         });
     }
 }
