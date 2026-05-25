@@ -1,4 +1,4 @@
-use crate::ui::events::PlaylistsEvents;
+use crate::ui::events::PlaylistsEvent;
 use vizia::prelude::*;
 
 pub fn rename_playlist_dialog(
@@ -19,24 +19,24 @@ pub fn rename_playlist_dialog(
                     Textbox::new(cx, rename_playlist_name)
                         .placeholder(Localized::new("new_playlist_name_placeholder"))
                         .on_edit(|cx, value| {
-                            cx.emit(PlaylistsEvents::SetRenamePlaylistName(value))
+                            cx.emit(PlaylistsEvent::SetRenamePlaylistName(value))
                         })
                         .on_submit(|cx, _value, enter_key| {
                             if enter_key {
-                                cx.emit(PlaylistsEvents::SubmitRenamePlaylist);
+                                cx.emit(PlaylistsEvent::SubmitRenamePlaylist);
                             }
                         })
                         .width(Stretch(1.0));
 
                     HStack::new(cx, |cx| {
                         Button::new(cx, |cx| Label::new(cx, Localized::new("rename")))
-                            .on_press(|cx| cx.emit(PlaylistsEvents::SubmitRenamePlaylist))
+                            .on_press(|cx| cx.emit(PlaylistsEvent::SubmitRenamePlaylist))
                             .disabled(is_renaming_playlist)
                             .width(Pixels(120.0));
 
                         Button::new(cx, |cx| Label::new(cx, Localized::new("cancel")))
                             .variant(ButtonVariant::Secondary)
-                            .on_press(|cx| cx.emit(PlaylistsEvents::CloseRenamePlaylistModal))
+                            .on_press(|cx| cx.emit(PlaylistsEvent::CloseRenamePlaylistModal))
                             .disabled(is_renaming_playlist)
                             .width(Pixels(120.0));
                     })
@@ -48,7 +48,7 @@ pub fn rename_playlist_dialog(
                 .vertical_gap(Pixels(16.0))
                 .padding(Pixels(16.0));
             })
-            .on_close(|cx| cx.emit(PlaylistsEvents::CloseRenamePlaylistModal))
+            .on_close(|cx| cx.emit(PlaylistsEvent::CloseRenamePlaylistModal))
             .title("Rename playlist")
             .inner_size((420, 170))
             .anchor(Anchor::Center);

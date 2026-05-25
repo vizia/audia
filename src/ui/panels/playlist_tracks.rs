@@ -1,5 +1,5 @@
 use crate::messages::{PlaylistEntry, Track};
-use crate::ui::events::{PlaylistsEvents, SearchEvents};
+use crate::ui::events::{PlaylistsEvent, SearchEvent};
 use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_DOTS, ICON_PLAYER_PLAY_FILLED};
 use vizia::prelude::*;
 
@@ -83,7 +83,7 @@ pub fn playlist_tracks_panel(
                         Label::new(cx, Localized::new("play_playlist"));
                     })
                 })
-                .on_press(|cx| cx.emit(PlaylistsEvents::PlayPlaylist));
+                .on_press(|cx| cx.emit(PlaylistsEvent::PlayPlaylist));
             ToggleButton::new(cx, shuffle_mode, |cx| Svg::new(cx, ICON_ARROWS_SHUFFLE))
                 .class("playlist-shuffle-toggle")
                 .tooltip(|cx| {
@@ -91,10 +91,10 @@ pub fn playlist_tracks_panel(
                         Label::new(cx, Localized::new("shuffle_playlist"));
                     })
                 })
-                .on_press(|cx| cx.emit(PlaylistsEvents::ShufflePlaylist));
+                .on_press(|cx| cx.emit(PlaylistsEvent::ShufflePlaylist));
             Textbox::new(cx, track_filter_input)
                 .placeholder(Localized::new("search"))
-                .on_edit(|cx, value| cx.emit(PlaylistsEvents::SetTrackFilter(value)))
+                .on_edit(|cx, value| cx.emit(PlaylistsEvent::SetTrackFilter(value)))
                 .width(Stretch(1.0));
         })
         .height(Auto)
@@ -119,14 +119,14 @@ pub fn playlist_tracks_panel(
                             .class("playlist-track-album-art")
                             .pointer_events(PointerEvents::Auto)
                             .on_press(move |cx| {
-                                cx.emit(SearchEvents::OpenAlbumFromTrack(tid.clone()))
+                                cx.emit(SearchEvent::OpenAlbumFromTrack(tid.clone()))
                             });
                     } else {
                         Element::new(cx)
                             .class("playlist-track-album-art")
                             .pointer_events(PointerEvents::Auto)
                             .on_press(move |cx| {
-                                cx.emit(SearchEvents::OpenAlbumFromTrack(tid.clone()))
+                                cx.emit(SearchEvent::OpenAlbumFromTrack(tid.clone()))
                             });
                     }
                 });
@@ -164,7 +164,7 @@ pub fn playlist_tracks_panel(
                             cx,
                             move |cx| {
                                 if !active_id.is_empty() && !remove_track_id.is_empty() {
-                                    cx.emit(PlaylistsEvents::RemoveTrackFromPlaylist {
+                                    cx.emit(PlaylistsEvent::RemoveTrackFromPlaylist {
                                         track_id: remove_track_id.clone(),
                                         playlist_id: active_id.clone(),
                                     });
@@ -182,7 +182,7 @@ pub fn playlist_tracks_panel(
                                 cx,
                                 move |cx| {
                                     if !pid.is_empty() && !tid.is_empty() {
-                                        cx.emit(PlaylistsEvents::AddTrackToPlaylist {
+                                        cx.emit(PlaylistsEvent::AddTrackToPlaylist {
                                             track_id: tid.clone(),
                                             playlist_id: pid.clone(),
                                         });
@@ -201,7 +201,7 @@ pub fn playlist_tracks_panel(
         })
         .selectable(Selectable::Single)
         .selection_follows_focus(true)
-        .on_select(|cx, idx| cx.emit(PlaylistsEvents::PlaylistTrackSelected(idx)))
+        .on_select(|cx, idx| cx.emit(PlaylistsEvent::PlaylistTrackSelected(idx)))
         .width(Stretch(1.0))
         .height(Stretch(1.0));
     })

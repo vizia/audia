@@ -5,7 +5,7 @@ use crate::{
     playback::DEFAULT_LOCAL_VOLUME_PERCENT,
     storage::{LocalPlaybackSettings, QueueSnapshot},
     ui::{
-        events::{CenterPanelEvents, PlaybackEvents},
+        events::{CenterPanelEvent, PlaybackEvent},
         model_data::CenterPage,
     },
     worker::{self, SharedBackend, SharedPlayback},
@@ -98,7 +98,7 @@ impl PlaybackState {
 
     fn set_current_track_artwork(&self, cx: &mut EventContext, track: &Track) {
         if let Some(image_key) = track.album_image_key.clone() {
-            cx.emit(PlaybackEvents::ArtworkLoaded {
+            cx.emit(PlaybackEvent::ArtworkLoaded {
                 image_key: Some(image_key),
             });
         }
@@ -112,7 +112,7 @@ impl PlaybackState {
             worker::load_playback_artwork(Some(url), cx);
         } else if track.album_image_key.is_none() {
             // Explicitly clear artwork only when this track has no image source at all.
-            cx.emit(PlaybackEvents::ArtworkLoaded { image_key: None });
+            cx.emit(PlaybackEvent::ArtworkLoaded { image_key: None });
         }
     }
 
@@ -161,7 +161,7 @@ impl PlaybackState {
 impl Model for PlaybackState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|playback_event, _: &mut _| match playback_event {
-            PlaybackEvents::ClearQueue => {
+            PlaybackEvent::ClearQueue => {
                 self.queue_tracks.update(|queue| queue.clear());
                 self.queue_current_index.set(None);
                 self.playback_duration_ms.set(0);
@@ -173,12 +173,12 @@ impl Model for PlaybackState {
                 self.playback_track_image_url.set(None);
                 self.playback_overlay_image_key.set(None);
                 self.save_queue();
-                cx.emit(PlaybackEvents::Stop);
+                cx.emit(PlaybackEvent::Stop);
             }
-            PlaybackEvents::ClearRecentlyPlayed => {
+            PlaybackEvent::ClearRecentlyPlayed => {
                 self.recently_played.update(|list| list.clear());
             }
-            PlaybackEvents::ShuffleQueue => {
+            PlaybackEvent::ShuffleQueue => {
                 let mut tracks = self.queue_tracks.get();
                 if tracks.len() < 2 {
                     self.status
@@ -202,19 +202,19 @@ impl Model for PlaybackState {
                 self.queue_current_index.set(next_current_index);
                 self.status.set("Queue shuffled.".to_string());
             }
-            PlaybackEvents::AddToQueue(tracks) => {
+            PlaybackEvent::AddToQueue(tracks) => {
                 let was_empty = self.queue_tracks.with(|queue| queue.is_empty());
                 self.queue_tracks
                     .update(|queue| queue.extend(tracks.clone()));
                 if was_empty && self.autoplay_on_queue_add.get() {
-                    cx.emit(PlaybackEvents::Play);
+                    cx.emit(PlaybackEvent::Play);
                 }
                 self.save_queue();
                 self.status
                     .set(format!("Added {} tracks to the queue.", tracks.len()));
             }
 
-            PlaybackEvents::OpenAlbumFromPlayback {
+            PlaybackEvent::OpenAlbumFromPlayback {
                 track_id,
                 image_key,
                 image_url,
@@ -222,7 +222,7 @@ impl Model for PlaybackState {
                 if let Some(track_id) = track_id {
                     self.status
                         .set("Loading album from current track...".to_string());
-                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
+                    cx.emit(CenterPanelEvent::NavigateTo(CenterPage::AlbumTracks));
                     worker::fetch_album_from_track(self.backend.clone(), track_id.clone(), cx);
                     return;
                 }
@@ -232,7 +232,7 @@ impl Model for PlaybackState {
                     && *image_key == current_album_key
                     && !self.album_tracks.get().is_empty()
                 {
-                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
+                    cx.emit(CenterPanelEvent::NavigateTo(CenterPage::AlbumTracks));
                     return;
                 }
 
@@ -253,14 +253,14 @@ impl Model for PlaybackState {
                 if let Some(album) = by_key.or(by_url) {
                     self.status
                         .set(format!("Loading tracks for '{}'...", album.name));
-                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
+                    cx.emit(CenterPanelEvent::NavigateTo(CenterPage::AlbumTracks));
                     worker::fetch_album_tracks(self.backend.clone(), album, cx);
                 } else {
                     self.status
                         .set("Album not found in current search results.".to_string());
                 }
             }
-            PlaybackEvents::SelectQueueTrack(index) => {
+            PlaybackEvent::SelectQueueTrack(index) => {
                 // The current track (index 0) is being skipped — add it to recently played.
                 // Tracks between 1 and index-1 were never played; just discard them.
                 if *index > 0 {
@@ -292,7 +292,7 @@ impl Model for PlaybackState {
                 worker::playback_play_local_track(self.backend.clone(), selected_track, cx);
                 self.playback_is_playing.set_if_changed(true);
             }
-            PlaybackEvents::Previous => {
+            PlaybackEvent::Previous => {
                 // If more than 3 seconds into the current track, restart it.
                 let position_ms = {
                     let pct = self.playback_scrub_percent.get();
@@ -303,7 +303,7 @@ impl Model for PlaybackState {
                 if position_ms > 3000 {
                     // Restart the current track.
                     self.status.set("Restarting current track...".to_string());
-                    cx.emit(PlaybackEvents::Play);
+                    cx.emit(PlaybackEvent::Play);
                     return;
                 }
 
@@ -319,30 +319,30 @@ impl Model for PlaybackState {
                     self.queue_current_index.set(Some(0));
                     self.status
                         .set("Playing previous track from recently played...".to_string());
-                    cx.emit(PlaybackEvents::Play);
+                    cx.emit(PlaybackEvent::Play);
                 } else if self.queue_tracks.with(|queue| !queue.is_empty()) {
                     // Nothing in recently played — just restart.
                     self.status
                         .set("Replaying from start of queue...".to_string());
-                    cx.emit(PlaybackEvents::Play);
+                    cx.emit(PlaybackEvent::Play);
                 } else {
                     self.status.set("Nothing to go back to.".to_string());
                 }
             }
-            PlaybackEvents::Toggle => {
+            PlaybackEvent::Toggle => {
                 if self.playback_is_playing.get() {
-                    cx.emit(PlaybackEvents::Pause);
+                    cx.emit(PlaybackEvent::Pause);
                 } else {
                     if self.local_should_start_from_queue() {
-                        cx.emit(PlaybackEvents::Play);
+                        cx.emit(PlaybackEvent::Play);
                     } else if self.playback_scrub_percent.get() > 0.0 {
-                        cx.emit(PlaybackEvents::Resume);
+                        cx.emit(PlaybackEvent::Resume);
                     } else {
-                        cx.emit(PlaybackEvents::Play);
+                        cx.emit(PlaybackEvent::Play);
                     }
                 }
             }
-            PlaybackEvents::Stop => {
+            PlaybackEvent::Stop => {
                 self.playback_is_playing.set_if_changed(false);
                 self.playback_scrub_percent.set(0.0);
                 self.playback_track_name.set("".to_string());
@@ -350,11 +350,11 @@ impl Model for PlaybackState {
                 self.playback_track_image_url.set(None);
                 worker::playback_stop_local(self.backend.clone(), cx);
             }
-            PlaybackEvents::Resume => {
+            PlaybackEvent::Resume => {
                 if self.local_should_start_from_queue() {
                     self.status
                         .set("Starting playback from queue on local device...".to_string());
-                    cx.emit(PlaybackEvents::Play);
+                    cx.emit(PlaybackEvent::Play);
                     return;
                 }
 
@@ -363,7 +363,7 @@ impl Model for PlaybackState {
                 worker::playback_resume_local(self.backend.clone(), cx);
                 self.playback_is_playing.set_if_changed(true);
             }
-            PlaybackEvents::Play => {
+            PlaybackEvent::Play => {
                 let queue_length = self.queue_tracks.with(|queue| queue.len());
                 if queue_length > 0 {
                     let start_index = self
@@ -391,13 +391,13 @@ impl Model for PlaybackState {
                     return;
                 }
             }
-            PlaybackEvents::Pause => {
+            PlaybackEvent::Pause => {
                 self.status
                     .set("Sending pause command to local device...".to_string());
                 worker::playback_pause_local(self.backend.clone(), cx);
                 self.playback_is_playing.set_if_changed(false);
             }
-            PlaybackEvents::Next => {
+            PlaybackEvent::Next => {
                 if self.queue_tracks.with(|queue| queue.len() <= 1) {
                     self.status.set("Queue is empty.".to_string());
                     return;
@@ -416,7 +416,7 @@ impl Model for PlaybackState {
                 if queue_length > 0 {
                     self.queue_current_index.set(Some(0));
                     self.save_queue();
-                    cx.emit(PlaybackEvents::Play);
+                    cx.emit(PlaybackEvent::Play);
                 } else {
                     self.queue_current_index.set(None);
                     self.playback_is_playing.set_if_changed(false);
@@ -425,20 +425,20 @@ impl Model for PlaybackState {
                 }
                 return;
             }
-            PlaybackEvents::ToggleMute => {
+            PlaybackEvent::ToggleMute => {
                 if self.playback_is_muted.get() {
                     // Unmute: restore saved volume
                     self.playback_is_muted.set(false);
                     let restore = self.pre_mute_volume;
-                    cx.emit(PlaybackEvents::SetVolume(restore));
+                    cx.emit(PlaybackEvent::SetVolume(restore));
                 } else {
                     // Mute: save current volume then set to 0
                     self.pre_mute_volume = self.playback_volume.get();
                     self.playback_is_muted.set(true);
-                    cx.emit(PlaybackEvents::SetVolume(0.0));
+                    cx.emit(PlaybackEvent::SetVolume(0.0));
                 }
             }
-            PlaybackEvents::SetVolume(value) => {
+            PlaybackEvent::SetVolume(value) => {
                 let clamped = value.clamp(0.0, 100.0);
                 self.playback_volume.set(clamped);
 
@@ -462,7 +462,7 @@ impl Model for PlaybackState {
                     .save();
                 }
             }
-            PlaybackEvents::SetScrub(value) => {
+            PlaybackEvent::SetScrub(value) => {
                 let clamped = value.clamp(0.0, 100.0);
                 self.playback_scrub_percent.set(clamped);
                 self.last_scrub_user_input_at = Some(Instant::now());
@@ -480,7 +480,7 @@ impl Model for PlaybackState {
         });
 
         event.map(|playback_event, _: &mut _| match playback_event {
-            PlaybackEvents::SessionReady => {
+            PlaybackEvent::SessionReady => {
                 let persisted_local_volume = Self::persisted_local_volume_percent() as f32;
                 self.playback_ready.set(true);
                 self.playback_volume.set_if_changed(persisted_local_volume);
@@ -490,7 +490,7 @@ impl Model for PlaybackState {
                     .set("Playback session is ready (OAuth token-based).".to_string());
             }
 
-            PlaybackEvents::LocalTrackEnded => {
+            PlaybackEvent::LocalTrackEnded => {
                 if self
                     .last_local_track_end_handled_at
                     .map(|at| at.elapsed() < Duration::from_millis(700))
@@ -513,7 +513,7 @@ impl Model for PlaybackState {
                 if queue_length > 0 {
                     self.queue_current_index.set(Some(0));
                     self.save_queue();
-                    cx.emit(PlaybackEvents::Play);
+                    cx.emit(PlaybackEvent::Play);
                 } else {
                     self.queue_current_index.set(None);
                     self.playback_is_playing.set_if_changed(false);
@@ -522,7 +522,7 @@ impl Model for PlaybackState {
                 }
             }
 
-            PlaybackEvents::Progress {
+            PlaybackEvent::Progress {
                 position_ms,
                 duration_ms,
                 is_playing,
@@ -543,7 +543,7 @@ impl Model for PlaybackState {
                     self.playback_scrub_percent.set(ratio * 100.0);
                 }
             }
-            PlaybackEvents::ArtworkLoaded { image_key } => {
+            PlaybackEvent::ArtworkLoaded { image_key } => {
                 let current_image = self.playback_track_image_key.get();
                 if current_image != *image_key {
                     self.playback_overlay_image_key.set(current_image);

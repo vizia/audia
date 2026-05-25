@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::{storage::configured_client_id, ui::events::OAuthEvents, worker};
+use crate::{storage::configured_client_id, ui::events::OAuthEvent, worker};
 
 #[derive(Clone)]
 pub struct OAuthState {
@@ -29,12 +29,12 @@ impl OAuthState {
 
 impl Model for OAuthState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|oauth_event: &OAuthEvents, _| match oauth_event {
-            OAuthEvents::BrowserOpened => {
+        event.map(|oauth_event: &OAuthEvent, _| match oauth_event {
+            OAuthEvent::BrowserOpened => {
                 self.status
                     .set("Browser opened — complete login in your browser.".to_string());
             }
-            OAuthEvents::LoginComplete {
+            OAuthEvent::LoginComplete {
                 username,
                 profile_image_key,
             } => {
@@ -45,7 +45,7 @@ impl Model for OAuthState {
                 self.status.set(format!("Logged in as {}.", username));
                 worker::refresh_user_playlists(self.backend.clone(), cx);
             }
-            OAuthEvents::LoggedOut => {
+            OAuthEvent::LoggedOut => {
                 self.auth_valid.set(false);
                 self.show_login_modal.set(true);
                 self.auth_username.set(String::new());
@@ -56,21 +56,21 @@ impl Model for OAuthState {
             _ => {}
         });
 
-        event.map(|oauth_event: &OAuthEvents, _| match oauth_event {
-            OAuthEvents::OpenLoginModal => {
+        event.map(|oauth_event: &OAuthEvent, _| match oauth_event {
+            OAuthEvent::OpenLoginModal => {
                 self.show_login_modal.set(true);
             }
-            OAuthEvents::CloseLoginModal => {
+            OAuthEvent::CloseLoginModal => {
                 self.show_login_modal.set(false);
             }
-            OAuthEvents::ResetLogin => {
+            OAuthEvent::ResetLogin => {
                 self.status.set("Resetting saved login...".to_string());
                 worker::reset_login(self.backend.clone(), cx);
             }
-            OAuthEvents::SetLoginClientId(client_id) => {
+            OAuthEvent::SetLoginClientId(client_id) => {
                 self.login_client_id_input.set(client_id.clone());
             }
-            OAuthEvents::StartOAuthLogin => {
+            OAuthEvent::StartOAuthLogin => {
                 let typed_client_id = self.login_client_id_input.get();
                 let typed_client_id = typed_client_id.trim();
                 let client_id = if typed_client_id.is_empty() {
@@ -91,7 +91,7 @@ impl Model for OAuthState {
                     .set("Opening Spotify authorization in browser...".to_string());
                 worker::start_oauth_login(self.backend.clone(), client_id, cx);
             }
-            OAuthEvents::RefreshToken => {
+            OAuthEvent::RefreshToken => {
                 self.status.set("Refreshing access token...".to_string());
                 worker::refresh_access_token(self.backend.clone(), cx);
             }

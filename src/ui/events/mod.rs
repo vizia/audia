@@ -5,10 +5,10 @@ mod playlists;
 mod search;
 mod system;
 
-pub use navigation::{CenterPanelEvents, RightPanelEvents};
-pub use oauth::OAuthEvents;
-pub use playback::PlaybackEvents;
-pub use playlists::PlaylistsEvents;
+pub use navigation::{CenterPanelEvent, RightPanelEvent};
+pub use oauth::OAuthEvent;
+pub use playback::PlaybackEvent;
+pub use playlists::PlaylistsEvent;
 pub use search::AlbumTracksData;
-pub use search::{AlbumEvents, ArtistEvents, SearchEvents};
-pub use system::SystemEvents;
+pub use search::{AlbumEvent, ArtistEvent, SearchEvent};
+pub use system::SystemEvent;

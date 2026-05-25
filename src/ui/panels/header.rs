@@ -1,5 +1,5 @@
 use crate::ui::data::PreferencesEvent;
-use crate::ui::events::{CenterPanelEvents, OAuthEvents, SearchEvents};
+use crate::ui::events::{CenterPanelEvent, OAuthEvent, SearchEvent};
 use vizia::icons::{ICON_CHEVRON_LEFT, ICON_CHEVRON_RIGHT};
 use vizia::{icons::ICON_SETTINGS, prelude::*};
 
@@ -21,7 +21,7 @@ pub fn header_panel(
                         Label::new(cx, Localized::new("back"));
                     })
                 })
-                .on_press(|cx| cx.emit(CenterPanelEvents::NavigateBack));
+                .on_press(|cx| cx.emit(CenterPanelEvent::NavigateBack));
 
             Button::new(cx, |cx| Svg::new(cx, ICON_CHEVRON_RIGHT))
                 .class("playback-skip-forward")
@@ -31,7 +31,7 @@ pub fn header_panel(
                         Label::new(cx, Localized::new("forward"));
                     })
                 })
-                .on_press(|cx| cx.emit(CenterPanelEvents::NavigateForward));
+                .on_press(|cx| cx.emit(CenterPanelEvent::NavigateForward));
         })
         .height(Auto)
         .width(Stretch(1.0))
@@ -40,10 +40,10 @@ pub fn header_panel(
 
         Textbox::new(cx, search_input)
             .placeholder(Localized::new("search"))
-            .on_edit(|cx, value| cx.emit(SearchEvents::SetInput(value)))
+            .on_edit(|cx, value| cx.emit(SearchEvent::SetInput(value)))
             .on_submit(|cx, value, enter_key| {
                 if enter_key {
-                    cx.emit(SearchEvents::SubmitQuery(value));
+                    cx.emit(SearchEvent::SubmitQuery(value));
                 }
             })
             .width(Stretch(2.0))
@@ -82,7 +82,7 @@ pub fn header_panel(
                 |cx| {
                     MenuButton::new(
                         cx,
-                        |cx| cx.emit(OAuthEvents::OpenLoginModal),
+                        |cx| cx.emit(OAuthEvent::OpenLoginModal),
                         |cx| Label::new(cx, Localized::new("open_login")),
                     )
                     .tooltip(|cx| {
@@ -92,7 +92,7 @@ pub fn header_panel(
                     });
                     MenuButton::new(
                         cx,
-                        |cx| cx.emit(OAuthEvents::RefreshToken),
+                        |cx| cx.emit(OAuthEvent::RefreshToken),
                         |cx| Label::new(cx, Localized::new("refresh_token")),
                     )
                     .tooltip(|cx| {
@@ -102,7 +102,7 @@ pub fn header_panel(
                     });
                     MenuButton::new(
                         cx,
-                        |cx| cx.emit(OAuthEvents::ResetLogin),
+                        |cx| cx.emit(OAuthEvent::ResetLogin),
                         |cx| Label::new(cx, Localized::new("reset_login")),
                     )
                     .tooltip(|cx| {

@@ -3,7 +3,7 @@ use std::time::Duration;
 use vizia::prelude::{Context, EventContext, ImageRetentionPolicy, Task, TaskResult};
 
 use crate::messages::Track;
-use crate::ui::events::{PlaybackEvents, SystemEvents};
+use crate::ui::events::{PlaybackEvent, SystemEvent};
 
 use super::{SharedBackend, fetch_image_bytes, lock_playback, shared_playback};
 
@@ -27,14 +27,14 @@ pub fn start_playback_progress_poller(backend: SharedBackend, cx: &Context) {
                         let playback = match shared_playback(&backend) {
                             Ok(playback) => playback,
                             Err(err) => {
-                                let _ = proxy.emit(SystemEvents::Error(err));
+                                let _ = proxy.emit(SystemEvent::Error(err));
                                 return Ok::<(), String>(());
                             }
                         };
                         let state = match lock_playback(&playback) {
                             Ok(state) => state,
                             Err(err) => {
-                                let _ = proxy.emit(SystemEvents::Error(err));
+                                let _ = proxy.emit(SystemEvent::Error(err));
                                 return Ok::<(), String>(());
                             }
                         };
@@ -45,13 +45,13 @@ pub fn start_playback_progress_poller(backend: SharedBackend, cx: &Context) {
                         || playback.mark_track_finished_if_stalled();
 
                     if local_track_ended {
-                        let _ = proxy.emit(PlaybackEvents::LocalTrackEnded);
+                        let _ = proxy.emit(PlaybackEvent::LocalTrackEnded);
                     }
 
                     let local_progress = playback.playback_progress();
 
                     if let Some((position_ms, duration_ms, is_playing)) = local_progress {
-                        let _ = proxy.emit(PlaybackEvents::Progress {
+                        let _ = proxy.emit(PlaybackEvent::Progress {
                             position_ms,
                             duration_ms,
                             is_playing,
@@ -63,7 +63,7 @@ pub fn start_playback_progress_poller(backend: SharedBackend, cx: &Context) {
         .name("playback-progress-poller")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
         }),
     );
@@ -92,12 +92,12 @@ pub fn load_playback_artwork(image_url: Option<String>, cx: &EventContext<'_>) {
             TaskResult::Completed(Some((key, image_bytes))) => {
                 match proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever) {
                     Ok(()) => {
-                        let _ = proxy.emit(PlaybackEvents::ArtworkLoaded {
+                        let _ = proxy.emit(PlaybackEvent::ArtworkLoaded {
                             image_key: Some(key),
                         });
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvents::Error(format!(
+                        let _ = proxy.emit(SystemEvent::Error(format!(
                             "Failed to load playback artwork image: {err}"
                         )));
                     }
@@ -105,7 +105,7 @@ pub fn load_playback_artwork(image_url: Option<String>, cx: &EventContext<'_>) {
             }
             TaskResult::Completed(None) => {}
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -132,15 +132,15 @@ pub fn playback_play_local_track(backend: SharedBackend, track: Track, cx: &Even
 
                 match result {
                     Ok(Ok(())) => {
-                        let _ = proxy.emit(SystemEvents::StatusMessage(
+                        let _ = proxy.emit(SystemEvent::StatusMessage(
                             "Local track playback started.".to_string(),
                         ));
                     }
                     Ok(Err(err)) => {
-                        let _ = proxy.emit(SystemEvents::Error(err));
+                        let _ = proxy.emit(SystemEvent::Error(err));
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvents::Error(format!(
+                        let _ = proxy.emit(SystemEvent::Error(format!(
                             "Playback task failed: {err}"
                         )));
                     }
@@ -152,7 +152,7 @@ pub fn playback_play_local_track(backend: SharedBackend, track: Track, cx: &Even
         .name("playback-play-local-track")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
         }),
     );
@@ -177,15 +177,15 @@ pub fn playback_pause_local(backend: SharedBackend, cx: &EventContext<'_>) {
 
                 match result {
                     Ok(Ok(())) => {
-                        let _ = proxy.emit(SystemEvents::StatusMessage(
+                        let _ = proxy.emit(SystemEvent::StatusMessage(
                             "Local playback paused.".to_string(),
                         ));
                     }
                     Ok(Err(err)) => {
-                        let _ = proxy.emit(SystemEvents::Error(err));
+                        let _ = proxy.emit(SystemEvent::Error(err));
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvents::Error(format!(
+                        let _ = proxy.emit(SystemEvent::Error(format!(
                             "Playback task failed: {err}"
                         )));
                     }
@@ -197,7 +197,7 @@ pub fn playback_pause_local(backend: SharedBackend, cx: &EventContext<'_>) {
         .name("playback-pause-local")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
         }),
     );
@@ -222,15 +222,15 @@ pub fn playback_resume_local(backend: SharedBackend, cx: &EventContext<'_>) {
 
                 match result {
                     Ok(Ok(())) => {
-                        let _ = proxy.emit(SystemEvents::StatusMessage(
+                        let _ = proxy.emit(SystemEvent::StatusMessage(
                             "Local playback resumed.".to_string(),
                         ));
                     }
                     Ok(Err(err)) => {
-                        let _ = proxy.emit(SystemEvents::Error(err));
+                        let _ = proxy.emit(SystemEvent::Error(err));
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvents::Error(format!(
+                        let _ = proxy.emit(SystemEvent::Error(format!(
                             "Playback task failed: {err}"
                         )));
                     }
@@ -242,7 +242,7 @@ pub fn playback_resume_local(backend: SharedBackend, cx: &EventContext<'_>) {
         .name("playback-resume-local")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
         }),
     );
@@ -253,14 +253,14 @@ pub fn playback_stop_local(backend: SharedBackend, cx: &EventContext<'_>) {
     let playback = match shared_playback(&backend) {
         Ok(playback) => playback,
         Err(err) => {
-            let _ = proxy.emit(SystemEvents::Error(err));
+            let _ = proxy.emit(SystemEvent::Error(err));
             return;
         }
     };
     let playback = match lock_playback(&playback) {
         Ok(state) => state.local_handle(),
         Err(err) => {
-            let _ = proxy.emit(SystemEvents::Error(err));
+            let _ = proxy.emit(SystemEvent::Error(err));
             return;
         }
     };
@@ -287,10 +287,10 @@ pub fn playback_seek_local(backend: SharedBackend, position_ms: u32, cx: &EventC
                 match result {
                     Ok(Ok(())) => {}
                     Ok(Err(err)) => {
-                        let _ = proxy.emit(SystemEvents::Error(err));
+                        let _ = proxy.emit(SystemEvent::Error(err));
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvents::Error(format!(
+                        let _ = proxy.emit(SystemEvent::Error(format!(
                             "Playback task failed: {err}"
                         )));
                     }
@@ -302,7 +302,7 @@ pub fn playback_seek_local(backend: SharedBackend, position_ms: u32, cx: &EventC
         .name("playback-seek-local")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
         }),
     );

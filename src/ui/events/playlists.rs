@@ -1,7 +1,7 @@
 use crate::messages::{PlaylistEntry, Track};
 
 #[derive(Clone, Debug)]
-pub enum PlaylistsEvents {
+pub enum PlaylistsEvent {
     OpenCreatePlaylistModal,
     CloseCreatePlaylistModal,
     SetCreatePlaylistName(String),

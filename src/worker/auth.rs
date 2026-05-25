@@ -4,7 +4,7 @@ use vizia::prelude::{Context, Task, TaskResult};
 
 use crate::oauth as oauth_api;
 use crate::storage::{ClientCredentialStore, TokenStore};
-use crate::ui::events::{PlaybackEvents, SystemEvents};
+use crate::ui::events::{PlaybackEvent, SystemEvent};
 
 use super::{
     BackendState, SharedBackend, apply_token_response, bootstrap_playback_from_token,
@@ -26,8 +26,8 @@ pub fn init_backend(cx: &Context) -> SharedBackend {
                         let mut state = match lock_backend(&backend_clone) {
                             Ok(state) => state,
                             Err(err) => {
-                                let _ = proxy.emit(SystemEvents::Error(err));
-                                let _ = proxy.emit(SystemEvents::Ready);
+                                let _ = proxy.emit(SystemEvent::Error(err));
+                                let _ = proxy.emit(SystemEvent::Ready);
                                 return Ok::<(), String>(());
                             }
                         };
@@ -40,8 +40,8 @@ pub fn init_backend(cx: &Context) -> SharedBackend {
                         let mut state = match lock_backend(&backend_clone) {
                             Ok(state) => state,
                             Err(err) => {
-                                let _ = proxy.emit(SystemEvents::Error(err));
-                                let _ = proxy.emit(SystemEvents::Ready);
+                                let _ = proxy.emit(SystemEvent::Error(err));
+                                let _ = proxy.emit(SystemEvent::Ready);
                                 return Ok::<(), String>(());
                             }
                         };
@@ -52,8 +52,8 @@ pub fn init_backend(cx: &Context) -> SharedBackend {
                         let state = match lock_backend(&backend_clone) {
                             Ok(state) => state,
                             Err(err) => {
-                                let _ = proxy.emit(SystemEvents::Error(err));
-                                let _ = proxy.emit(SystemEvents::Ready);
+                                let _ = proxy.emit(SystemEvent::Error(err));
+                                let _ = proxy.emit(SystemEvent::Ready);
                                 return Ok::<(), String>(());
                             }
                         };
@@ -76,15 +76,15 @@ pub fn init_backend(cx: &Context) -> SharedBackend {
                                     )
                                     .await
                                     {
-                                        let _ = proxy.emit(SystemEvents::Error(err));
+                                        let _ = proxy.emit(SystemEvent::Error(err));
                                     }
-                                    let _ = proxy.emit(SystemEvents::Ready);
+                                    let _ = proxy.emit(SystemEvent::Ready);
                                 }
                                 Err(err) => {
-                                    let _ = proxy.emit(SystemEvents::Error(format!(
+                                    let _ = proxy.emit(SystemEvent::Error(format!(
                                         "Silent token refresh failed: {err}"
                                     )));
-                                    let _ = proxy.emit(SystemEvents::Ready);
+                                    let _ = proxy.emit(SystemEvent::Ready);
                                 }
                             }
                             return Ok::<(), String>(());
@@ -93,8 +93,8 @@ pub fn init_backend(cx: &Context) -> SharedBackend {
                         let spotify = match lock_backend(&backend_clone) {
                             Ok(state) => state.spotify.clone(),
                             Err(err) => {
-                                let _ = proxy.emit(SystemEvents::Error(err));
-                                let _ = proxy.emit(SystemEvents::Ready);
+                                let _ = proxy.emit(SystemEvent::Error(err));
+                                let _ = proxy.emit(SystemEvent::Ready);
                                 return Ok::<(), String>(());
                             }
                         };
@@ -110,28 +110,28 @@ pub fn init_backend(cx: &Context) -> SharedBackend {
                                 .await
                                 .is_ok()
                             {
-                                let _ = proxy.emit(PlaybackEvents::SessionReady);
+                                let _ = proxy.emit(PlaybackEvent::SessionReady);
                             }
                         } else {
-                            let _ = proxy.emit(SystemEvents::StatusMessage(
+                            let _ = proxy.emit(SystemEvent::StatusMessage(
                                 "Saved token is invalid. Please log in again.".to_string(),
                             ));
                         }
 
-                        let _ = proxy.emit(SystemEvents::Ready);
+                        let _ = proxy.emit(SystemEvent::Ready);
                         return Ok::<(), String>(());
                     }
                 }
 
-                let _ = proxy.emit(SystemEvents::Ready);
+                let _ = proxy.emit(SystemEvent::Ready);
                 Ok::<(), String>(())
             }
         })
         .name("init-backend")
         .on_result(|result, proxy| {
             if let TaskResult::Error(err) = result {
-                let _ = proxy.emit(SystemEvents::Error(err));
-                let _ = proxy.emit(SystemEvents::Ready);
+                let _ = proxy.emit(SystemEvent::Error(err));
+                let _ = proxy.emit(SystemEvent::Ready);
             }
         }),
     );

@@ -3,7 +3,7 @@ use vizia::prelude::*;
 use crate::{
     messages::{Album, Artist, Track},
     ui::{
-        events::{CenterPanelEvents, PlaybackEvents, SearchEvents},
+        events::{CenterPanelEvent, PlaybackEvent, SearchEvent},
         model_data::CenterPage,
     },
     worker,
@@ -95,7 +95,7 @@ impl SearchState {
 impl Model for SearchState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|search_event, _: &mut _| match search_event {
-            SearchEvents::Results(results) => {
+            SearchEvent::Results(results) => {
                 let previous_track_ids = self
                     .search_result_rows
                     .get()
@@ -120,11 +120,11 @@ impl Model for SearchState {
                 self.refresh_selected_summary();
                 self.refresh_result_selection();
             }
-            SearchEvents::HydrateArtwork(results) => {
+            SearchEvent::HydrateArtwork(results) => {
                 Self::cancel_task(&mut self.active_search_task);
                 self.active_search_task = Some(worker::hydrate_search_artwork(results.clone(), cx));
             }
-            SearchEvents::LoadAlbumTracks(album) => {
+            SearchEvent::LoadAlbumTracks(album) => {
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
                 Self::cancel_task(&mut self.active_album_task);
@@ -134,7 +134,7 @@ impl Model for SearchState {
                     cx,
                 ));
             }
-            SearchEvents::HydrateAlbumArtwork(data) => {
+            SearchEvent::HydrateAlbumArtwork(data) => {
                 Self::cancel_task(&mut self.active_album_task);
                 self.active_album_task = Some(worker::hydrate_album_artwork(
                     data.id.clone(),
@@ -148,7 +148,7 @@ impl Model for SearchState {
                     cx,
                 ));
             }
-            SearchEvents::HydrateArtistArtwork {
+            SearchEvent::HydrateArtistArtwork {
                 id,
                 name,
                 image_url,
@@ -163,15 +163,14 @@ impl Model for SearchState {
                     cx,
                 ));
             }
-            SearchEvents::AlbumTracks(_) | SearchEvents::ArtistView { .. } => {}
             _ => {}
         });
 
         event.map(|search_ui_event, _: &mut _| match search_ui_event {
-            SearchEvents::SelectTab(index) => {
+            SearchEvent::SelectTab(index) => {
                 self.selected_search_tab.set(*index);
             }
-            SearchEvents::SelectResult(index) => {
+            SearchEvent::SelectResult(index) => {
                 let search_results = self.search_result_rows.get();
                 if *index >= search_results.len() {
                     self.status
@@ -180,9 +179,9 @@ impl Model for SearchState {
                 }
 
                 let selected_track = search_results[*index].clone();
-                cx.emit(PlaybackEvents::AddToQueue(vec![selected_track]));
+                cx.emit(PlaybackEvent::AddToQueue(vec![selected_track]));
             }
-            SearchEvents::SelectArtist(index) => {
+            SearchEvent::SelectArtist(index) => {
                 let artists = self.search_artist_rows.get();
                 if *index >= artists.len() {
                     self.status
@@ -196,13 +195,13 @@ impl Model for SearchState {
                 {
                     self.status
                         .set(format!("Showing cached albums for '{}'", artist.name));
-                    cx.emit(CenterPanelEvents::NavigateTo(CenterPage::Artist));
+                    cx.emit(CenterPanelEvent::NavigateTo(CenterPage::Artist));
                     return;
                 }
 
                 self.status
                     .set(format!("Loading albums for '{}'...", artist.name));
-                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::Artist));
+                cx.emit(CenterPanelEvent::NavigateTo(CenterPage::Artist));
                 Self::cancel_task(&mut self.active_artist_task);
                 self.active_artist_task = Some(worker::fetch_artist_view(
                     self.backend.clone(),
@@ -210,7 +209,7 @@ impl Model for SearchState {
                     cx,
                 ));
             }
-            SearchEvents::SelectAlbum(index) => {
+            SearchEvent::SelectAlbum(index) => {
                 let albums = self.search_album_rows.get();
                 if *index >= albums.len() {
                     self.status
@@ -221,14 +220,14 @@ impl Model for SearchState {
                 let album = albums[*index].clone();
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
-                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
+                cx.emit(CenterPanelEvent::NavigateTo(CenterPage::AlbumTracks));
                 Self::cancel_task(&mut self.active_album_task);
                 self.active_album_task =
                     Some(worker::fetch_album_tracks(self.backend.clone(), album, cx));
             }
-            SearchEvents::OpenAlbumFromTrack(track_id) => {
+            SearchEvent::OpenAlbumFromTrack(track_id) => {
                 self.status.set("Loading album...".to_string());
-                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
+                cx.emit(CenterPanelEvent::NavigateTo(CenterPage::AlbumTracks));
                 Self::cancel_task(&mut self.active_album_task);
                 self.active_album_task = Some(worker::fetch_album_from_track(
                     self.backend.clone(),
@@ -236,10 +235,10 @@ impl Model for SearchState {
                     cx,
                 ));
             }
-            SearchEvents::OpenArtistFromTrack(track_id) => {
+            SearchEvent::OpenArtistFromTrack(track_id) => {
                 self.status
                     .set("Loading artist from current track...".to_string());
-                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::Artist));
+                cx.emit(CenterPanelEvent::NavigateTo(CenterPage::Artist));
                 Self::cancel_task(&mut self.active_artist_task);
                 self.active_artist_task = Some(worker::fetch_artist_view_from_track(
                     self.backend.clone(),
@@ -248,17 +247,17 @@ impl Model for SearchState {
                 ));
             }
 
-            SearchEvents::SetInput(value) => {
+            SearchEvent::SetInput(value) => {
                 self.search_input.set(value.clone());
             }
-            SearchEvents::SubmitQuery(query) => {
+            SearchEvent::SubmitQuery(query) => {
                 let query = query.trim().to_string();
                 if query.is_empty() {
                     self.status.set("Enter a search query first.".to_string());
                     return;
                 }
 
-                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::Search));
+                cx.emit(CenterPanelEvent::NavigateTo(CenterPage::Search));
                 self.status.set(format!("Searching for '{query}'..."));
                 Self::cancel_task(&mut self.active_search_task);
                 self.active_search_task =

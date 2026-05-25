@@ -3,7 +3,7 @@ use vizia::prelude::*;
 use crate::{
     messages::Album,
     ui::{
-        events::{ArtistEvents, CenterPanelEvents, SearchEvents},
+        events::{ArtistEvent, CenterPanelEvent},
         model_data::CenterPage,
     },
     worker,
@@ -34,8 +34,8 @@ impl ArtistState {
 
 impl Model for ArtistState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|app_event, _: &mut _| match app_event {
-            SearchEvents::ArtistView {
+        event.map(|artist_event, _: &mut _| match artist_event {
+            ArtistEvent::ArtistView {
                 id,
                 name,
                 image_key,
@@ -46,17 +46,7 @@ impl Model for ArtistState {
                 self.artist_image_key.set(image_key.clone());
                 self.artist_albums.set(albums.clone());
             }
-            SearchEvents::Results(_)
-            | SearchEvents::HydrateArtwork(_)
-            | SearchEvents::LoadAlbumTracks(_)
-            | SearchEvents::HydrateAlbumArtwork(_)
-            | SearchEvents::HydrateArtistArtwork { .. }
-            | SearchEvents::AlbumTracks(_) => {}
-            _ => {}
-        });
-
-        event.map(|ui_event, _: &mut _| match ui_event {
-            ArtistEvents::ArtistAlbumSelected(index) => {
+            ArtistEvent::ArtistAlbumSelected(index) => {
                 let albums = self.artist_albums.get();
                 if *index >= albums.len() {
                     self.status
@@ -67,7 +57,7 @@ impl Model for ArtistState {
                 let album = albums[*index].clone();
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
-                cx.emit(CenterPanelEvents::NavigateTo(CenterPage::AlbumTracks));
+                cx.emit(CenterPanelEvent::NavigateTo(CenterPage::AlbumTracks));
                 worker::fetch_album_tracks(self.backend.clone(), album, cx);
             }
         });

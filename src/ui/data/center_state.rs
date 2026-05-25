@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui::{events::CenterPanelEvents, model_data::CenterPage};
+use crate::ui::{events::CenterPanelEvent, model_data::CenterPage};
 
 #[derive(Clone)]
 pub struct CenterState {
@@ -90,13 +90,13 @@ impl CenterState {
 impl Model for CenterState {
     fn event(&mut self, _cx: &mut EventContext, event: &mut Event) {
         event.map(|ui_event, _: &mut _| match ui_event {
-            CenterPanelEvents::NavigateTo(page) => {
+            CenterPanelEvent::NavigateTo(page) => {
                 self.navigate_to(*page);
             }
-            CenterPanelEvents::NavigateBack => {
+            CenterPanelEvent::NavigateBack => {
                 self.navigate_back();
             }
-            CenterPanelEvents::NavigateForward => {
+            CenterPanelEvent::NavigateForward => {
                 self.navigate_forward();
             }
         });

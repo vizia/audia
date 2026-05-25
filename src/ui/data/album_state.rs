@@ -2,7 +2,7 @@ use vizia::prelude::*;
 
 use crate::{
     messages::Track,
-    ui::events::{AlbumEvents, PlaybackEvents, SearchEvents},
+    ui::events::{AlbumEvent, PlaybackEvent},
 };
 
 #[derive(Clone)]
@@ -36,8 +36,8 @@ impl AlbumState {
 
 impl Model for AlbumState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|app_event, _: &mut _| match app_event {
-            SearchEvents::AlbumTracks(data) => {
+        event.map(|album_event, _: &mut _| match album_event {
+            AlbumEvent::AlbumTracks(data) => {
                 let _ = &data.id;
                 self.album_name.set(data.name.clone());
                 self.album_artist.set(data.artist.clone());
@@ -48,32 +48,27 @@ impl Model for AlbumState {
                 self.album_tracks.set(data.tracks.clone());
                 self.album_selected_index.set(0);
             }
-
-            _ => {}
-        });
-
-        event.map(|ui_event, _: &mut _| match ui_event {
-            AlbumEvents::AlbumTrackSelected(index) => {
+            AlbumEvent::AlbumTrackSelected(index) => {
                 let tracks_len = self.album_tracks.with(|tracks| tracks.len());
                 if *index >= tracks_len {
                     return;
                 }
                 let track = self.album_tracks.with(|tracks| tracks[*index].clone());
-                cx.emit(PlaybackEvents::AddToQueue(vec![track]));
+                cx.emit(PlaybackEvent::AddToQueue(vec![track]));
             }
-            AlbumEvents::PlayAlbum => {
+            AlbumEvent::PlayAlbum => {
                 if self.album_tracks.with(|tracks| tracks.is_empty()) {
                     return;
                 }
 
                 let tracks = self.album_tracks.get();
-                cx.emit(PlaybackEvents::ClearQueue);
-                cx.emit(PlaybackEvents::AddToQueue(tracks));
+                cx.emit(PlaybackEvent::ClearQueue);
+                cx.emit(PlaybackEvent::AddToQueue(tracks));
                 if self.album_shuffle_mode.get() {
-                    cx.emit(PlaybackEvents::ShuffleQueue);
+                    cx.emit(PlaybackEvent::ShuffleQueue);
                 }
             }
-            AlbumEvents::ShuffleAlbum => {
+            AlbumEvent::ToggleShuffleAlbum => {
                 self.album_shuffle_mode.update(|value| *value = !*value);
             }
         });

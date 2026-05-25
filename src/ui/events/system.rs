@@ -1,5 +1,5 @@
 #[derive(Clone, Debug)]
-pub enum SystemEvents {
+pub enum SystemEvent {
     Ready,
     StatusMessage(String),
     Error(String),

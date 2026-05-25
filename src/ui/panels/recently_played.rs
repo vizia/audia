@@ -1,6 +1,6 @@
 use crate::messages::Track;
 use crate::ui::{
-    events::{PlaybackEvents, RightPanelEvents},
+    events::{PlaybackEvent, RightPanelEvent},
     model_data::RightPanelPage,
 };
 use vizia::icons::{ICON_PLAYLIST, ICON_X};
@@ -20,7 +20,7 @@ pub fn recently_played_panel(cx: &mut Context, recently_played: Signal<Vec<Track
                         Label::new(cx, Localized::new("show_queue"));
                     })
                 })
-                .on_press(|cx| cx.emit(RightPanelEvents::NavigateTo(RightPanelPage::Queue)));
+                .on_press(|cx| cx.emit(RightPanelEvent::NavigateTo(RightPanelPage::Queue)));
 
             Button::new(cx, |cx| Svg::new(cx, ICON_X))
                 .class("playlist-shuffle-toggle")
@@ -29,7 +29,7 @@ pub fn recently_played_panel(cx: &mut Context, recently_played: Signal<Vec<Track
                         Label::new(cx, Localized::new("clear_recently_played"));
                     })
                 })
-                .on_press(|cx| cx.emit(PlaybackEvents::ClearRecentlyPlayed));
+                .on_press(|cx| cx.emit(PlaybackEvent::ClearRecentlyPlayed));
         })
         .class("panel-header")
         .width(Stretch(1.0))

@@ -1,7 +1,7 @@
 use vizia::prelude::{ContextProxy, EventContext, Task, TaskHandle, TaskResult};
 
 use crate::messages::{Album, Track};
-use crate::ui::events::{AlbumTracksData, SearchEvents, SystemEvents};
+use crate::ui::events::{AlbumEvent, AlbumTracksData, SearchEvent, SystemEvent};
 
 use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
 
@@ -74,25 +74,25 @@ pub fn fetch_album_tracks(
         .on_result(|result, proxy| match result {
             TaskResult::Completed(data) => {
                 let track_count = data.track_count;
-                let _ = proxy.emit(SearchEvents::AlbumTracks(AlbumTracksData {
+                let _ = proxy.emit(AlbumEvent::AlbumTracks(AlbumTracksData {
                     image_key: None,
                     ..data.clone()
                 }));
                 if data.image_url.is_some() {
-                    let _ = proxy.emit(SystemEvents::StatusMessage(format!(
+                    let _ = proxy.emit(SystemEvent::StatusMessage(format!(
                         "Loaded {} tracks from album. Loading artwork...",
                         track_count
                     )));
-                    let _ = proxy.emit(SearchEvents::HydrateAlbumArtwork(data));
+                    let _ = proxy.emit(SearchEvent::HydrateAlbumArtwork(data));
                 } else {
-                    let _ = proxy.emit(SystemEvents::StatusMessage(format!(
+                    let _ = proxy.emit(SystemEvent::StatusMessage(format!(
                         "Loaded {} tracks from album.",
                         track_count
                     )));
                 }
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -132,14 +132,14 @@ pub fn hydrate_album_artwork(
         .on_result(|result, proxy| match result {
             TaskResult::Completed(data) => {
                 let track_count = data.track_count;
-                let _ = proxy.emit(SearchEvents::AlbumTracks(data));
-                let _ = proxy.emit(SystemEvents::StatusMessage(format!(
+                let _ = proxy.emit(AlbumEvent::AlbumTracks(data));
+                let _ = proxy.emit(SystemEvent::StatusMessage(format!(
                     "Loaded {} tracks from album.",
                     track_count
                 )));
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -167,10 +167,10 @@ pub fn fetch_album_from_track(
         .name(task_name)
         .on_result(|result, proxy| match result {
             TaskResult::Completed(album) => {
-                let _ = proxy.emit(SearchEvents::LoadAlbumTracks(album));
+                let _ = proxy.emit(SearchEvent::LoadAlbumTracks(album));
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),

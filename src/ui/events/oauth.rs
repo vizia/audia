@@ -1,5 +1,5 @@
 #[derive(Clone, Debug)]
-pub enum OAuthEvents {
+pub enum OAuthEvent {
     OpenLoginModal,
     CloseLoginModal,
     ResetLogin,

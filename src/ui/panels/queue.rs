@@ -1,6 +1,6 @@
 use crate::messages::Track;
 use crate::ui::{
-    events::{PlaybackEvents, RightPanelEvents},
+    events::{PlaybackEvent, RightPanelEvent},
     model_data::RightPanelPage,
 };
 use vizia::icons::{ICON_ARROWS_SHUFFLE, ICON_LIST, ICON_X};
@@ -24,7 +24,7 @@ pub fn queue_panel(
                         Label::new(cx, Localized::new("shuffle_queue"));
                     })
                 })
-                .on_press(|cx| cx.emit(PlaybackEvents::ShuffleQueue));
+                .on_press(|cx| cx.emit(PlaybackEvent::ShuffleQueue));
 
             Button::new(cx, |cx| Svg::new(cx, ICON_LIST))
                 .class("playlist-shuffle-toggle")
@@ -34,9 +34,7 @@ pub fn queue_panel(
                     })
                 })
                 .on_press(|cx| {
-                    cx.emit(RightPanelEvents::NavigateTo(
-                        RightPanelPage::RecentlyPlayed,
-                    ))
+                    cx.emit(RightPanelEvent::NavigateTo(RightPanelPage::RecentlyPlayed))
                 });
 
             Button::new(cx, |cx| Svg::new(cx, ICON_X))
@@ -46,7 +44,7 @@ pub fn queue_panel(
                         Label::new(cx, Localized::new("clear_queue"));
                     })
                 })
-                .on_press(|cx| cx.emit(PlaybackEvents::ClearQueue));
+                .on_press(|cx| cx.emit(PlaybackEvent::ClearQueue));
         })
         .class("panel-header")
         .width(Stretch(1.0))
@@ -92,7 +90,7 @@ pub fn queue_panel(
         .selectable(Selectable::Single)
         .selection(queue_current_index.map(|idx| idx.map_or_else(Vec::new, |i| vec![i])))
         .selection_follows_focus(true)
-        .on_select(|cx, idx| cx.emit(PlaybackEvents::SelectQueueTrack(idx)))
+        .on_select(|cx, idx| cx.emit(PlaybackEvent::SelectQueueTrack(idx)))
         .height(Stretch(1.0));
     })
     .class("panel")

@@ -1,7 +1,7 @@
 use crate::messages::Track;
 
 #[derive(Clone, Debug)]
-pub enum PlaybackEvents {
+pub enum PlaybackEvent {
     SelectQueueTrack(usize),
     AddToQueue(Vec<Track>),
     ShuffleQueue,

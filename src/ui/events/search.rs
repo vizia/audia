@@ -14,7 +14,7 @@ pub struct AlbumTracksData {
 }
 
 #[derive(Clone, Debug)]
-pub enum SearchEvents {
+pub enum SearchEvent {
     SelectTab(usize),
     SelectResult(usize),
     SelectArtist(usize),
@@ -33,23 +33,23 @@ pub enum SearchEvents {
         image_url: Option<String>,
         albums: Vec<Album>,
     },
+}
+
+#[derive(Clone, Debug)]
+pub enum AlbumEvent {
     AlbumTracks(AlbumTracksData),
+    AlbumTrackSelected(usize),
+    PlayAlbum,
+    ToggleShuffleAlbum,
+}
+
+#[derive(Clone, Debug)]
+pub enum ArtistEvent {
     ArtistView {
         id: String,
         name: String,
         image_key: Option<String>,
         albums: Vec<Album>,
     },
-}
-
-#[derive(Clone, Debug)]
-pub enum AlbumEvents {
-    AlbumTrackSelected(usize),
-    PlayAlbum,
-    ShuffleAlbum,
-}
-
-#[derive(Clone, Debug)]
-pub enum ArtistEvents {
     ArtistAlbumSelected(usize),
 }

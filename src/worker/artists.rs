@@ -2,7 +2,7 @@ use vizia::prelude::{ContextProxy, EventContext, Task, TaskHandle, TaskResult};
 
 use crate::{
     messages::Album,
-    ui::events::{SearchEvents, SystemEvents},
+    ui::events::{ArtistEvent, SearchEvent, SystemEvent},
 };
 
 use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
@@ -130,16 +130,16 @@ pub fn fetch_artist_view(
         .on_result(|result, proxy| match result {
             TaskResult::Completed(data) => {
                 let album_count = data.albums.len();
-                let _ = proxy.emit(SearchEvents::ArtistView {
+                let _ = proxy.emit(ArtistEvent::ArtistView {
                     id: data.id.clone(),
                     name: data.name.clone(),
                     image_key: None,
                     albums: data.albums.clone(),
                 });
-                let _ = proxy.emit(SystemEvents::StatusMessage(format!(
+                let _ = proxy.emit(SystemEvent::StatusMessage(format!(
                     "Loaded artist details: {album_count} albums. Loading artwork..."
                 )));
-                let _ = proxy.emit(SearchEvents::HydrateArtistArtwork {
+                let _ = proxy.emit(SearchEvent::HydrateArtistArtwork {
                     id: data.id,
                     name: data.name,
                     image_url: data.image_url,
@@ -147,7 +147,7 @@ pub fn fetch_artist_view(
                 });
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -178,16 +178,16 @@ pub fn fetch_artist_view_from_track(
         .on_result(|result, proxy| match result {
             TaskResult::Completed(data) => {
                 let album_count = data.albums.len();
-                let _ = proxy.emit(SearchEvents::ArtistView {
+                let _ = proxy.emit(ArtistEvent::ArtistView {
                     id: data.id.clone(),
                     name: data.name.clone(),
                     image_key: None,
                     albums: data.albums.clone(),
                 });
-                let _ = proxy.emit(SystemEvents::StatusMessage(format!(
+                let _ = proxy.emit(SystemEvent::StatusMessage(format!(
                     "Loaded artist details: {album_count} albums. Loading artwork..."
                 )));
-                let _ = proxy.emit(SearchEvents::HydrateArtistArtwork {
+                let _ = proxy.emit(SearchEvent::HydrateArtistArtwork {
                     id: data.id,
                     name: data.name,
                     image_url: data.image_url,
@@ -195,7 +195,7 @@ pub fn fetch_artist_view_from_track(
                 });
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
@@ -226,18 +226,18 @@ pub fn hydrate_artist_artwork(
         .on_result(|result, proxy| match result {
             TaskResult::Completed(view) => {
                 let album_count = view.albums.len();
-                let _ = proxy.emit(SearchEvents::ArtistView {
+                let _ = proxy.emit(ArtistEvent::ArtistView {
                     id: view.id,
                     name: view.name,
                     image_key: view.image_key,
                     albums: view.albums,
                 });
-                let _ = proxy.emit(SystemEvents::StatusMessage(format!(
+                let _ = proxy.emit(SystemEvent::StatusMessage(format!(
                     "Loaded artist details: {album_count} albums."
                 )));
             }
             TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvents::Error(err));
+                let _ = proxy.emit(SystemEvent::Error(err));
             }
             TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
         }),
