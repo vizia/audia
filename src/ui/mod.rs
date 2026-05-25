@@ -39,13 +39,13 @@ pub fn run() -> Result<(), ApplicationError> {
         )
         .expect("Failed to load en-US translation");
 
-        let backend = worker::init_backend(cx.get_proxy());
+        let backend = worker::init_backend(cx);
 
         let app_state = UiModel::new(cx, backend.clone(), panel_state);
 
         app_state.clone().build(cx);
 
-        worker::start_playback_progress_poller(backend.clone(), cx.get_proxy());
+        worker::start_playback_progress_poller(backend.clone(), cx);
 
         // Dialogs
         dialogs::login_modal(

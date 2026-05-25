@@ -7,6 +7,8 @@ pub struct Track {
     pub artist: String,
     pub duration_ms: u32,
     pub album_image_url: Option<String>,
+    #[serde(default)]
+    pub album_playback_image_url: Option<String>,
     pub album_image_key: Option<String>,
 }
 

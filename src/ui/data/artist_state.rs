@@ -46,7 +46,12 @@ impl Model for ArtistState {
                 self.artist_image_key.set(image_key.clone());
                 self.artist_albums.set(albums.clone());
             }
-            SearchAppEvent::Results(_) | SearchAppEvent::AlbumTracks { .. } => {}
+            SearchAppEvent::Results(_)
+            | SearchAppEvent::HydrateArtwork(_)
+            | SearchAppEvent::LoadAlbumTracks(_)
+            | SearchAppEvent::HydrateAlbumArtwork(_)
+            | SearchAppEvent::HydrateArtistArtwork { .. }
+            | SearchAppEvent::AlbumTracks(_) => {}
         });
 
         event.map(|ui_event, _: &mut _| match ui_event {
@@ -62,7 +67,7 @@ impl Model for ArtistState {
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
                 cx.emit(CenterUiEvent::NavigateTo(CenterPage::AlbumTracks));
-                worker::fetch_album_tracks(self.backend.clone(), album, cx.get_proxy());
+                worker::fetch_album_tracks(self.backend.clone(), album, cx);
             }
         });
     }

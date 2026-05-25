@@ -1,36 +1,55 @@
-use vizia::prelude::ContextProxy;
+use vizia::prelude::{EventContext, Task, TaskHandle, TaskResult};
 
 use crate::ui::events::{SearchAppEvent, SystemAppEvent};
 
-use super::{SharedBackend, backend_runtime, load_images_parallel, with_spotify_auth_retry};
+use crate::messages::SearchResultsData;
 
-pub fn search_tracks(backend: SharedBackend, query: String, mut proxy: ContextProxy) {
-    let runtime = match backend_runtime(&backend) {
-        Ok(runtime) => runtime,
-        Err(err) => {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-    };
+use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
 
-    runtime.spawn(async move {
-        let result = with_spotify_auth_retry(&backend, |spotify| {
+pub fn search_tracks(backend: SharedBackend, query: String, cx: &EventContext<'_>) -> TaskHandle {
+    let task_name = ("search-tracks", query.clone());
+    cx.add_task(
+        Task::new(move |_| {
+            let backend = backend.clone();
             let query = query.clone();
-            async move { spotify.search_catalog(&query).await }
+            async move {
+                with_spotify_auth_retry(&backend, |spotify| {
+                    let query = query.clone();
+                    async move { spotify.search_catalog(&query).await }
+                })
+                .await
+            }
         })
-        .await;
+        .name(task_name)
+        .on_result(|result, proxy| {
+            match result {
+                TaskResult::Completed(results) => {
+                    let count = results.tracks.len();
+                    let artist_count = results.artists.len();
+                    let album_count = results.albums.len();
 
-        match result {
-            Ok(mut results) => {
-                let count = results.tracks.len();
-                let artist_count = results.artists.len();
-                let album_count = results.albums.len();
+                    let _ = proxy.emit(SearchAppEvent::Results(results.clone()));
+                    let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
+                        "Search complete: {count} tracks, {artist_count} artists, {album_count} albums. Loading artwork..."
+                    )));
+                    let _ = proxy.emit(SearchAppEvent::HydrateArtwork(results));
+                }
+                TaskResult::Error(err) => {
+                    let _ = proxy.emit(SystemAppEvent::Error(err));
+                }
+                TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
+            }
+        }),
+    )
+}
 
-                let _ = proxy.emit(SearchAppEvent::Results(results.clone()));
-                let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
-                    "Search complete: {count} tracks, {artist_count} artists, {album_count} albums. Loading artwork..."
-                )));
-
+pub fn hydrate_search_artwork(results: SearchResultsData, cx: &EventContext<'_>) -> TaskHandle {
+    let proxy = cx.get_proxy();
+    cx.add_task(
+        Task::new(move |_| {
+            let mut proxy = proxy.clone();
+            let mut results = results.clone();
+            async move {
                 let track_jobs = results
                     .tracks
                     .iter()
@@ -97,14 +116,25 @@ pub fn search_tracks(backend: SharedBackend, query: String, mut proxy: ContextPr
                     }
                 }
 
+                Ok::<SearchResultsData, String>(results)
+            }
+        })
+        .name("search-artwork-hydration")
+        .on_result(|result, proxy| match result {
+            TaskResult::Completed(results) => {
+                let count = results.tracks.len();
+                let artist_count = results.artists.len();
+                let album_count = results.albums.len();
+
                 let _ = proxy.emit(SearchAppEvent::Results(results));
                 let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
                     "Search complete: {count} tracks, {artist_count} artists, {album_count} albums."
                 )));
             }
-            Err(err) => {
+            TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
-        }
-    });
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
+        }),
+    )
 }

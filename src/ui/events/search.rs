@@ -1,6 +1,19 @@
 use crate::messages::{Album, SearchResultsData, Track};
 
 #[derive(Clone, Debug)]
+pub struct AlbumTracksData {
+    pub id: String,
+    pub name: String,
+    pub artist: String,
+    pub image_url: Option<String>,
+    pub image_key: Option<String>,
+    pub tracks: Vec<Track>,
+    pub release_year: Option<u32>,
+    pub track_count: usize,
+    pub total_duration_ms: u64,
+}
+
+#[derive(Clone, Debug)]
 pub enum SearchUiEvent {
     SelectTab(usize),
     SelectResult(usize),
@@ -27,16 +40,16 @@ pub enum ArtistUiEvent {
 #[derive(Clone, Debug)]
 pub enum SearchAppEvent {
     Results(SearchResultsData),
-    AlbumTracks {
+    HydrateArtwork(SearchResultsData),
+    LoadAlbumTracks(Album),
+    HydrateAlbumArtwork(AlbumTracksData),
+    HydrateArtistArtwork {
         id: String,
         name: String,
-        artist: String,
-        image_key: Option<String>,
-        tracks: Vec<Track>,
-        release_year: Option<u32>,
-        track_count: usize,
-        total_duration_ms: u64,
+        image_url: Option<String>,
+        albums: Vec<Album>,
     },
+    AlbumTracks(AlbumTracksData),
     ArtistView {
         id: String,
         name: String,

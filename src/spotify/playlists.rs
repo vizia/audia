@@ -2,9 +2,14 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     SpotifyPlaylist, SpotifyService,
-    types::{PlaylistListResponse, SearchArtist, SpotifyImage},
+    types::{
+        PlaylistListResponse, SearchArtist, SpotifyImage, pick_image_url, pick_largest_image_url,
+    },
 };
 use crate::messages::Track;
+
+const PLAYLIST_IMAGE_TARGET_PX: u32 = 160;
+const PLAYLIST_TRACK_IMAGE_TARGET_PX: u32 = 64;
 
 impl SpotifyService {
     async fn ensure_playlist_writable(&self, playlist_id: &str) -> Result<(), String> {
@@ -150,37 +155,11 @@ impl SpotifyService {
                 Some(SpotifyPlaylist {
                     id,
                     name,
-                    image_url: playlist.images.first().map(|img| img.url.clone()),
+                    image_url: pick_image_url(&playlist.images, PLAYLIST_IMAGE_TARGET_PX),
                     track_count: playlist.tracks.and_then(|tracks| tracks.total).unwrap_or(0),
                 })
             })
             .collect())
-    }
-
-    pub async fn get_playlist_tracks(
-        &self,
-        playlist_id: &str,
-        _limit: usize,
-    ) -> Result<Vec<Track>, String> {
-        let mut all_tracks = Vec::new();
-        let mut offset = 0;
-        const PAGE_SIZE: usize = 50;
-
-        loop {
-            let (mut page_tracks, total) = self
-                .get_playlist_tracks_page(playlist_id, PAGE_SIZE, offset)
-                .await?;
-
-            let page_size = page_tracks.len();
-            all_tracks.append(&mut page_tracks);
-
-            offset += page_size;
-            if offset >= total || page_size == 0 {
-                break;
-            }
-        }
-
-        Ok(all_tracks)
     }
 
     pub async fn get_playlist_tracks_page(
@@ -239,7 +218,7 @@ impl SpotifyService {
                 ("additional_types", "track"),
                 (
                     "fields",
-                    "items(item(type,id,name,duration_ms,artists(name),album(images(url))),track(type,id,name,duration_ms,artists(name),album(images(url)))),total",
+                    "items(item(type,id,name,duration_ms,artists(name),album(images(url,width,height))),track(type,id,name,duration_ms,artists(name),album(images(url,width,height)))),total",
                 ),
             ])
             .send()
@@ -280,7 +259,11 @@ impl SpotifyService {
                         .collect::<Vec<_>>()
                         .join(", "),
                     duration_ms: track.duration_ms,
-                    album_image_url: track.album.images.first().map(|img| img.url.clone()),
+                    album_image_url: pick_image_url(
+                        &track.album.images,
+                        PLAYLIST_TRACK_IMAGE_TARGET_PX,
+                    ),
+                    album_playback_image_url: pick_largest_image_url(&track.album.images),
                     album_image_key: None,
                 })
             })
@@ -333,7 +316,7 @@ impl SpotifyService {
         Ok(SpotifyPlaylist {
             id,
             name,
-            image_url: playlist.images.first().map(|img| img.url.clone()),
+            image_url: pick_image_url(&playlist.images, PLAYLIST_IMAGE_TARGET_PX),
             track_count: playlist.tracks.and_then(|tracks| tracks.total).unwrap_or(0),
         })
     }

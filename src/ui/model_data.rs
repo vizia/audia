@@ -1,9 +1,9 @@
+use crate::playback::PlaybackService;
 use crate::ui::data::{
     AlbumState, ArtistState, CenterState, OAuthState, PanelState, PlaybackState, PlaylistsState,
     PreferencesData, RightPanelState, SearchState,
 };
 use crate::worker;
-use crate::playback::PlaybackService;
 use std::sync::{Arc, Mutex};
 use vizia::prelude::*;
 

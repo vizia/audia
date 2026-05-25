@@ -1,20 +1,17 @@
 use serde::Deserialize;
 
-use super::{SpotifyProfile, SpotifyService};
+use super::{SpotifyProfile, SpotifyService, types::{SpotifyImage, pick_image_url}};
+
+const PROFILE_IMAGE_TARGET_PX: u32 = 96;
 
 impl SpotifyService {
     pub async fn fetch_profile(&self) -> Result<SpotifyProfile, String> {
         let token = self.access_token()?;
 
         #[derive(Deserialize)]
-        struct MeImage {
-            url: String,
-        }
-
-        #[derive(Deserialize)]
         struct MeResponse {
             display_name: Option<String>,
-            images: Vec<MeImage>,
+            images: Vec<SpotifyImage>,
         }
 
         let response = self
@@ -37,7 +34,7 @@ impl SpotifyService {
             .await
             .map_err(|err| format!("Invalid /me response: {err}"))?;
 
-        let image_url = me.images.first().map(|image| image.url.clone());
+        let image_url = pick_image_url(&me.images, PROFILE_IMAGE_TARGET_PX);
 
         let image_bytes = if let Some(url) = image_url {
             let primary = self.http.get(url.clone()).send().await.ok();

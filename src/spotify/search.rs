@@ -1,8 +1,15 @@
 use super::{
     SpotifyService,
-    types::{AlbumSearchResponse, ArtistSearchResponse, RecommendationsResponse, SearchResponse},
+    types::{
+        AlbumSearchResponse, ArtistSearchResponse, SearchResponse, pick_image_url,
+        pick_largest_image_url,
+    },
 };
 use crate::messages::{Album, Artist, SearchResultsData, Track};
+
+const SEARCH_TRACK_LIST_IMAGE_TARGET_PX: u32 = 64;
+const SEARCH_LIST_IMAGE_TARGET_PX: u32 = 64;
+const SEARCH_ALBUM_IMAGE_TARGET_PX: u32 = 160;
 
 impl SpotifyService {
     pub async fn search_catalog(&self, query: &str) -> Result<SearchResultsData, String> {
@@ -52,7 +59,11 @@ impl SpotifyService {
                         .map(|artist| artist.name.clone())
                         .unwrap_or_else(|| "Unknown artist".to_string()),
                     duration_ms: item.duration_ms,
-                    album_image_url: item.album.images.first().map(|img| img.url.clone()),
+                    album_image_url: pick_image_url(
+                        &item.album.images,
+                        SEARCH_TRACK_LIST_IMAGE_TARGET_PX,
+                    ),
+                    album_playback_image_url: pick_largest_image_url(&item.album.images),
                     album_image_key: None,
                 })
                 .collect())
@@ -91,7 +102,7 @@ impl SpotifyService {
                 .map(|item| Artist {
                     id: item.id,
                     name: item.name,
-                    image_url: item.images.first().map(|img| img.url.clone()),
+                    image_url: pick_image_url(&item.images, SEARCH_LIST_IMAGE_TARGET_PX),
                     image_key: None,
                 })
                 .collect())
@@ -133,7 +144,7 @@ impl SpotifyService {
                         .map(|artist| artist.name.clone())
                         .unwrap_or_else(|| "Unknown artist".to_string()),
                     release_date: item.release_date,
-                    image_url: item.images.first().map(|img| img.url.clone()),
+                    image_url: pick_image_url(&item.images, SEARCH_ALBUM_IMAGE_TARGET_PX),
                     image_key: None,
                 })
                 .collect())
@@ -150,76 +161,5 @@ impl SpotifyService {
             artists,
             albums,
         })
-    }
-
-    #[allow(dead_code)]
-    pub async fn get_recommendations(
-        &self,
-        seed_track_id: &str,
-        limit: usize,
-    ) -> Result<Vec<Track>, String> {
-        let token = self.access_token()?;
-        let bounded_limit = limit.clamp(1, 100);
-        let limit_str = bounded_limit.to_string();
-
-        let primary = self
-            .http
-            .get("https://api.spotify.com/v1/recommendations")
-            .bearer_auth(token)
-            .query(&[
-                ("seed_tracks", seed_track_id),
-                ("limit", limit_str.as_str()),
-                ("market", "from_token"),
-            ])
-            .send()
-            .await
-            .map_err(|err| format!("Spotify recommendations failed: {err}"))?;
-
-        let response = if primary.status().as_u16() == 404 {
-            self.http
-                .get("https://api.spotify.com/v1/recommendations")
-                .bearer_auth(token)
-                .query(&[
-                    ("seed_genres", "pop"),
-                    ("limit", limit_str.as_str()),
-                    ("market", "from_token"),
-                ])
-                .send()
-                .await
-                .map_err(|err| format!("Spotify recommendations retry failed: {err}"))?
-        } else {
-            primary
-        };
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            return Err(format!(
-                "Spotify recommendations returned status {}: {}",
-                status, body
-            ));
-        }
-
-        let payload = response
-            .json::<RecommendationsResponse>()
-            .await
-            .map_err(|err| format!("Invalid Spotify recommendations payload: {err}"))?;
-
-        Ok(payload
-            .tracks
-            .into_iter()
-            .map(|item| Track {
-                id: item.id,
-                name: item.name,
-                artist: item
-                    .artists
-                    .first()
-                    .map(|artist| artist.name.clone())
-                    .unwrap_or_else(|| "Unknown artist".to_string()),
-                duration_ms: item.duration_ms,
-                album_image_url: item.album.images.first().map(|img| img.url.clone()),
-                album_image_key: None,
-            })
-            .collect())
     }
 }
