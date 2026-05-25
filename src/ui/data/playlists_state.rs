@@ -113,6 +113,16 @@ impl Model for PlaylistsState {
             PlaylistsAppEvent::Playlists(playlists) => {
                 self.playlist_rows.set(playlists.clone());
             }
+            PlaylistsAppEvent::HydrateUserPlaylistsArtwork {
+                playlists,
+                artwork_urls,
+            } => {
+                let _ = worker::hydrate_user_playlist_artwork(
+                    playlists.clone(),
+                    artwork_urls.clone(),
+                    cx,
+                );
+            }
             PlaylistsAppEvent::RefreshUserPlaylists => {
                 worker::refresh_user_playlists(self.backend.clone(), cx);
             }

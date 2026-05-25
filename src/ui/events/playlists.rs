@@ -33,6 +33,10 @@ pub enum PlaylistsUiEvent {
 #[derive(Clone, Debug)]
 pub enum PlaylistsAppEvent {
     Playlists(Vec<PlaylistEntry>),
+    HydrateUserPlaylistsArtwork {
+        playlists: Vec<PlaylistEntry>,
+        artwork_urls: Vec<Option<String>>,
+    },
     RefreshUserPlaylists,
     RefreshPlaylistTracks {
         request_id: u64,

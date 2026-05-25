@@ -24,45 +24,89 @@ struct PlaylistTracksRefreshRequest {
     name: String,
 }
 
-async fn refresh_user_playlists_inner(backend: SharedBackend, proxy: &mut ContextProxy) {
-    match with_spotify_auth_retry(&backend, |spotify| async move {
+#[derive(Clone, Debug)]
+struct RefreshUserPlaylistsResult {
+    playlists: Vec<PlaylistEntry>,
+    artwork_urls: Vec<Option<String>>,
+}
+
+async fn refresh_user_playlists_inner(
+    backend: SharedBackend,
+) -> Result<RefreshUserPlaylistsResult, String> {
+    let playlists = with_spotify_auth_retry(&backend, |spotify| async move {
         spotify.list_user_playlists(20).await
     })
-    .await
-    {
-        Ok(playlists) => {
-            let mut mapped = Vec::with_capacity(playlists.len());
-            let mut image_jobs = Vec::new();
+    .await?;
 
-            for (index, playlist) in playlists.into_iter().enumerate() {
-                if let Some(url) = playlist.image_url.as_ref() {
-                    image_jobs.push((index, format!("playlist-artwork:{}", url), url.clone()));
-                }
+    let mut mapped = Vec::with_capacity(playlists.len());
+    let mut artwork_urls = Vec::with_capacity(playlists.len());
 
-                mapped.push(PlaylistEntry {
-                    name: playlist.name,
-                    image_key: None,
-                    id: playlist.id,
-                    track_count: playlist.track_count,
-                    total_duration_ms: 0,
-                });
-            }
-
-            let _ = proxy.emit(PlaylistsAppEvent::Playlists(mapped.clone()));
-
-            let loaded_images = load_images_parallel(proxy, image_jobs).await;
-            for (index, key) in loaded_images {
-                if let Some(playlist) = mapped.get_mut(index) {
-                    playlist.image_key = Some(key);
-                }
-            }
-
-            let _ = proxy.emit(PlaylistsAppEvent::Playlists(mapped));
-        }
-        Err(err) => {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-        }
+    for playlist in playlists {
+        mapped.push(PlaylistEntry {
+            name: playlist.name,
+            image_key: None,
+            id: playlist.id,
+            track_count: playlist.track_count,
+            total_duration_ms: 0,
+        });
+        artwork_urls.push(playlist.image_url);
     }
+
+    Ok(RefreshUserPlaylistsResult {
+        playlists: mapped,
+        artwork_urls,
+    })
+}
+
+pub fn hydrate_user_playlist_artwork(
+    playlists: Vec<PlaylistEntry>,
+    artwork_urls: Vec<Option<String>>,
+    cx: &EventContext<'_>,
+) -> TaskHandle {
+    let proxy = cx.get_proxy();
+    cx.add_task(
+        Task::new(move |_| {
+            let mut proxy = proxy.clone();
+            let mut playlists = playlists.clone();
+            let artwork_urls = artwork_urls.clone();
+            async move {
+                let image_jobs = artwork_urls
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, url)| {
+                        // Playlist IDs are stable cache keys for artwork.
+                        if let Some(url) = url.as_ref() {
+                            let key = playlists
+                                .get(index)
+                                .map(|playlist| format!("playlist-artwork:{}", playlist.id))?;
+                            Some((index, key, url.clone()))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                let loaded_images = load_images_parallel(&mut proxy, image_jobs).await;
+                for (index, key) in loaded_images {
+                    if let Some(playlist) = playlists.get_mut(index) {
+                        playlist.image_key = Some(key);
+                    }
+                }
+
+                Ok::<Vec<PlaylistEntry>, String>(playlists)
+            }
+        })
+        .name("hydrate-user-playlists-artwork")
+        .on_result(|result, proxy| match result {
+            TaskResult::Completed(playlists) => {
+                let _ = proxy.emit(PlaylistsAppEvent::Playlists(playlists));
+            }
+            TaskResult::Error(err) => {
+                let _ = proxy.emit(SystemAppEvent::Error(err));
+            }
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
+        }),
+    )
 }
 
 async fn fetch_playlist_tracks_inner(
@@ -71,20 +115,14 @@ async fn fetch_playlist_tracks_inner(
     playlist_name: String,
     request_id: u64,
     proxy: &mut ContextProxy,
-) {
+) -> Result<(), String> {
     let first_page = with_spotify_auth_retry(&backend, |spotify| {
         let playlist_id = playlist_id.clone();
         async move { spotify.get_playlist_tracks_page(&playlist_id, 50, 0).await }
     })
     .await;
 
-    let (mut tracks, total) = match first_page {
-        Ok(page) => page,
-        Err(err) => {
-            let _ = proxy.emit(SystemAppEvent::Error(err));
-            return;
-        }
-    };
+    let (mut tracks, total) = first_page?;
 
     let mut offset = tracks.len();
     let mut has_more = offset < total;
@@ -151,13 +189,7 @@ async fn fetch_playlist_tracks_inner(
         })
         .await;
 
-        let (mut page_tracks, total) = match page_result {
-            Ok(page) => page,
-            Err(err) => {
-                let _ = proxy.emit(SystemAppEvent::Error(err));
-                return;
-            }
-        };
+        let (mut page_tracks, total) = page_result?;
 
         let page_size = page_tracks.len();
         let page_start = tracks.len();
@@ -235,24 +267,29 @@ async fn fetch_playlist_tracks_inner(
     let _ = proxy.emit(SystemAppEvent::StatusMessage(format!(
         "Loaded {count} tracks from playlist."
     )));
+
+    Ok(())
 }
 
 pub fn refresh_user_playlists(backend: SharedBackend, cx: &EventContext<'_>) {
-    let proxy = cx.get_proxy();
     cx.add_task(
         Task::new(move |_| {
-            let mut proxy = proxy.clone();
             let backend = backend.clone();
-            async move {
-                refresh_user_playlists_inner(backend, &mut proxy).await;
-                Ok::<(), String>(())
-            }
+            async move { refresh_user_playlists_inner(backend).await }
         })
         .name("refresh-user-playlists")
-        .on_result(|result, proxy| {
-            if let TaskResult::Error(err) = result {
+        .on_result(|result, proxy| match result {
+            TaskResult::Completed(payload) => {
+                let _ = proxy.emit(PlaylistsAppEvent::Playlists(payload.playlists.clone()));
+                let _ = proxy.emit(PlaylistsAppEvent::HydrateUserPlaylistsArtwork {
+                    playlists: payload.playlists,
+                    artwork_urls: payload.artwork_urls,
+                });
+            }
+            TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemAppEvent::Error(err));
             }
+            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected => {}
         }),
     );
 }
@@ -405,7 +442,7 @@ pub fn fetch_playlist_tracks(
                     request_id,
                     &mut proxy,
                 )
-                .await;
+                .await?;
                 Ok::<(), String>(())
             }
         })

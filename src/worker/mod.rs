@@ -29,7 +29,8 @@ pub use playback::{
 };
 pub use playlists::{
     add_track_to_playlist, create_playlist, delete_playlist, fetch_playlist_tracks,
-    refresh_user_playlists, remove_track_from_playlist, rename_playlist,
+    hydrate_user_playlist_artwork, refresh_user_playlists, remove_track_from_playlist,
+    rename_playlist,
 };
 pub use search::{hydrate_search_artwork, search_tracks};
 
