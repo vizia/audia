@@ -30,7 +30,50 @@ Audia is a desktop Spotify client written in Rust, built with [Vizia](https://gi
 - Rust toolchain (stable)
 - Spotify Premium account
 
-### 2. Build & Run
+### 2. Platform Build Requirements
+
+Audia depends on `vizia`/`skia-safe` for UI rendering and `librespot` (`rodio`/`cpal`) for audio playback, so you need a few OS-native build tools and libraries.
+
+#### Linux (Debian/Ubuntu)
+
+Install compiler and native development libraries:
+
+```bash
+sudo apt update
+sudo apt install -y \
+	build-essential \
+	pkg-config \
+	libasound2-dev \
+	libx11-dev \
+	libxrandr-dev \
+	libxi-dev \
+	libxcursor-dev \
+	libxinerama-dev \
+	libwayland-dev \
+	libxkbcommon-dev
+```
+
+#### macOS
+
+No special setup is required beyond installing Rust. The necessary native libraries are included with macOS.
+
+#### Windows
+
+Install:
+
+- Visual Studio Build Tools (Desktop development with C++)
+
+### 3. Create a Spotify Developer App (Client ID)
+
+1. Open the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) and sign in with your Spotify account.
+2. Click **Create app**.
+3. Enter an app name and description, agree to Spotify's terms, then submit.
+4. Open your new app in the dashboard and go to its settings/details page.
+5. Find **Client ID** and copy it to your clipboard.
+
+Keep this Client ID available for Audia's Spotify login setup when prompted.
+
+### 4. Build & Run
 
 ```bash
 cargo run --release
@@ -40,7 +83,7 @@ On first launch, use the login dialog to authenticate with Spotify.
 
 ## Current Status
 
-Audia is actively evolving. Core flows (login, browsing, search, playback, queue, and playlist operations) are in place, but the app is not yet production-hardened.
+Audia is actively evolving. Core flows (login, browsing, search, playback, queue, and playlist operations) are in place, but the app is not yet production-ready.
 
 If you hit a bug, opening an issue with steps to reproduce is very helpful.
 
