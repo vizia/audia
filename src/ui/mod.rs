@@ -81,6 +81,7 @@ pub fn run() -> Result<(), ApplicationError> {
                             .size(Stretch(1.0))
                             .class("blurred-artwork");
                     })
+                    .size(Stretch(1.0))
                     .position_type(PositionType::Absolute)
                     .top(Pixels(0.0))
                     .right(Pixels(0.0))
@@ -103,6 +104,7 @@ pub fn run() -> Result<(), ApplicationError> {
                             .class("blurred-artwork");
                     })
                     .id("artwork-overlay")
+                    .size(Stretch(1.0))
                     .position_type(PositionType::Absolute)
                     .top(Pixels(0.0))
                     .right(Pixels(0.0))
