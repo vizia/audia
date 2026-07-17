@@ -73,17 +73,7 @@ pub fn hydrate_user_playlist_artwork(
                 let image_jobs = artwork_urls
                     .iter()
                     .enumerate()
-                    .filter_map(|(index, url)| {
-                        // Playlist IDs are stable cache keys for artwork.
-                        if let Some(url) = url.as_ref() {
-                            let key = playlists
-                                .get(index)
-                                .map(|playlist| format!("playlist-artwork:{}", playlist.id))?;
-                            Some((index, key, url.clone()))
-                        } else {
-                            None
-                        }
-                    })
+                    .filter_map(|(index, url)| url.as_ref().map(|url| (index, url.clone())))
                     .collect::<Vec<_>>();
 
                 let loaded_images = load_images_parallel(&mut proxy, image_jobs).await;
@@ -147,13 +137,10 @@ async fn fetch_playlist_tracks_inner(
         .take(first_page_len)
         .enumerate()
         .filter_map(|(index, track)| {
-            track.album_image_url.as_ref().map(|url| {
-                (
-                    index,
-                    format!("playlist-track-artwork:{}", url),
-                    url.clone(),
-                )
-            })
+            track
+                .album_image_url
+                .as_ref()
+                .map(|url| (index, url.clone()))
         })
         .collect::<Vec<_>>();
 
@@ -216,13 +203,10 @@ async fn fetch_playlist_tracks_inner(
             .skip(page_start)
             .take(page_end - page_start)
             .filter_map(|(index, track)| {
-                track.album_image_url.as_ref().map(|url| {
-                    (
-                        index,
-                        format!("playlist-track-artwork:{}", url),
-                        url.clone(),
-                    )
-                })
+                track
+                    .album_image_url
+                    .as_ref()
+                    .map(|url| (index, url.clone()))
             })
             .collect::<Vec<_>>();
 

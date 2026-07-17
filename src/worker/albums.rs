@@ -42,8 +42,7 @@ async fn hydrate_album_artwork_inner(
     proxy: &mut ContextProxy,
 ) -> Result<AlbumTracksData, String> {
     let image_key = if let Some(url) = &data.image_url {
-        let key = format!("album-artwork:{}", url);
-        let image_jobs = vec![(0usize, key.clone(), url.clone())];
+        let image_jobs = vec![(0usize, url.clone())];
         let loaded = load_images_parallel(proxy, image_jobs).await;
         loaded.into_iter().next().map(|(_, k)| k)
     } else {

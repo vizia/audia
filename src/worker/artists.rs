@@ -79,15 +79,7 @@ async fn hydrate_artist_view_artwork(
     let album_jobs = albums
         .iter()
         .enumerate()
-        .filter_map(|(index, album)| {
-            album.image_url.as_ref().map(|url| {
-                (
-                    index,
-                    format!("artist-album-artwork:{}:{}", data.id, album.id),
-                    url.clone(),
-                )
-            })
-        })
+        .filter_map(|(index, album)| album.image_url.as_ref().map(|url| (index, url.clone())))
         .collect::<Vec<_>>();
 
     let loaded_album_images = load_images_parallel(proxy, album_jobs).await;
@@ -98,8 +90,7 @@ async fn hydrate_artist_view_artwork(
     }
 
     let image_key = if let Some(url) = data.image_url.as_ref() {
-        let key = format!("artist-artwork:{}", data.id);
-        let image_jobs = vec![(0usize, key, url.clone())];
+        let image_jobs = vec![(0usize, url.clone())];
         let loaded = load_images_parallel(proxy, image_jobs).await;
         loaded.into_iter().next().map(|(_, loaded_key)| loaded_key)
     } else {

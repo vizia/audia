@@ -1,5 +1,4 @@
 use std::future::Future;
-use std::sync::OnceLock;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -34,47 +33,11 @@ pub use playlists::{
 };
 pub use search::{hydrate_search_artwork, search_tracks};
 
-const IMAGE_FETCH_CONCURRENCY: usize = 8;
-static IMAGE_HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
-
-fn image_http_client() -> &'static reqwest::Client {
-    IMAGE_HTTP_CLIENT.get_or_init(reqwest::Client::new)
-}
-
-async fn fetch_image_bytes(url: String) -> Option<Vec<u8>> {
-    let response = image_http_client().get(url).send().await.ok()?;
-    if !response.status().is_success() {
-        return None;
-    }
-    response.bytes().await.ok().map(|b| b.to_vec())
-}
-
 async fn load_images_parallel(
-    proxy: &mut ContextProxy,
-    jobs: Vec<(usize, String, String)>,
+    _proxy: &mut ContextProxy,
+    jobs: Vec<(usize, String)>,
 ) -> Vec<(usize, String)> {
-    let mut loaded = Vec::new();
-    let mut set = tokio::task::JoinSet::new();
-
-    for (index, key, url) in jobs {
-        set.spawn(async move { (index, key, fetch_image_bytes(url).await) });
-
-        if set.len() >= IMAGE_FETCH_CONCURRENCY
-            && let Some(Ok((idx, key, Some(image_bytes)))) = set.join_next().await
-        {
-            let _ = proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever);
-            loaded.push((idx, key));
-        }
-    }
-
-    while let Some(job_result) = set.join_next().await {
-        if let Ok((idx, key, Some(image_bytes))) = job_result {
-            let _ = proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever);
-            loaded.push((idx, key));
-        }
-    }
-
-    loaded
+    jobs
 }
 
 pub struct BackendState {
@@ -288,14 +251,15 @@ fn emit_login_profile_event(profile: Option<SpotifyProfile>, proxy: &mut Context
         .and_then(|profile| profile.display_name.clone())
         .unwrap_or_else(|| "unknown".to_string());
 
-    let profile_image_key =
-        if let Some(image_bytes) = profile.and_then(|profile| profile.image_bytes) {
-            let key = format!("spotify-profile-avatar-{}", BackendState::now_secs());
-            let _ = proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever);
-            Some(key)
-        } else {
-            None
-        };
+    let profile_image_key = if let Some(image_bytes) =
+        profile.and_then(|profile| profile.image_bytes)
+    {
+        let key = format!("spotify-profile-avatar-{}", BackendState::now_secs());
+        let _ = proxy.load_image_encoded(key.clone(), &image_bytes, ImageRetentionPolicy::Forever);
+        Some(key)
+    } else {
+        None
+    };
 
     let _ = proxy.emit(OAuthEvent::LoginComplete {
         username,

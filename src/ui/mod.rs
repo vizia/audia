@@ -27,13 +27,13 @@ pub fn run() -> Result<(), ApplicationError> {
         cx.add_stylesheet(include_style!("resources/stylesheets/theme.css"))
             .expect("Failed to load theme stylesheet");
 
-        cx.add_translation(
+        cx.load_translation(
             langid!("en-GB"),
             include_str!("../../resources/translations/en-GB/strings.ftl"),
         )
         .expect("Failed to load en-GB translation");
 
-        cx.add_translation(
+        cx.load_translation(
             langid!("en-US"),
             include_str!("../../resources/translations/en-US/strings.ftl"),
         )

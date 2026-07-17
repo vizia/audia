@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use vizia::prelude::{Context, EventContext, ImageRetentionPolicy, Task, TaskResult};
+use vizia::prelude::{Context, EventContext, Task, TaskResult};
 
 use crate::messages::Track;
 use crate::ui::events::{PlaybackEvent, SystemEvent};
 
-use super::{SharedBackend, fetch_image_bytes, lock_playback, shared_playback};
+use super::{SharedBackend, lock_playback, shared_playback};
 
 pub fn start_playback_progress_poller(backend: SharedBackend, cx: &Context) {
     let proxy = cx.get_proxy();
@@ -70,46 +70,12 @@ pub fn start_playback_progress_poller(backend: SharedBackend, cx: &Context) {
 }
 
 pub fn load_playback_artwork(image_url: Option<String>, cx: &EventContext<'_>) {
-    cx.add_task(
-        Task::new(move |_| {
-            let image_url = image_url.clone();
-            async move {
-                let Some(url) = image_url else {
-                    return Ok::<Option<(String, Vec<u8>)>, String>(None);
-                };
-
-                let image_bytes = fetch_image_bytes(url.clone())
-                    .await
-                    .ok_or_else(|| format!("Failed to fetch playback artwork from {url}"))?;
-
-                let key = format!("playback-artwork:{}", url);
-
-                Ok::<Option<(String, Vec<u8>)>, String>(Some((key, image_bytes)))
-            }
-        })
-        .name("load-playback-artwork")
-        .on_result(|result, proxy| match result {
-            TaskResult::Completed(Some((key, image_bytes))) => {
-                match proxy.load_image(key.clone(), &image_bytes, ImageRetentionPolicy::Forever) {
-                    Ok(()) => {
-                        let _ = proxy.emit(PlaybackEvent::ArtworkLoaded {
-                            image_key: Some(key),
-                        });
-                    }
-                    Err(err) => {
-                        let _ = proxy.emit(SystemEvent::Error(format!(
-                            "Failed to load playback artwork image: {err}"
-                        )));
-                    }
-                }
-            }
-            TaskResult::Completed(None) => {}
-            TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvent::Error(err));
-            }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
-        }),
-    );
+    if let Some(url) = image_url {
+        let mut proxy = cx.get_proxy();
+        let _ = proxy.emit(PlaybackEvent::ArtworkLoaded {
+            image_key: Some(url),
+        });
+    }
 }
 
 pub fn playback_play_local_track(backend: SharedBackend, track: Track, cx: &EventContext<'_>) {
@@ -140,9 +106,8 @@ pub fn playback_play_local_track(backend: SharedBackend, track: Track, cx: &Even
                         let _ = proxy.emit(SystemEvent::Error(err));
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvent::Error(format!(
-                            "Playback task failed: {err}"
-                        )));
+                        let _ =
+                            proxy.emit(SystemEvent::Error(format!("Playback task failed: {err}")));
                     }
                 }
 
@@ -185,9 +150,8 @@ pub fn playback_pause_local(backend: SharedBackend, cx: &EventContext<'_>) {
                         let _ = proxy.emit(SystemEvent::Error(err));
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvent::Error(format!(
-                            "Playback task failed: {err}"
-                        )));
+                        let _ =
+                            proxy.emit(SystemEvent::Error(format!("Playback task failed: {err}")));
                     }
                 }
 
@@ -230,9 +194,8 @@ pub fn playback_resume_local(backend: SharedBackend, cx: &EventContext<'_>) {
                         let _ = proxy.emit(SystemEvent::Error(err));
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvent::Error(format!(
-                            "Playback task failed: {err}"
-                        )));
+                        let _ =
+                            proxy.emit(SystemEvent::Error(format!("Playback task failed: {err}")));
                     }
                 }
 
@@ -290,9 +253,8 @@ pub fn playback_seek_local(backend: SharedBackend, position_ms: u32, cx: &EventC
                         let _ = proxy.emit(SystemEvent::Error(err));
                     }
                     Err(err) => {
-                        let _ = proxy.emit(SystemEvent::Error(format!(
-                            "Playback task failed: {err}"
-                        )));
+                        let _ =
+                            proxy.emit(SystemEvent::Error(format!("Playback task failed: {err}")));
                     }
                 }
 

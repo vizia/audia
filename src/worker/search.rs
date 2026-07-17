@@ -55,13 +55,10 @@ pub fn hydrate_search_artwork(results: SearchResultsData, cx: &EventContext<'_>)
                     .iter()
                     .enumerate()
                     .filter_map(|(index, track)| {
-                        track.album_image_url.as_ref().map(|url| {
-                            (
-                                index,
-                                format!("search-track-artwork:{}", track.id),
-                                url.clone(),
-                            )
-                        })
+                        track
+                            .album_image_url
+                            .as_ref()
+                            .map(|url| (index, url.clone()))
                     })
                     .collect::<Vec<_>>();
 
@@ -77,13 +74,7 @@ pub fn hydrate_search_artwork(results: SearchResultsData, cx: &EventContext<'_>)
                     .iter()
                     .enumerate()
                     .filter_map(|(index, artist)| {
-                        artist.image_url.as_ref().map(|url| {
-                            (
-                                index,
-                                format!("search-artist-artwork:{}", artist.id),
-                                url.clone(),
-                            )
-                        })
+                        artist.image_url.as_ref().map(|url| (index, url.clone()))
                     })
                     .collect::<Vec<_>>();
 
@@ -98,15 +89,7 @@ pub fn hydrate_search_artwork(results: SearchResultsData, cx: &EventContext<'_>)
                     .albums
                     .iter()
                     .enumerate()
-                    .filter_map(|(index, album)| {
-                        album.image_url.as_ref().map(|url| {
-                            (
-                                index,
-                                format!("search-album-artwork:{}", album.id),
-                                url.clone(),
-                            )
-                        })
-                    })
+                    .filter_map(|(index, album)| album.image_url.as_ref().map(|url| (index, url.clone())))
                     .collect::<Vec<_>>();
 
                 let loaded_album_images = load_images_parallel(&mut proxy, album_jobs).await;
