@@ -531,52 +531,50 @@ button.avatar-menu-trigger:hover {
 
 .search-tabs {
     width: 1s;
-    height: 1s;
+    height: auto;
     gap: 8px;
+    background-color: transparent;
+}
+
+.search-tabs tablist scroll-content {
+    background-color: transparent;
 }
 
 .search-tabs > scrollview {
     width: 1s;
     height: auto;
+    background-color: transparent;
 }
 
 .search-tabs > scrollview > scroll-content {
+    height: auto;
     gap: 6px;
+    background-color: transparent;
 }
 
-.search-tabs tabheader {
+.search-tabs tab {
     height: auto;
     background-color: transparent;
-    corner-radius: 999px;
+    corner-radius: 50%;
 }
 
-.search-tabs tabheader:hover {
+.search-tabs tab:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
-.search-tabs tabheader:checked {
+.search-tabs tab:checked {
     background-color: rgba(255, 255, 255, 0.12);
 }
 
-.search-tabs tabheader label {
+.search-tabs tab label {
     height: auto;
-    min-height: 32px;
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-left: 12px;
+    padding-right: 12px;
     color: var(--muted-foreground);
 }
 
-.search-tabs tabheader:checked label {
+.search-tabs tab:checked label {
     color: var(--primary-foreground);
-}
-
-.search-tabs tabheader .indicator {
-    height: 2px;
-    background-color: transparent;
-}
-
-.search-tabs tabheader:checked .indicator {
-    background-color: transparent;
 }
 
 .search-tab-content {
