@@ -10,7 +10,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 image = {version = "0.25", default-features = false, features = ["png", "jpeg"]}
 dirs = "6"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "query", "form"] }
 webbrowser = "1"
 base64 = "0.22"
 sha2 = "0.11"
