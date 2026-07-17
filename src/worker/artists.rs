@@ -1,25 +1,17 @@
-use vizia::prelude::{ContextProxy, EventContext, Task, TaskHandle, TaskResult};
+use vizia::prelude::{EventContext, Task, TaskHandle, TaskResult};
 
 use crate::{
     messages::Album,
-    ui::events::{ArtistEvent, SearchEvent, SystemEvent},
+    ui::events::{ArtistEvent, SystemEvent},
 };
 
-use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
+use super::{SharedBackend, with_spotify_auth_retry};
 
 #[derive(Clone, Debug)]
 struct ArtistViewTaskData {
     id: String,
     name: String,
     image_url: Option<String>,
-    albums: Vec<Album>,
-}
-
-#[derive(Clone, Debug)]
-struct HydratedArtistView {
-    id: String,
-    name: String,
-    image_key: Option<String>,
     albums: Vec<Album>,
 }
 
@@ -70,41 +62,6 @@ async fn collect_artist_view_data(
     })
 }
 
-async fn hydrate_artist_view_artwork(
-    data: ArtistViewTaskData,
-    proxy: &mut ContextProxy,
-) -> Result<HydratedArtistView, String> {
-    let mut albums = data.albums;
-
-    let album_jobs = albums
-        .iter()
-        .enumerate()
-        .filter_map(|(index, album)| album.image_url.as_ref().map(|url| (index, url.clone())))
-        .collect::<Vec<_>>();
-
-    let loaded_album_images = load_images_parallel(proxy, album_jobs).await;
-    for (index, key) in loaded_album_images {
-        if let Some(album) = albums.get_mut(index) {
-            album.image_key = Some(key);
-        }
-    }
-
-    let image_key = if let Some(url) = data.image_url.as_ref() {
-        let image_jobs = vec![(0usize, url.clone())];
-        let loaded = load_images_parallel(proxy, image_jobs).await;
-        loaded.into_iter().next().map(|(_, loaded_key)| loaded_key)
-    } else {
-        None
-    };
-
-    Ok(HydratedArtistView {
-        id: data.id,
-        name: data.name,
-        image_key,
-        albums,
-    })
-}
-
 pub fn fetch_artist_view(
     backend: SharedBackend,
     artist_id: String,
@@ -120,22 +77,21 @@ pub fn fetch_artist_view(
         .name(task_name)
         .on_result(|result, proxy| match result {
             TaskResult::Completed(data) => {
-                let album_count = data.albums.len();
+                let mut albums = data.albums;
+                for album in &mut albums {
+                    album.image_key = album.image_url.clone();
+                }
+
+                let album_count = albums.len();
                 let _ = proxy.emit(ArtistEvent::ArtistView {
-                    id: data.id.clone(),
-                    name: data.name.clone(),
-                    image_key: None,
-                    albums: data.albums.clone(),
-                });
-                let _ = proxy.emit(SystemEvent::StatusMessage(format!(
-                    "Loaded artist details: {album_count} albums. Loading artwork..."
-                )));
-                let _ = proxy.emit(SearchEvent::HydrateArtistArtwork {
                     id: data.id,
                     name: data.name,
-                    image_url: data.image_url,
-                    albums: data.albums,
+                    image_key: data.image_url,
+                    albums,
                 });
+                let _ = proxy.emit(SystemEvent::StatusMessage(format!(
+                    "Loaded artist details: {album_count} albums."
+                )));
             }
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemEvent::Error(err));
@@ -168,60 +124,17 @@ pub fn fetch_artist_view_from_track(
         .name(task_name)
         .on_result(|result, proxy| match result {
             TaskResult::Completed(data) => {
-                let album_count = data.albums.len();
+                let mut albums = data.albums;
+                for album in &mut albums {
+                    album.image_key = album.image_url.clone();
+                }
+
+                let album_count = albums.len();
                 let _ = proxy.emit(ArtistEvent::ArtistView {
-                    id: data.id.clone(),
-                    name: data.name.clone(),
-                    image_key: None,
-                    albums: data.albums.clone(),
-                });
-                let _ = proxy.emit(SystemEvent::StatusMessage(format!(
-                    "Loaded artist details: {album_count} albums. Loading artwork..."
-                )));
-                let _ = proxy.emit(SearchEvent::HydrateArtistArtwork {
                     id: data.id,
                     name: data.name,
-                    image_url: data.image_url,
-                    albums: data.albums,
-                });
-            }
-            TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvent::Error(err));
-            }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
-        }),
-    )
-}
-
-pub fn hydrate_artist_artwork(
-    id: String,
-    name: String,
-    image_url: Option<String>,
-    albums: Vec<Album>,
-    cx: &EventContext<'_>,
-) -> TaskHandle {
-    let proxy = cx.get_proxy();
-    let task_name = ("hydrate-artist-artwork", id.clone());
-    cx.add_task(
-        Task::new(move |_| {
-            let mut proxy = proxy.clone();
-            let data = ArtistViewTaskData {
-                id: id.clone(),
-                name: name.clone(),
-                image_url: image_url.clone(),
-                albums: albums.clone(),
-            };
-            async move { hydrate_artist_view_artwork(data, &mut proxy).await }
-        })
-        .name(task_name)
-        .on_result(|result, proxy| match result {
-            TaskResult::Completed(view) => {
-                let album_count = view.albums.len();
-                let _ = proxy.emit(ArtistEvent::ArtistView {
-                    id: view.id,
-                    name: view.name,
-                    image_key: view.image_key,
-                    albums: view.albums,
+                    image_key: data.image_url,
+                    albums,
                 });
                 let _ = proxy.emit(SystemEvent::StatusMessage(format!(
                     "Loaded artist details: {album_count} albums."

@@ -18,8 +18,8 @@ mod playback;
 mod playlists;
 mod search;
 
-pub use albums::{fetch_album_from_track, fetch_album_tracks, hydrate_album_artwork};
-pub use artists::{fetch_artist_view, fetch_artist_view_from_track, hydrate_artist_artwork};
+pub use albums::{fetch_album_from_track, fetch_album_tracks};
+pub use artists::{fetch_artist_view, fetch_artist_view_from_track};
 pub use auth::init_backend;
 pub use oauth::{refresh_access_token, reset_login, start_oauth_login};
 pub use playback::{
@@ -28,17 +28,9 @@ pub use playback::{
 };
 pub use playlists::{
     add_track_to_playlist, create_playlist, delete_playlist, fetch_playlist_tracks,
-    hydrate_user_playlist_artwork, refresh_user_playlists, remove_track_from_playlist,
-    rename_playlist,
+    refresh_user_playlists, remove_track_from_playlist, rename_playlist,
 };
-pub use search::{hydrate_search_artwork, search_tracks};
-
-async fn load_images_parallel(
-    _proxy: &mut ContextProxy,
-    jobs: Vec<(usize, String)>,
-) -> Vec<(usize, String)> {
-    jobs
-}
+pub use search::search_tracks;
 
 pub struct BackendState {
     pub spotify: SpotifyService,

@@ -1,9 +1,9 @@
-use vizia::prelude::{ContextProxy, EventContext, Task, TaskHandle, TaskResult};
+use vizia::prelude::{EventContext, Task, TaskHandle, TaskResult};
 
-use crate::messages::{Album, Track};
+use crate::messages::Album;
 use crate::ui::events::{AlbumEvent, AlbumTracksData, SearchEvent, SystemEvent};
 
-use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
+use super::{SharedBackend, with_spotify_auth_retry};
 
 async fn fetch_album_tracks_inner(
     backend: SharedBackend,
@@ -37,26 +37,6 @@ async fn fetch_album_tracks_inner(
     })
 }
 
-async fn hydrate_album_artwork_inner(
-    mut data: AlbumTracksData,
-    proxy: &mut ContextProxy,
-) -> Result<AlbumTracksData, String> {
-    let image_key = if let Some(url) = &data.image_url {
-        let image_jobs = vec![(0usize, url.clone())];
-        let loaded = load_images_parallel(proxy, image_jobs).await;
-        loaded.into_iter().next().map(|(_, k)| k)
-    } else {
-        None
-    };
-
-    for track in &mut data.tracks {
-        track.album_image_key = image_key.clone();
-    }
-    data.image_key = image_key;
-
-    Ok(data)
-}
-
 pub fn fetch_album_tracks(
     backend: SharedBackend,
     album: Album,
@@ -71,65 +51,12 @@ pub fn fetch_album_tracks(
         })
         .name(task_name)
         .on_result(|result, proxy| match result {
-            TaskResult::Completed(data) => {
-                let track_count = data.track_count;
-                let _ = proxy.emit(AlbumEvent::AlbumTracks(AlbumTracksData {
-                    image_key: None,
-                    ..data.clone()
-                }));
-                if data.image_url.is_some() {
-                    let _ = proxy.emit(SystemEvent::StatusMessage(format!(
-                        "Loaded {} tracks from album. Loading artwork...",
-                        track_count
-                    )));
-                    let _ = proxy.emit(SearchEvent::HydrateAlbumArtwork(data));
-                } else {
-                    let _ = proxy.emit(SystemEvent::StatusMessage(format!(
-                        "Loaded {} tracks from album.",
-                        track_count
-                    )));
+            TaskResult::Completed(mut data) => {
+                data.image_key = data.image_url.clone();
+                for track in &mut data.tracks {
+                    track.album_image_key = data.image_key.clone();
                 }
-            }
-            TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvent::Error(err));
-            }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
-        }),
-    )
-}
 
-pub fn hydrate_album_artwork(
-    id: String,
-    name: String,
-    artist: String,
-    image_url: Option<String>,
-    tracks: Vec<Track>,
-    release_year: Option<u32>,
-    track_count: usize,
-    total_duration_ms: u64,
-    cx: &EventContext<'_>,
-) -> TaskHandle {
-    let proxy = cx.get_proxy();
-    let task_name = ("hydrate-album-artwork", id.clone());
-    cx.add_task(
-        Task::new(move |_| {
-            let mut proxy = proxy.clone();
-            let data = AlbumTracksData {
-                id: id.clone(),
-                name: name.clone(),
-                artist: artist.clone(),
-                image_url: image_url.clone(),
-                image_key: None,
-                tracks: tracks.clone(),
-                release_year,
-                track_count,
-                total_duration_ms,
-            };
-            async move { hydrate_album_artwork_inner(data, &mut proxy).await }
-        })
-        .name(task_name)
-        .on_result(|result, proxy| match result {
-            TaskResult::Completed(data) => {
                 let track_count = data.track_count;
                 let _ = proxy.emit(AlbumEvent::AlbumTracks(data));
                 let _ = proxy.emit(SystemEvent::StatusMessage(format!(

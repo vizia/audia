@@ -3,7 +3,7 @@ use vizia::prelude::{ContextProxy, EventContext, Task, TaskHandle, TaskResult};
 use crate::messages::PlaylistEntry;
 use crate::ui::events::{PlaylistsEvent, SystemEvent};
 
-use super::{SharedBackend, load_images_parallel, with_spotify_auth_retry};
+use super::{SharedBackend, with_spotify_auth_retry};
 
 #[derive(Clone, Debug)]
 struct PlaylistCreatedResult {
@@ -27,7 +27,6 @@ struct PlaylistTracksRefreshRequest {
 #[derive(Clone, Debug)]
 struct RefreshUserPlaylistsResult {
     playlists: Vec<PlaylistEntry>,
-    artwork_urls: Vec<Option<String>>,
 }
 
 async fn refresh_user_playlists_inner(
@@ -39,64 +38,17 @@ async fn refresh_user_playlists_inner(
     .await?;
 
     let mut mapped = Vec::with_capacity(playlists.len());
-    let mut artwork_urls = Vec::with_capacity(playlists.len());
-
     for playlist in playlists {
         mapped.push(PlaylistEntry {
             name: playlist.name,
-            image_key: None,
+            image_key: playlist.image_url,
             id: playlist.id,
             track_count: playlist.track_count,
             total_duration_ms: 0,
         });
-        artwork_urls.push(playlist.image_url);
     }
 
-    Ok(RefreshUserPlaylistsResult {
-        playlists: mapped,
-        artwork_urls,
-    })
-}
-
-pub fn hydrate_user_playlist_artwork(
-    playlists: Vec<PlaylistEntry>,
-    artwork_urls: Vec<Option<String>>,
-    cx: &EventContext<'_>,
-) -> TaskHandle {
-    let proxy = cx.get_proxy();
-    cx.add_task(
-        Task::new(move |_| {
-            let mut proxy = proxy.clone();
-            let mut playlists = playlists.clone();
-            let artwork_urls = artwork_urls.clone();
-            async move {
-                let image_jobs = artwork_urls
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(index, url)| url.as_ref().map(|url| (index, url.clone())))
-                    .collect::<Vec<_>>();
-
-                let loaded_images = load_images_parallel(&mut proxy, image_jobs).await;
-                for (index, key) in loaded_images {
-                    if let Some(playlist) = playlists.get_mut(index) {
-                        playlist.image_key = Some(key);
-                    }
-                }
-
-                Ok::<Vec<PlaylistEntry>, String>(playlists)
-            }
-        })
-        .name("hydrate-user-playlists-artwork")
-        .on_result(|result, proxy| match result {
-            TaskResult::Completed(playlists) => {
-                let _ = proxy.emit(PlaylistsEvent::Playlists(playlists));
-            }
-            TaskResult::Error(err) => {
-                let _ = proxy.emit(SystemEvent::Error(err));
-            }
-            TaskResult::Timeout | TaskResult::Cancelled | TaskResult::Disconnected { .. } => {}
-        }),
-    )
+    Ok(RefreshUserPlaylistsResult { playlists: mapped })
 }
 
 async fn fetch_playlist_tracks_inner(
@@ -113,43 +65,12 @@ async fn fetch_playlist_tracks_inner(
     .await;
 
     let (mut tracks, total) = first_page?;
+    for track in &mut tracks {
+        track.album_image_key = track.album_image_url.clone();
+    }
 
     let mut offset = tracks.len();
     let mut has_more = offset < total;
-
-    let count = tracks.len();
-    let total_duration_ms = tracks
-        .iter()
-        .map(|track| track.duration_ms as u64)
-        .sum::<u64>();
-    let _ = proxy.emit(PlaylistsEvent::PlaylistTracks {
-        request_id,
-        id: playlist_id.clone(),
-        name: playlist_name.clone(),
-        tracks: tracks.clone(),
-        track_count: count,
-        total_duration_ms,
-    });
-
-    let first_page_len = tracks.len();
-    let first_page_image_jobs = tracks
-        .iter()
-        .take(first_page_len)
-        .enumerate()
-        .filter_map(|(index, track)| {
-            track
-                .album_image_url
-                .as_ref()
-                .map(|url| (index, url.clone()))
-        })
-        .collect::<Vec<_>>();
-
-    let first_page_images = load_images_parallel(proxy, first_page_image_jobs).await;
-    for (index, key) in first_page_images {
-        if let Some(track) = tracks.get_mut(index) {
-            track.album_image_key = Some(key);
-        }
-    }
 
     let count = tracks.len();
     let total_duration_ms = tracks
@@ -177,45 +98,12 @@ async fn fetch_playlist_tracks_inner(
         .await;
 
         let (mut page_tracks, total) = page_result?;
+        for track in &mut page_tracks {
+            track.album_image_key = track.album_image_url.clone();
+        }
 
         let page_size = page_tracks.len();
-        let page_start = tracks.len();
         tracks.append(&mut page_tracks);
-
-        let count = tracks.len();
-        let total_duration_ms = tracks
-            .iter()
-            .map(|track| track.duration_ms as u64)
-            .sum::<u64>();
-        let _ = proxy.emit(PlaylistsEvent::PlaylistTracks {
-            request_id,
-            id: playlist_id.clone(),
-            name: playlist_name.clone(),
-            tracks: tracks.clone(),
-            track_count: count,
-            total_duration_ms,
-        });
-
-        let page_end = tracks.len();
-        let page_image_jobs = tracks
-            .iter()
-            .enumerate()
-            .skip(page_start)
-            .take(page_end - page_start)
-            .filter_map(|(index, track)| {
-                track
-                    .album_image_url
-                    .as_ref()
-                    .map(|url| (index, url.clone()))
-            })
-            .collect::<Vec<_>>();
-
-        let page_images = load_images_parallel(proxy, page_image_jobs).await;
-        for (index, key) in page_images {
-            if let Some(track) = tracks.get_mut(index) {
-                track.album_image_key = Some(key);
-            }
-        }
 
         let count = tracks.len();
         let total_duration_ms = tracks
@@ -264,11 +152,7 @@ pub fn refresh_user_playlists(backend: SharedBackend, cx: &EventContext<'_>) {
         .name("refresh-user-playlists")
         .on_result(|result, proxy| match result {
             TaskResult::Completed(payload) => {
-                let _ = proxy.emit(PlaylistsEvent::Playlists(payload.playlists.clone()));
-                let _ = proxy.emit(PlaylistsEvent::HydrateUserPlaylistsArtwork {
-                    playlists: payload.playlists,
-                    artwork_urls: payload.artwork_urls,
-                });
+                let _ = proxy.emit(PlaylistsEvent::Playlists(payload.playlists));
             }
             TaskResult::Error(err) => {
                 let _ = proxy.emit(SystemEvent::Error(err));
@@ -389,9 +273,7 @@ pub fn delete_playlist(backend: SharedBackend, playlist_id: String, cx: &EventCo
         .on_result(|result, proxy| match result {
             TaskResult::Completed(playlist_id) => {
                 let _ = proxy.emit(PlaylistsEvent::PlaylistDeleted(playlist_id));
-                let _ = proxy.emit(SystemEvent::StatusMessage(
-                    "Playlist removed.".to_string(),
-                ));
+                let _ = proxy.emit(SystemEvent::StatusMessage("Playlist removed.".to_string()));
                 let _ = proxy.emit(PlaylistsEvent::RefreshUserPlaylists);
             }
             TaskResult::Error(err) => {

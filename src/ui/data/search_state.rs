@@ -69,10 +69,6 @@ impl Model for SearchState {
                     results.albums.clone(),
                 );
             }
-            SearchEvent::HydrateArtwork(results) => {
-                Self::cancel_task(&mut self.active_search_task);
-                self.active_search_task = Some(worker::hydrate_search_artwork(results.clone(), cx));
-            }
             SearchEvent::LoadAlbumTracks(album) => {
                 self.status
                     .set(format!("Loading tracks for '{}'...", album.name));
@@ -80,35 +76,6 @@ impl Model for SearchState {
                 self.active_album_task = Some(worker::fetch_album_tracks(
                     self.backend.clone(),
                     album.clone(),
-                    cx,
-                ));
-            }
-            SearchEvent::HydrateAlbumArtwork(data) => {
-                Self::cancel_task(&mut self.active_album_task);
-                self.active_album_task = Some(worker::hydrate_album_artwork(
-                    data.id.clone(),
-                    data.name.clone(),
-                    data.artist.clone(),
-                    data.image_url.clone(),
-                    data.tracks.clone(),
-                    data.release_year,
-                    data.track_count,
-                    data.total_duration_ms,
-                    cx,
-                ));
-            }
-            SearchEvent::HydrateArtistArtwork {
-                id,
-                name,
-                image_url,
-                albums,
-            } => {
-                Self::cancel_task(&mut self.active_artist_task);
-                self.active_artist_task = Some(worker::hydrate_artist_artwork(
-                    id.clone(),
-                    name.clone(),
-                    image_url.clone(),
-                    albums.clone(),
                     cx,
                 ));
             }

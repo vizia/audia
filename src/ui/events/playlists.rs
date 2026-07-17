@@ -29,10 +29,6 @@ pub enum PlaylistsEvent {
     ShufflePlaylist,
     SetTrackFilter(String),
     Playlists(Vec<PlaylistEntry>),
-    HydrateUserPlaylistsArtwork {
-        playlists: Vec<PlaylistEntry>,
-        artwork_urls: Vec<Option<String>>,
-    },
     RefreshUserPlaylists,
     RefreshPlaylistTracks {
         request_id: u64,

@@ -24,13 +24,5 @@ pub enum SearchEvent {
     SetInput(String),
     SubmitQuery(String),
     Results(SearchResultsData),
-    HydrateArtwork(SearchResultsData),
     LoadAlbumTracks(Album),
-    HydrateAlbumArtwork(AlbumTracksData),
-    HydrateArtistArtwork {
-        id: String,
-        name: String,
-        image_url: Option<String>,
-        albums: Vec<Album>,
-    },
 }
